@@ -13,7 +13,6 @@ on:
 
 jobs:
   test:
-
     runs-on: ubuntu-latest
 
     strategy:
@@ -21,8 +20,21 @@ jobs:
         python-version:
           - "3.12"
 
-    steps:
+    env:
+      PYTHONPATH: backend
 
+      APP_NAME: "CI Test"
+      APP_VERSION: "1.0.0"
+      APP_DESCRIPTION: "CI Environment"
+
+      GEMINI_API_KEY: "dummy-key"
+
+      DEBUG: "true"
+
+      HOST: "127.0.0.1"
+      PORT: "8000"
+
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
