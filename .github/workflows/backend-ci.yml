@@ -15,14 +15,16 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: backend
+
     strategy:
       matrix:
         python-version:
           - "3.12"
 
     env:
-      PYTHONPATH: backend
-
       APP_NAME: "CI Test"
       APP_VERSION: "1.0.0"
       APP_DESCRIPTION: "CI Environment"
@@ -35,29 +37,30 @@ jobs:
       PORT: "8000"
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Upgrade pip
-        run: |
-          python -m pip install --upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Show working directory
         run: |
-          pip install -r requirements.txt
+          pwd
+          ls
+          python -c "import app; print('App imported successfully')"
 
       - name: Run tests
-        run: |
-          pytest
+        run: pytest
 
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+      - name: Upload coverage
         if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
-          path: coverage.xml
+          name: coverage
+          path: backend/coverage.xml
