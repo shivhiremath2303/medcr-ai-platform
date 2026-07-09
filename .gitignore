@@ -1,0 +1,94 @@
+# --------------------------
+# Python
+# --------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --------------------------
+# Virtual Environment
+# --------------------------
+.venv/
+venv/
+
+# --------------------------
+# Environment
+# --------------------------
+.env
+.env.*
+
+# --------------------------
+# Coverage
+# --------------------------
+.coverage
+coverage.xml
+htmlcov/
+
+# --------------------------
+# IDE
+# --------------------------
+.vscode/
+.idea/
+
+# --------------------------
+# Logs
+# --------------------------
+logs/
+*.log
+
+# --------------------------
+# Uploads
+# --------------------------
+backend/uploads/
+
+# --------------------------
+# FAISS Index
+# --------------------------
+backend/faiss/
+*.faiss
+*.pkl
+
+# --------------------------
+# Datasets
+# --------------------------
+datasets/raw/
+datasets/processed/
+
+# Keep folder structure
+!datasets/raw/.gitkeep
+!datasets/processed/.gitkeep
+
+# --------------------------
+# Models
+# --------------------------
+models/
+
+# Keep folder structure
+!models/.gitkeep
+
+# --------------------------
+# Build
+# --------------------------
+dist/
+build/
+
+# --------------------------
+# Node
+# --------------------------
+node_modules/
+
+# --------------------------
+# Jupyter
+# --------------------------
+.ipynb_checkpoints/
+
+# --------------------------
+# OS
+# --------------------------
+.DS_Store
+Thumbs.db
