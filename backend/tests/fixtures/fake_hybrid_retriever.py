@@ -1,4 +1,4 @@
-from app.models.search_result import SearchResult
+from app.domain.models.search_result import SearchResult
 
 
 class FakeHybridRetriever:

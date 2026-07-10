@@ -5,13 +5,14 @@ from langchain_core.documents import Document as LangChainDocument
 
 from app.core.config import settings
 from app.core.constants import DEFAULT_TOP_K, FAISS_INDEX_NAME
-from app.models.chunk import Chunk
-from app.models.metadata import Metadata
-from app.models.search_result import SearchResult
+from app.domain.models import Chunk
+from app.domain.models import Metadata
+from app.domain.models import SearchResult
+from app.domain.repositories import VectorStoreRepository
 from app.services.document.embeddings import EmbeddingService
 
 
-class VectorStoreService:
+class VectorStoreService(VectorStoreRepository):
     """
     Stores and searches document embeddings using FAISS.
 

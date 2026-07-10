@@ -1,4 +1,4 @@
-from app.models.chunk import Chunk
+from app.domain.models.chunk import Chunk
 
 
 class FakeBM25Retriever:

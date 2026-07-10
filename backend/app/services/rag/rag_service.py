@@ -1,7 +1,7 @@
 from app.services.llm.llm_service import LLMService
 from app.services.rag.conversation_memory import ConversationMemory
 from app.services.retrieval.context_builder import ContextBuilder
-from app.services.retrieval.query_rewriter import QueryRewriter
+from backend.app.services.rag.query_rewriter import QueryRewriter
 from app.services.retrieval.retrieval_service import RetrievalService
 
 

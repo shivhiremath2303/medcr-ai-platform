@@ -1,4 +1,4 @@
-from app.models.search_result import SearchResult
+from app.domain.models.search_result import SearchResult
 from app.services.retrieval.hybrid_retriever import HybridRetriever
 from tests.fixtures.chunk_factory import make_chunk
 from tests.fixtures.fake_bm25_retriever import FakeBM25Retriever

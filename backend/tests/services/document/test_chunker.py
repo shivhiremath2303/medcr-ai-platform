@@ -1,7 +1,7 @@
 from uuid import UUID
 
-from app.models.document import Document
-from app.models.page import Page
+from app.domain.models.document import Document
+from app.domain.models.page import Page
 from app.services.document.chunker import DocumentChunker
 
 

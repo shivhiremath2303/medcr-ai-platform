@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from app.models.document import Document
+from app.domain.models.document import Document
 from app.services.document.parser import DocumentParser
 
 

@@ -1,5 +1,5 @@
-from app.models.chunk import Chunk
-from app.models.metadata import Metadata
+from app.domain.models.chunk import Chunk
+from app.domain.models.metadata import Metadata
 
 
 def make_chunk(

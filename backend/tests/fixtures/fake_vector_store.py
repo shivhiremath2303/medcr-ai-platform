@@ -1,5 +1,5 @@
-from app.models.chunk import Chunk
-from app.models.search_result import SearchResult
+from app.domain.models.chunk import Chunk
+from app.domain.models.search_result import SearchResult
 
 
 class FakeVectorStore:

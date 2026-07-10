@@ -1,4 +1,4 @@
-from app.models.search_result import SearchResult
+from app.domain.models import SearchResult
 from app.services.document.vector_store import VectorStoreService
 from app.services.retrieval.bm25_retriever import BM25Retriever
 

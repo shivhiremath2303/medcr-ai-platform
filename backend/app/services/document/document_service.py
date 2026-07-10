@@ -1,5 +1,6 @@
 from app.core.logger import get_logger
-from app.models.document import Document
+from app.domain.models import Document
+from app.domain.repositories import DocumentRepository
 from app.services.document.chunker import DocumentChunker
 from app.services.document.cleaner import TextCleaner
 from app.services.document.parser import DocumentParser
@@ -8,7 +9,7 @@ from app.services.document.vector_store import VectorStoreService
 logger = get_logger(__name__)
 
 
-class DocumentService:
+class DocumentService(DocumentRepository):
     """
     Coordinates the complete document ingestion pipeline.
     """
@@ -93,3 +94,12 @@ class DocumentService:
             query=query,
             k=k,
         )
+
+    def save(self, document: Document) -> Document:
+        return document
+
+    def get_by_id(self, document_id: str) -> Document | None:
+        return None
+
+    def list_all(self) -> list[Document]:
+        return []

@@ -6,9 +6,9 @@ from app.core.constants import (
     CHUNK_OVERLAP,
     CHUNK_SIZE,
 )
-from app.models.chunk import Chunk as DomainChunk
-from app.models.document import Document
-from app.models.metadata import Metadata
+from app.domain.models import Chunk as DomainChunk
+from app.domain.models import Document
+from app.domain.models import Metadata
 from app.schemas.chunk import Chunk, ChunkMetadata
 
 

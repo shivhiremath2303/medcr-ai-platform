@@ -2,7 +2,7 @@ from app.core.constants import (
     MIN_RETRIEVAL_CANDIDATES,
     RETRIEVAL_CANDIDATE_MULTIPLIER,
 )
-from app.models.search_result import SearchResult
+from app.domain.models import SearchResult
 from app.services.retrieval.hybrid_retriever import HybridRetriever
 from app.services.retrieval.reranker import Reranker
 

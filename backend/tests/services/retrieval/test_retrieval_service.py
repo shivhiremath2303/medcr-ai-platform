@@ -1,7 +1,7 @@
 from app.core.constants import (
     MIN_RETRIEVAL_CANDIDATES,
 )
-from app.models.search_result import SearchResult
+from app.domain.models.search_result import SearchResult
 from app.services.retrieval.retrieval_service import RetrievalService
 from tests.fixtures.chunk_factory import make_chunk
 from tests.fixtures.fake_hybrid_retriever import FakeHybridRetriever

@@ -5,8 +5,8 @@ from docx import Document as DocxDocument
 from pypdf import PdfReader
 
 from app.core.constants import SUPPORTED_EXTENSIONS
-from app.models.document import Document
-from app.models.page import Page
+from app.domain.models import Document
+from app.domain.models import Page
 from app.schemas.page import DocumentPage
 
 

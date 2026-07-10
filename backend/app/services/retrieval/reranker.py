@@ -1,7 +1,6 @@
 from sentence_transformers import CrossEncoder
 
-from app.models.search_result import SearchResult
-
+from app.domain.models import SearchResult
 
 class Reranker:
     """
