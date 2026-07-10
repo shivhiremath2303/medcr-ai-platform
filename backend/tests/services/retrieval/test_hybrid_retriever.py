@@ -1,5 +1,5 @@
 from app.domain.models.search_result import SearchResult
-from app.services.retrieval.hybrid_retriever import HybridRetriever
+from app.infrastructure.retrieval.hybrid_retriever_adapter import HybridRetrieverAdapter
 from tests.fixtures.chunk_factory import make_chunk
 from tests.fixtures.fake_bm25_retriever import FakeBM25Retriever
 from tests.fixtures.fake_vector_store import FakeVectorStore
@@ -27,7 +27,7 @@ def test_build_bm25_index_indexes_all_chunks():
 
     bm25 = FakeBM25Retriever()
 
-    HybridRetriever(
+    HybridRetrieverAdapter(
         vector_store=vector_store,
         keyword_retriever=bm25,
     )
@@ -80,7 +80,7 @@ def test_retrieve_merges_vector_and_bm25_results():
         ],
     )
 
-    retriever = HybridRetriever(
+    retriever = HybridRetrieverAdapter(
         vector_store=vector_store,
         keyword_retriever=bm25,
     )
@@ -129,7 +129,7 @@ def test_retrieve_returns_only_vector_results_when_bm25_is_empty():
         ),
     ]
 
-    retriever = HybridRetriever(
+    retriever = HybridRetrieverAdapter(
         vector_store=FakeVectorStore(
             chunks=[
                 chunk_1,
@@ -162,7 +162,7 @@ def test_retrieve_returns_only_bm25_results_when_vector_search_is_empty():
         "The defendant breached the contract.",
     )
 
-    retriever = HybridRetriever(
+    retriever = HybridRetrieverAdapter(
         vector_store=FakeVectorStore(
             chunks=[
                 chunk_1,

@@ -1,8 +1,8 @@
 from app.domain.repositories.llm_provider import LLMProvider
-from app.services.rag.conversation_memory import ConversationMemory
-from app.services.retrieval.context_builder import ContextBuilder
-from app.services.rag.query_rewriter import QueryRewriter
-from app.services.retrieval.retrieval_service import RetrievalService
+from app.domain.repositories.conversation_repository import ConversationRepository
+from app.domain.repositories.retriever import Retriever
+from app.domain.repositories.query_rewriter import QueryRewriter
+from app.domain.repositories.context_builder import ContextBuilder
 
 
 class RAGService:
@@ -12,10 +12,10 @@ class RAGService:
 
     def __init__(
         self,
-        retrieval_service: RetrievalService,
+        retrieval_service: Retriever,
         llm_provider: LLMProvider,
         query_rewriter: QueryRewriter,
-        memory: ConversationMemory,
+        memory: ConversationRepository,
         context_builder: ContextBuilder,
     ):
         self.retrieval_service = retrieval_service

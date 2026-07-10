@@ -4,9 +4,9 @@ from app.domain.repositories.keyword_retriever import KeywordRetriever
 from app.domain.repositories.retriever import Retriever
 
 
-class HybridRetriever(Retriever):
+class HybridRetrieverAdapter(Retriever):
     """
-    Combines vector search and BM25 keyword search.
+    Adapter that combines vector search and BM25 keyword search.
     """
 
     def __init__(
@@ -23,7 +23,8 @@ class HybridRetriever(Retriever):
         Build the keyword index using all indexed chunks.
         """
         chunks = self.vector_store.get_all_chunks()
-        self.keyword_retriever.index(chunks)
+        if chunks:
+            self.keyword_retriever.index(chunks)
 
     def retrieve(
         self,

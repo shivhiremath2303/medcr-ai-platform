@@ -7,9 +7,10 @@ from app.domain.repositories.retriever import Retriever
 from app.domain.repositories.reranker import Reranker
 
 
-class RetrievalService:
+class RetrievalService(Retriever):
     """
     Retrieves and reranks the most relevant chunks.
+    Implements the Retriever interface.
     """
 
     def __init__(

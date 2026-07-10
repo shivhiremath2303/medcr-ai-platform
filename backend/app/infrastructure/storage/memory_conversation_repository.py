@@ -1,11 +1,10 @@
 from collections import deque
+from app.domain.repositories.conversation_repository import ConversationRepository
 
-from app.domain.repositories import ConversationRepository
 
-
-class ConversationMemory(ConversationRepository):
+class MemoryConversationRepository(ConversationRepository):
     """
-    Stores the recent conversation history.
+    In-memory implementation of conversation history.
     """
 
     def __init__(self, max_messages: int = 10):
