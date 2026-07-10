@@ -1,15 +1,14 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
 from app.schemas.answer import AnswerResponse
 from app.schemas.question import QuestionRequest
 from app.services.rag.rag_service import RAGService
+from app.di import get_rag_service
 
 router = APIRouter(
     prefix="/rag",
     tags=["RAG"],
 )
-
-rag_service = RAGService()
 
 
 @router.post(
@@ -18,6 +17,7 @@ rag_service = RAGService()
 )
 async def ask_question(
     request: QuestionRequest,
+    rag_service: RAGService = Depends(get_rag_service),
 ):
     """
     Ask a question about the uploaded legal documents.

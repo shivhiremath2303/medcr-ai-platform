@@ -1,7 +1,7 @@
 from app.services.llm.llm_service import LLMService
 from app.services.rag.conversation_memory import ConversationMemory
 from app.services.retrieval.context_builder import ContextBuilder
-from backend.app.services.rag.query_rewriter import QueryRewriter
+from app.services.rag.query_rewriter import QueryRewriter
 from app.services.retrieval.retrieval_service import RetrievalService
 
 
@@ -10,12 +10,27 @@ class RAGService:
     Coordinates the Retrieval-Augmented Generation workflow.
     """
 
-    def __init__(self):
-        self.retrieval_service = RetrievalService()
-        self.context_builder = ContextBuilder()
-        self.llm_service = LLMService()
-        self.memory = ConversationMemory()
-        self.query_rewriter = QueryRewriter()
+    def __init__(
+        self,
+        retrieval_service: RetrievalService | None = None,
+        context_builder: ContextBuilder | None = None,
+        llm_service: LLMService | None = None,
+        memory: ConversationMemory | None = None,
+        query_rewriter: QueryRewriter | None = None,
+    ):
+        # Allow constructor injection for all collaborators. Backwards-compatible
+        # defaults create the original components when not provided (useful for
+        # tests that directly instantiate RAGService).
+        self.retrieval_service = retrieval_service if retrieval_service is not None else RetrievalService()
+        self.context_builder = context_builder if context_builder is not None else ContextBuilder()
+        self.llm_service = llm_service if llm_service is not None else LLMService()
+        self.memory = memory if memory is not None else ConversationMemory()
+        # Ensure QueryRewriter uses the same LLMService instance to avoid
+        # creating multiple genai.Client instances.
+        if query_rewriter is not None:
+            self.query_rewriter = query_rewriter
+        else:
+            self.query_rewriter = QueryRewriter(llm_service=self.llm_service)
 
     def answer_question(
         self,
