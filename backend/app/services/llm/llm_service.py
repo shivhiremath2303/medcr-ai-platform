@@ -7,22 +7,19 @@ from app.prompts.legal_prompt import LEGAL_RAG_PROMPT
 class LLMService:
     """
     Handles interactions with the Large Language Model.
+
+    NOTE: Per DI rules the genai.Client must be injected by the composition root.
     """
 
     MODEL_NAME = "gemini-2.5-pro"
 
-    def __init__(self, client: genai.Client | None = None):
+    def __init__(self, client: genai.Client):
         """
-        Accept an injected genai.Client. If none provided, create one using
-        settings. This keeps backwards compatibility for tests that instantiate
-        LLMService without DI.
+        Require an injected genai.Client. Do NOT create clients inside services.
         """
         if client is None:
-            self.client = genai.Client(
-                api_key=settings.gemini_api_key,
-            )
-        else:
-            self.client = client
+            raise ValueError("genai.Client must be provided via dependency injection")
+        self.client = client
 
     def generate_answer(
         self,
