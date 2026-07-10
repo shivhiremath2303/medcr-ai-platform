@@ -6,7 +6,7 @@ requires-python = ">=3.12"
 
 [tool.pytest.ini_options]
 testpaths = [
-    "backend/tests",
+    "tests",
 ]
 
 python_files = [
@@ -25,14 +25,14 @@ addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
-    "--cov=backend/app",
+    "--cov=app",
     "--cov-report=term-missing",
     "--cov-report=xml",
 ]
 
 [tool.coverage.run]
 source = [
-    "backend/app",
+    "app",
 ]
 
 branch = true
