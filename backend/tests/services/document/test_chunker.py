@@ -2,7 +2,7 @@ from uuid import UUID
 
 from app.domain.models.document import Document
 from app.domain.models.page import Page
-from app.services.document.chunker import DocumentChunker
+from app.infrastructure.parser.langchain_chunker_adapter import LangChainChunkerAdapter
 
 
 def build_document(text: str) -> Document:
@@ -29,7 +29,7 @@ def test_chunk_creation():
 
     document = build_document("This is a short legal document.")
 
-    chunker = DocumentChunker()
+    chunker = LangChainChunkerAdapter()
 
     chunks = chunker.split_document(document)
 
@@ -43,7 +43,7 @@ def test_document_metadata_preserved():
 
     document = build_document("This is another legal document.")
 
-    chunker = DocumentChunker()
+    chunker = LangChainChunkerAdapter()
 
     chunks = chunker.split_document(document)
 
@@ -60,7 +60,7 @@ def test_chunk_id_is_uuid():
 
     document = build_document("Testing UUID generation.")
 
-    chunker = DocumentChunker()
+    chunker = LangChainChunkerAdapter()
 
     chunks = chunker.split_document(document)
 
@@ -75,7 +75,7 @@ def test_empty_document():
 
     document = build_document("")
 
-    chunker = DocumentChunker()
+    chunker = LangChainChunkerAdapter()
 
     chunks = chunker.split_document(document)
 
@@ -91,7 +91,7 @@ def test_long_document_creates_multiple_chunks():
 
     document = build_document(text)
 
-    chunker = DocumentChunker()
+    chunker = LangChainChunkerAdapter()
 
     chunks = chunker.split_document(document)
 

@@ -1,10 +1,10 @@
 from app.core.logger import get_logger
 from app.domain.models import Document
-from app.domain.repositories import DocumentRepository
-from app.services.document.chunker import DocumentChunker
+from app.domain.repositories.document_repository import DocumentRepository
+from app.domain.repositories.chunker import Chunker
+from app.domain.repositories.document_parser import DocumentParser
+from app.domain.repositories.vector_store_repository import VectorStoreRepository
 from app.services.document.cleaner import TextCleaner
-from app.services.document.parser import DocumentParser
-from app.services.document.vector_store import VectorStoreService
 
 logger = get_logger(__name__)
 
@@ -14,22 +14,21 @@ class DocumentService(DocumentRepository):
     Coordinates the complete document ingestion pipeline.
     """
 
-    def __init__(self, vector_store: VectorStoreService | None = None):
-        self.chunker = DocumentChunker()
+    def __init__(
+        self,
+        chunker: Chunker,
+        vector_store: VectorStoreRepository,
+        parser: DocumentParser,
+    ):
+        self.chunker = chunker
+        self.vector_store = vector_store
+        self.parser = parser
 
-        if vector_store is None:
-            from app.di import get_vector_store
-
-            self.vector_store = get_vector_store()
-
-            loaded = self.vector_store.load()
-
-            if loaded:
-                logger.info("Loaded existing FAISS index.")
-            else:
-                logger.info("No existing FAISS index found. A new index will be created.")
+        loaded = self.vector_store.load()
+        if loaded:
+            logger.info("Loaded existing vector index.")
         else:
-            self.vector_store = vector_store
+            logger.info("No existing vector index found. A new index will be created.")
 
     def ingest_document(
         self,
@@ -42,7 +41,7 @@ class DocumentService(DocumentRepository):
         logger.info("Starting document ingestion: %s", file_path)
 
         # Parse into the domain model.
-        document: Document = DocumentParser.parse_document(file_path)
+        document: Document = self.parser.parse_document(file_path)
 
         logger.info(
             "Parsed document '%s' (%d pages).",

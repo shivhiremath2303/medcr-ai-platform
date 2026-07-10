@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from app.domain.models.document import Document
-from app.services.document.parser import DocumentParser
+from app.infrastructure.parser.document_parser_adapter import DocumentParserAdapter
 
 
 def test_parse_pdf(fixtures_dir: Path):
@@ -12,8 +12,9 @@ def test_parse_pdf(fixtures_dir: Path):
     """
 
     pdf_file = fixtures_dir / "sample.pdf"
+    parser = DocumentParserAdapter()
 
-    document = DocumentParser.parse_document(
+    document = parser.parse_document(
         str(pdf_file),
     )
 
@@ -29,8 +30,9 @@ def test_parse_docx(fixtures_dir: Path):
     """
 
     docx_file = fixtures_dir / "sample.docx"
+    parser = DocumentParserAdapter()
 
-    document = DocumentParser.parse_document(
+    document = parser.parse_document(
         str(docx_file),
     )
 
@@ -46,10 +48,11 @@ def test_unsupported_file_type(tmp_path: Path):
     """
 
     file = tmp_path / "sample.txt"
+    parser = DocumentParserAdapter()
 
     file.write_text("Hello World")
 
     with pytest.raises(ValueError):
-        DocumentParser.parse_document(
+        parser.parse_document(
             str(file),
         )

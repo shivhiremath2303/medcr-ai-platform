@@ -1,4 +1,5 @@
 from langchain_core.embeddings import Embeddings
+from app.domain.repositories.embedding_repository import EmbeddingRepository
 
 
 class FakeEmbeddings(Embeddings):
@@ -32,10 +33,16 @@ class FakeEmbeddings(Embeddings):
         ]
 
 
-class FakeEmbeddingService:
+class FakeEmbeddingService(EmbeddingRepository, Embeddings):
     """
     Fake embedding service used by unit tests.
     """
 
     def __init__(self):
         self.model = FakeEmbeddings()
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return self.model.embed_documents(texts)
+
+    def embed_query(self, text: str) -> list[float]:
+        return self.model.embed_query(text)

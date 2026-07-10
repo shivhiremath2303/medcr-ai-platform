@@ -1,9 +1,9 @@
-from app.services.retrieval.bm25_retriever import BM25Retriever
+from app.infrastructure.retrieval.bm25_adapter import BM25Adapter
 from tests.fixtures.chunk_factory import make_chunk
 
 
 def test_index_builds_bm25_index():
-    retriever = BM25Retriever()
+    retriever = BM25Adapter()
 
     chunks = [
         make_chunk(
@@ -24,11 +24,10 @@ def test_index_builds_bm25_index():
 
     assert retriever.bm25 is not None
     assert retriever.chunks == chunks
-    assert len(retriever.tokenized_documents) == len(chunks)
 
 
 def test_search_returns_matching_chunks():
-    retriever = BM25Retriever()
+    retriever = BM25Adapter()
 
     chunk_1 = make_chunk(
         "chunk-1",
@@ -66,7 +65,7 @@ def test_search_returns_matching_chunks():
 
 
 def test_search_returns_empty_when_not_indexed():
-    retriever = BM25Retriever()
+    retriever = BM25Adapter()
 
     results = retriever.search(
         query="contract",
@@ -77,7 +76,7 @@ def test_search_returns_empty_when_not_indexed():
 
 
 def test_search_respects_k_limit():
-    retriever = BM25Retriever()
+    retriever = BM25Adapter()
 
     chunks = [
         make_chunk(
@@ -105,7 +104,7 @@ def test_search_respects_k_limit():
 
 
 def test_search_returns_empty_when_no_match():
-    retriever = BM25Retriever()
+    retriever = BM25Adapter()
 
     chunks = [
         make_chunk(

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from app.services.document.vector_store import VectorStoreService
+from app.infrastructure.vectorstore.faiss_repository import FAISSVectorRepository
 from tests.fixtures.chunk_factory import make_chunk
 from tests.fixtures.fake_embeddings import FakeEmbeddingService
 
@@ -10,8 +10,8 @@ from tests.fixtures.fake_embeddings import FakeEmbeddingService
 def test_create_builds_faiss_index():
     embedding_service = FakeEmbeddingService()
 
-    vector_store = VectorStoreService(
-        embedding_service=embedding_service,
+    vector_store = FAISSVectorRepository(
+        embedding_provider=embedding_service,
     )
 
     chunks = [
@@ -37,8 +37,8 @@ def test_create_builds_faiss_index():
 def test_similarity_search_returns_ranked_results():
     embedding_service = FakeEmbeddingService()
 
-    vector_store = VectorStoreService(
-        embedding_service=embedding_service,
+    vector_store = FAISSVectorRepository(
+        embedding_provider=embedding_service,
     )
 
     chunks = [
@@ -82,8 +82,8 @@ def test_similarity_search_returns_ranked_results():
 def test_save_and_load_restores_vector_store(tmp_path: Path):
     embedding_service = FakeEmbeddingService()
 
-    original_store = VectorStoreService(
-        embedding_service=embedding_service,
+    original_store = FAISSVectorRepository(
+        embedding_provider=embedding_service,
         faiss_dir=tmp_path,
     )
 
@@ -101,8 +101,8 @@ def test_save_and_load_restores_vector_store(tmp_path: Path):
     original_store.create(chunks)
     original_store.save()
 
-    restored_store = VectorStoreService(
-        embedding_service=embedding_service,
+    restored_store = FAISSVectorRepository(
+        embedding_provider=embedding_service,
         faiss_dir=tmp_path,
     )
 
@@ -124,8 +124,8 @@ def test_save_and_load_restores_vector_store(tmp_path: Path):
 
 
 def test_load_returns_false_when_index_does_not_exist(tmp_path: Path):
-    vector_store = VectorStoreService(
-        embedding_service=FakeEmbeddingService(),
+    vector_store = FAISSVectorRepository(
+        embedding_provider=FakeEmbeddingService(),
         faiss_dir=tmp_path,
     )
 
@@ -134,8 +134,8 @@ def test_load_returns_false_when_index_does_not_exist(tmp_path: Path):
 
 
 def test_save_raises_when_vector_store_not_created():
-    vector_store = VectorStoreService(
-        embedding_service=FakeEmbeddingService(),
+    vector_store = FAISSVectorRepository(
+        embedding_provider=FakeEmbeddingService(),
     )
 
     with pytest.raises(
@@ -146,8 +146,8 @@ def test_save_raises_when_vector_store_not_created():
 
 
 def test_similarity_search_raises_when_vector_store_not_created():
-    vector_store = VectorStoreService(
-        embedding_service=FakeEmbeddingService(),
+    vector_store = FAISSVectorRepository(
+        embedding_provider=FakeEmbeddingService(),
     )
 
     with pytest.raises(
@@ -158,8 +158,8 @@ def test_similarity_search_raises_when_vector_store_not_created():
 
 
 def test_get_all_chunks_raises_when_vector_store_not_created():
-    vector_store = VectorStoreService(
-        embedding_service=FakeEmbeddingService(),
+    vector_store = FAISSVectorRepository(
+        embedding_provider=FakeEmbeddingService(),
     )
 
     with pytest.raises(
@@ -170,8 +170,8 @@ def test_get_all_chunks_raises_when_vector_store_not_created():
 
 
 def test_get_all_chunks_returns_all_indexed_chunks():
-    vector_store = VectorStoreService(
-        embedding_service=FakeEmbeddingService(),
+    vector_store = FAISSVectorRepository(
+        embedding_provider=FakeEmbeddingService(),
     )
 
     chunks = [

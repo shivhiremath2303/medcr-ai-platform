@@ -29,7 +29,7 @@ def test_build_bm25_index_indexes_all_chunks():
 
     HybridRetriever(
         vector_store=vector_store,
-        bm25=bm25,
+        keyword_retriever=bm25,
     )
 
     assert bm25.chunks == chunks
@@ -82,7 +82,7 @@ def test_retrieve_merges_vector_and_bm25_results():
 
     retriever = HybridRetriever(
         vector_store=vector_store,
-        bm25=bm25,
+        keyword_retriever=bm25,
     )
 
     results = retriever.retrieve(
@@ -137,7 +137,7 @@ def test_retrieve_returns_only_vector_results_when_bm25_is_empty():
             ],
             search_results=vector_results,
         ),
-        bm25=FakeBM25Retriever(),
+        keyword_retriever=FakeBM25Retriever(),
     )
 
     results = retriever.retrieve(
@@ -170,7 +170,7 @@ def test_retrieve_returns_only_bm25_results_when_vector_search_is_empty():
             ],
             search_results=[],
         ),
-        bm25=FakeBM25Retriever(
+        keyword_retriever=FakeBM25Retriever(
             search_results=[
                 chunk_1,
                 chunk_2,

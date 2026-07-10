@@ -10,7 +10,6 @@ router = APIRouter(
     tags=["RAG"],
 )
 
-
 @router.post(
     "/ask",
     response_model=AnswerResponse,
@@ -24,13 +23,13 @@ async def ask_question(
     """
 
     try:
-        answer = rag_service.answer_question(
+        answer_data = rag_service.answer_question(
             question=request.question,
             k=request.k,
         )
 
         return AnswerResponse(
-            answer=answer,
+            answer=answer_data["answer"],
         )
 
     except Exception as e:

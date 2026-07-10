@@ -1,4 +1,4 @@
-from app.services.llm.llm_service import LLMService
+from app.domain.repositories.llm_provider import LLMProvider
 from app.services.rag.conversation_memory import ConversationMemory
 from app.services.retrieval.context_builder import ContextBuilder
 from app.services.rag.query_rewriter import QueryRewriter
@@ -12,46 +12,17 @@ class RAGService:
 
     def __init__(
         self,
-        retrieval_service: RetrievalService | None = None,
-        context_builder: ContextBuilder | None = None,
-        llm_service: LLMService | None = None,
-        memory: ConversationMemory | None = None,
-        query_rewriter: QueryRewriter | None = None,
+        retrieval_service: RetrievalService,
+        llm_provider: LLMProvider,
+        query_rewriter: QueryRewriter,
+        memory: ConversationMemory,
+        context_builder: ContextBuilder,
     ):
-        if retrieval_service is None:
-            from app.di import get_retrieval_service
-
-            self.retrieval_service = get_retrieval_service()
-        else:
-            self.retrieval_service = retrieval_service
-
-        if context_builder is None:
-            from app.di import get_context_builder
-
-            self.context_builder = get_context_builder()
-        else:
-            self.context_builder = context_builder
-
-        if llm_service is None:
-            from app.di import get_llm_service
-
-            self.llm_service = get_llm_service()
-        else:
-            self.llm_service = llm_service
-
-        if memory is None:
-            from app.di import get_conversation_memory
-
-            self.memory = get_conversation_memory()
-        else:
-            self.memory = memory
-
-        if query_rewriter is not None:
-            self.query_rewriter = query_rewriter
-        else:
-            from app.di import get_query_rewriter
-
-            self.query_rewriter = get_query_rewriter()
+        self.retrieval_service = retrieval_service
+        self.llm_provider = llm_provider
+        self.query_rewriter = query_rewriter
+        self.memory = memory
+        self.context_builder = context_builder
 
     def answer_question(
         self,
@@ -68,7 +39,7 @@ class RAGService:
         # Get conversation history
         memory_context = self.memory.get_context()
 
-        # Rewrite the question (currently returns the original question)
+        # Rewrite the question
         retrieval_query = self.query_rewriter.rewrite(
             question=question,
             conversation_context=memory_context,
@@ -84,7 +55,7 @@ class RAGService:
         context = self.context_builder.build(results)
 
         # Generate answer
-        answer = self.llm_service.generate_answer(
+        answer = self.llm_provider.generate_answer(
             question=question,
             context=context,
         )

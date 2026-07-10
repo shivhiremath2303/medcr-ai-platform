@@ -1,10 +1,11 @@
 from sentence_transformers import CrossEncoder
-
 from app.domain.models import SearchResult
+from app.domain.repositories.reranker import Reranker
 
-class Reranker:
+
+class CrossEncoderAdapter(Reranker):
     """
-    Reranks retrieval results using a CrossEncoder model.
+    Adapter for CrossEncoder reranking.
     """
 
     MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"
@@ -23,30 +24,16 @@ class Reranker:
         results: list[SearchResult],
         k: int,
     ) -> list[SearchResult]:
-        """
-        Rerank retrieval results.
-        """
-
         if not results:
             return []
 
-        pairs = [
-            (
-                query,
-                result.chunk.text,
-            )
-            for result in results
-        ]
-
+        pairs = [(query, result.chunk.text) for result in results]
         scores = self.model.predict(pairs)
 
         for result, score in zip(results, scores):
             result.score = float(score)
 
-        results.sort(
-            key=lambda result: result.score,
-            reverse=True,
-        )
+        results.sort(key=lambda x: x.score, reverse=True)
 
         for rank, result in enumerate(results, start=1):
             result.rank = rank

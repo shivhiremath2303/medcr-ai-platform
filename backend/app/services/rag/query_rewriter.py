@@ -1,4 +1,4 @@
-from app.services.llm.llm_service import LLMService
+from app.domain.repositories.llm_provider import LLMProvider
 
 
 class QueryRewriter:
@@ -6,13 +6,8 @@ class QueryRewriter:
     Rewrites follow-up questions into standalone questions.
     """
 
-    def __init__(self, llm_service: LLMService | None = None):
-        if llm_service is None:
-            from app.di import get_llm_service
-
-            self.llm_service = get_llm_service()
-        else:
-            self.llm_service = llm_service
+    def __init__(self, llm_provider: LLMProvider):
+        self.llm_provider = llm_provider
 
     def rewrite(
         self,
@@ -22,15 +17,14 @@ class QueryRewriter:
         """
         Rewrite the user's question into a standalone question.
 
-        Disabled during development to avoid an extra LLM call.
+        Note: Currently returns the original question to avoid extra LLM calls
+        during development, but can be switched to production mode.
         """
+        # Production mode:
+        # return self.llm_provider.rewrite_question(
+        #     question=question,
+        #     conversation_context=conversation_context,
+        # )
 
-    # Development mode:
-    # return the original question directly.
+        # Development mode:
         return question
-
-    # Production:
-    # return self.llm_service.rewrite_question(
-    #     question=question,
-    #     conversation_context=conversation_context,
-    # )
