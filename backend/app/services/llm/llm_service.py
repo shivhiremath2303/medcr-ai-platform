@@ -11,10 +11,18 @@ class LLMService:
 
     MODEL_NAME = "gemini-2.5-pro"
 
-    def __init__(self):
-        self.client = genai.Client(
-            api_key=settings.gemini_api_key,
-        )
+    def __init__(self, client: genai.Client | None = None):
+        """
+        Accept an injected genai.Client. If none provided, create one using
+        settings. This keeps backwards compatibility for tests that instantiate
+        LLMService without DI.
+        """
+        if client is None:
+            self.client = genai.Client(
+                api_key=settings.gemini_api_key,
+            )
+        else:
+            self.client = client
 
     def generate_answer(
         self,
