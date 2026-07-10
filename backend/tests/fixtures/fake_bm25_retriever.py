@@ -1,7 +1,8 @@
 from app.domain.models.chunk import Chunk
+from app.domain.repositories.keyword_retriever import KeywordRetriever
 
 
-class FakeBM25Retriever:
+class FakeBM25Retriever(KeywordRetriever):
     """
     Fake BM25 retriever for unit tests.
     """
@@ -11,9 +12,7 @@ class FakeBM25Retriever:
         search_results: list[Chunk] | None = None,
     ):
         self.chunks: list[Chunk] = []
-
         self.search_queries: list[str] = []
-
         self._search_results = search_results if search_results is not None else []
 
     def index(
@@ -25,8 +24,7 @@ class FakeBM25Retriever:
     def search(
         self,
         query: str,
-        k: int,
+        k: int = 5,
     ) -> list[Chunk]:
         self.search_queries.append(query)
-
         return self._search_results[:k]

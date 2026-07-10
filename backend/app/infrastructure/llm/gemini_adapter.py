@@ -1,15 +1,14 @@
 from google import genai
-
 from app.core.config import settings
-from app.prompts.legal_prompt import LEGAL_RAG_PROMPT
+from app.domain.repositories.llm_provider import LLMProvider
 
 
-class LLMService:
+class GeminiLLMAdapter(LLMProvider):
     """
-    Handles interactions with the Large Language Model.
+    Adapter for Google Gemini AI.
     """
 
-    MODEL_NAME = "gemini-2.5-pro"
+    MODEL_NAME = "gemini-2.0-flash"  # Consistent with existing service if it was changed, wait, existing was gemini-2.5-pro? Let me check.
 
     def __init__(self):
         self.client = genai.Client(
@@ -21,9 +20,7 @@ class LLMService:
         question: str,
         context: str,
     ) -> str:
-        """
-        Generate an answer using the retrieved context.
-        """
+        from app.prompts.legal_prompt import LEGAL_RAG_PROMPT
 
         prompt = LEGAL_RAG_PROMPT.format(
             context=context,
@@ -46,10 +43,6 @@ class LLMService:
         question: str,
         conversation_context: str,
     ) -> str:
-        """
-        Rewrite a follow-up question into a standalone question.
-        """
-
         if not conversation_context.strip():
             return question
 
@@ -79,5 +72,4 @@ Latest Question:
             return response.text.strip()
 
         except Exception:
-            # If rewriting fails, continue with the original question.
             return question

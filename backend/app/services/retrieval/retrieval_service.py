@@ -3,8 +3,8 @@ from app.core.constants import (
     RETRIEVAL_CANDIDATE_MULTIPLIER,
 )
 from app.domain.models import SearchResult
-from app.services.retrieval.hybrid_retriever import HybridRetriever
-from app.services.retrieval.reranker import Reranker
+from app.domain.repositories.retriever import Retriever
+from app.domain.repositories.reranker import Reranker
 
 
 class RetrievalService:
@@ -14,29 +14,11 @@ class RetrievalService:
 
     def __init__(
         self,
-        retriever: HybridRetriever | None = None,
-        reranker: Reranker | None = None,
+        retriever: Retriever,
+        reranker: Reranker,
     ):
-        """
-        Initialize the retrieval service.
-
-        Args:
-            retriever:
-                Optional HybridRetriever.
-                Mainly used for testing.
-
-            reranker:
-                Optional Reranker.
-                Mainly used for testing.
-        """
-
-        self.retriever = retriever if retriever is not None else HybridRetriever()
-
-        self.reranker = reranker if reranker is not None else Reranker()
-
-    # ----------------------------------------------------------
-    # Retrieval
-    # ----------------------------------------------------------
+        self.retriever = retriever
+        self.reranker = reranker
 
     def retrieve(
         self,
