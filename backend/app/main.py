@@ -19,7 +19,14 @@ app = FastAPI(
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Application startup: initializing vector store...")
+    logger.info("Application startup: initializing models and vector store...")
+    # Initialize heavy models first (embeddings, cross-encoder, reranker, vector store)
+    try:
+        di.init_models()
+        logger.info("Model initialization complete.")
+    except Exception as e:
+        logger.warning(f"Model initialization failed or was skipped: {e}")
+
     loaded = di.init_vector_store()
     if loaded:
         logger.info("Loaded existing FAISS index on startup.")
