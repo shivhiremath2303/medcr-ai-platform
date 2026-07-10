@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.schemas.answer import AnswerResponse
 from app.schemas.question import QuestionRequest
 from app.services.rag.rag_service import RAGService
-from app.api.dependencies import get_rag_service
+from app.di import get_rag_service
 
 router = APIRouter(
     prefix="/rag",

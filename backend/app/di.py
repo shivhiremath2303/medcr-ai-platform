@@ -25,7 +25,7 @@ from app.services.rag.rag_service import RAGService
 from app.services.rag.conversation_memory import ConversationMemory
 from app.services.rag.query_rewriter import QueryRewriter
 
-# Singletons (if appropriate)
+# Singletons
 _embedding_provider = HuggingFaceEmbeddingAdapter()
 _vector_repository = FAISSVectorRepository(embedding_provider=_embedding_provider)
 _llm_provider = GeminiLLMAdapter()
@@ -57,6 +57,13 @@ def get_keyword_retriever() -> KeywordRetriever:
 def get_reranker() -> Reranker:
     return _reranker
 
+# Legacy compatibility/Service aliases for routes if they use these names
+def get_storage_service() -> StorageProvider:
+    return _storage_provider
+
+def get_llm_service() -> LLMProvider:
+    return _llm_provider
+
 # Services
 def get_document_service(
     chunker: Chunker = Depends(get_chunker),
@@ -76,6 +83,17 @@ def get_retrieval_service(
     )
     return RetrievalService(retriever=hybrid_retriever, reranker=reranker)
 
+def get_context_builder() -> ContextBuilder:
+    return ContextBuilder()
+
+def get_conversation_memory() -> ConversationMemory:
+    return ConversationMemory()
+
+def get_query_rewriter(
+    llm_provider: LLMProvider = Depends(get_llm_provider)
+) -> QueryRewriter:
+    return QueryRewriter(llm_provider=llm_provider)
+
 def get_rag_service(
     retrieval_service: RetrievalService = Depends(get_retrieval_service),
     llm_provider: LLMProvider = Depends(get_llm_provider),
@@ -84,6 +102,13 @@ def get_rag_service(
         retrieval_service=retrieval_service,
         llm_provider=llm_provider,
         query_rewriter=QueryRewriter(llm_provider=llm_provider),
-        memory=ConversationMemory(), # New memory per session/request if not stateful
+        memory=ConversationMemory(),
         context_builder=ContextBuilder()
     )
+
+# Lifecycle management
+def init_vector_store() -> bool:
+    return _vector_repository.load()
+
+def shutdown_vector_store_save() -> None:
+    _vector_repository.save()

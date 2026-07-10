@@ -10,10 +10,18 @@ class GeminiLLMAdapter(LLMProvider):
 
     MODEL_NAME = "gemini-2.0-flash"  # Consistent with existing service if it was changed, wait, existing was gemini-2.5-pro? Let me check.
 
-    def __init__(self):
-        self.client = genai.Client(
-            api_key=settings.gemini_api_key,
-        )
+    def __init__(self, client: genai.Client | None = None):
+        """
+        Accept an injected genai.Client. If none provided, create one using
+        settings. This keeps backwards compatibility for tests that instantiate
+        LLMService without DI.
+        """
+        if client is None:
+            from app.di import get_genai_client
+
+            self.client = get_genai_client()
+        else:
+            self.client = client
 
     def generate_answer(
         self,

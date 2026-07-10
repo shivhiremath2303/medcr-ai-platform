@@ -2,7 +2,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile, Depends
 
 from app.services.document.document_service import DocumentService
 from app.domain.repositories.storage_provider import StorageProvider
-from app.api.dependencies import get_document_service, get_storage_provider
+from app.di import get_document_service, get_storage_provider
 
 router = APIRouter(
     prefix="/documents",
