@@ -17,11 +17,10 @@ class DocumentService(DocumentRepository):
     def __init__(self, vector_store: VectorStoreService | None = None):
         self.chunker = DocumentChunker()
 
-        # Accept an injected VectorStoreService to allow the composition root to
-        # provide a singleton instance. If none is provided, create one and
-        # attempt to load any existing index (backwards-compatible behavior).
         if vector_store is None:
-            self.vector_store = VectorStoreService()
+            from app.di import get_vector_store
+
+            self.vector_store = get_vector_store()
 
             loaded = self.vector_store.load()
 

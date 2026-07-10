@@ -18,9 +18,9 @@ class LLMService:
         LLMService without DI.
         """
         if client is None:
-            self.client = genai.Client(
-                api_key=settings.gemini_api_key,
-            )
+            from app.di import get_genai_client
+
+            self.client = get_genai_client()
         else:
             self.client = client
 

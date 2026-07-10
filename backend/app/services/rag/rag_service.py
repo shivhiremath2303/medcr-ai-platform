@@ -18,19 +18,40 @@ class RAGService:
         memory: ConversationMemory | None = None,
         query_rewriter: QueryRewriter | None = None,
     ):
-        # Allow constructor injection for all collaborators. Backwards-compatible
-        # defaults create the original components when not provided (useful for
-        # tests that directly instantiate RAGService).
-        self.retrieval_service = retrieval_service if retrieval_service is not None else RetrievalService()
-        self.context_builder = context_builder if context_builder is not None else ContextBuilder()
-        self.llm_service = llm_service if llm_service is not None else LLMService()
-        self.memory = memory if memory is not None else ConversationMemory()
-        # Ensure QueryRewriter uses the same LLMService instance to avoid
-        # creating multiple genai.Client instances.
+        if retrieval_service is None:
+            from app.di import get_retrieval_service
+
+            self.retrieval_service = get_retrieval_service()
+        else:
+            self.retrieval_service = retrieval_service
+
+        if context_builder is None:
+            from app.di import get_context_builder
+
+            self.context_builder = get_context_builder()
+        else:
+            self.context_builder = context_builder
+
+        if llm_service is None:
+            from app.di import get_llm_service
+
+            self.llm_service = get_llm_service()
+        else:
+            self.llm_service = llm_service
+
+        if memory is None:
+            from app.di import get_conversation_memory
+
+            self.memory = get_conversation_memory()
+        else:
+            self.memory = memory
+
         if query_rewriter is not None:
             self.query_rewriter = query_rewriter
         else:
-            self.query_rewriter = QueryRewriter(llm_service=self.llm_service)
+            from app.di import get_query_rewriter
+
+            self.query_rewriter = get_query_rewriter()
 
     def answer_question(
         self,

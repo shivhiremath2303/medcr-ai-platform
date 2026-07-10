@@ -40,9 +40,12 @@ class VectorStoreService(VectorStoreRepository):
                 Mainly used for testing.
         """
 
-        self.embedding_service = (
-            embedding_service if embedding_service is not None else EmbeddingService()
-        )
+        if embedding_service is not None:
+            self.embedding_service = embedding_service
+        else:
+            from app.di import get_embedding_service
+
+            self.embedding_service = get_embedding_service()
 
         self.faiss_dir = faiss_dir if faiss_dir is not None else settings.faiss_dir
 

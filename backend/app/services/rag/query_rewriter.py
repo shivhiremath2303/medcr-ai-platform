@@ -7,9 +7,12 @@ class QueryRewriter:
     """
 
     def __init__(self, llm_service: LLMService | None = None):
-        # Accept an injected LLMService. Keep backwards compatibility by
-        # creating one if not provided.
-        self.llm_service = llm_service if llm_service is not None else LLMService()
+        if llm_service is None:
+            from app.di import get_llm_service
+
+            self.llm_service = get_llm_service()
+        else:
+            self.llm_service = llm_service
 
     def rewrite(
         self,

@@ -1,116 +1,199 @@
-from fastapi import Depends
+from __future__ import annotations
 
 from google import genai
-from sentence_transformers import CrossEncoder
 from langchain_huggingface import HuggingFaceEmbeddings
+from sentence_transformers import CrossEncoder
 
 from app.core.config import settings
 from app.core.constants import EMBEDDING_MODEL
-from app.services.rag.rag_service import RAGService
 from app.services.document.document_service import DocumentService
-from app.services.storage.file_storage import FileStorageService
-from app.services.llm.llm_service import LLMService
 from app.services.document.embeddings import EmbeddingService
 from app.services.document.vector_store import VectorStoreService
-from app.services.retrieval.reranker import Reranker
-from app.services.retrieval.hybrid_retriever import HybridRetriever
+from app.services.llm.llm_service import LLMService
+from app.services.rag.conversation_memory import ConversationMemory
+from app.services.rag.query_rewriter import QueryRewriter
+from app.services.rag.rag_service import RAGService
 from app.services.retrieval.bm25_retriever import BM25Retriever
+from app.services.retrieval.context_builder import ContextBuilder
+from app.services.retrieval.hybrid_retriever import HybridRetriever
 from app.services.retrieval.retrieval_service import RetrievalService
-
-# Composition root / dependency providers
-# Singleton storage service (filesystem adapter)
-_storage_singleton = FileStorageService()
-
-# Singleton genai client for Gemini
-_genai_client_singleton = genai.Client(api_key=settings.gemini_api_key)
-
-# Singleton embedding model (HuggingFace)
-_hf_embedding_model = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
-_embedding_service_singleton = EmbeddingService(model=_hf_embedding_model)
-
-# Singleton CrossEncoder model and Reranker
-_cross_encoder_model = CrossEncoder(Reranker.MODEL_NAME)
-_reranker_singleton = Reranker(model=_cross_encoder_model)
-
-# Singleton VectorStoreService (uses singleton embedding service)
-_vector_store_singleton = VectorStoreService(embedding_service=_embedding_service_singleton)
-
-# Hybrid retriever uses singleton vector store and a fresh BM25 retriever
-_hybrid_retriever_singleton = HybridRetriever(vector_store=_vector_store_singleton, bm25=BM25Retriever())
-
-# Retrieval service using singletons
-_retrieval_service_singleton = RetrievalService(retriever=_hybrid_retriever_singleton, reranker=_reranker_singleton)
+from app.services.retrieval.reranker import Reranker
+from app.services.storage.file_storage import FileStorageService
 
 
-def get_vector_store() -> VectorStoreService:
-    """Return the singleton VectorStoreService."""
-    return _vector_store_singleton
+class AppContainer:
+    def __init__(self) -> None:
+        self._settings = settings
+        self._storage_service: FileStorageService | None = None
+        self._genai_client: genai.Client | None = None
+        self._embedding_model: HuggingFaceEmbeddings | None = None
+        self._embedding_service: EmbeddingService | None = None
+        self._vector_store: VectorStoreService | None = None
+        self._cross_encoder_model: CrossEncoder | None = None
+        self._reranker: Reranker | None = None
+
+    def get_settings(self):
+        return self._settings
+
+    def get_storage_service(self) -> FileStorageService:
+        if self._storage_service is None:
+            self._storage_service = FileStorageService()
+        return self._storage_service
+
+    def get_genai_client(self) -> genai.Client:
+        if self._genai_client is None:
+            self._genai_client = genai.Client(api_key=self._settings.gemini_api_key)
+        return self._genai_client
+
+    def get_embedding_model(self) -> HuggingFaceEmbeddings:
+        if self._embedding_model is None:
+            self._embedding_model = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+        return self._embedding_model
+
+    def get_embedding_service(self) -> EmbeddingService:
+        if self._embedding_service is None:
+            self._embedding_service = EmbeddingService(model=self.get_embedding_model())
+        return self._embedding_service
+
+    def get_vector_store(self) -> VectorStoreService:
+        if self._vector_store is None:
+            self._vector_store = VectorStoreService(
+                embedding_service=self.get_embedding_service(),
+            )
+        return self._vector_store
+
+    def get_cross_encoder_model(self) -> CrossEncoder:
+        if self._cross_encoder_model is None:
+            self._cross_encoder_model = CrossEncoder(Reranker.MODEL_NAME)
+        return self._cross_encoder_model
+
+    def get_reranker(self) -> Reranker:
+        if self._reranker is None:
+            self._reranker = Reranker(model=self.get_cross_encoder_model())
+        return self._reranker
+
+    def get_bm25_retriever(self) -> BM25Retriever:
+        return BM25Retriever()
+
+    def get_hybrid_retriever(self) -> HybridRetriever:
+        return HybridRetriever(
+            vector_store=self.get_vector_store(),
+            bm25=self.get_bm25_retriever(),
+        )
+
+    def get_retrieval_service(self) -> RetrievalService:
+        return RetrievalService(
+            retriever=self.get_hybrid_retriever(),
+            reranker=self.get_reranker(),
+        )
+
+    def get_llm_service(self) -> LLMService:
+        return LLMService(client=self.get_genai_client())
+
+    def get_document_service(self) -> DocumentService:
+        return DocumentService(vector_store=self.get_vector_store())
+
+    def get_conversation_memory(self) -> ConversationMemory:
+        return ConversationMemory()
+
+    def get_context_builder(self) -> ContextBuilder:
+        return ContextBuilder()
+
+    def get_query_rewriter(self) -> QueryRewriter:
+        return QueryRewriter(llm_service=self.get_llm_service())
+
+    def get_rag_service(self) -> RAGService:
+        return RAGService(
+            retrieval_service=self.get_retrieval_service(),
+            context_builder=self.get_context_builder(),
+            llm_service=self.get_llm_service(),
+            memory=self.get_conversation_memory(),
+            query_rewriter=self.get_query_rewriter(),
+        )
+
+    def init_vector_store(self) -> bool:
+        try:
+            return self.get_vector_store().load()
+        except Exception:
+            return False
+
+    def shutdown_vector_store_save(self) -> None:
+        try:
+            self.get_vector_store().save()
+        except Exception:
+            pass
 
 
-def init_vector_store() -> bool:
-    """Attempt to load the FAISS index into the singleton vector store.
-
-    Returns True if an index was loaded, False otherwise.
-    """
-    try:
-        return _vector_store_singleton.load()
-    except Exception:
-        return False
+_container = AppContainer()
 
 
-def shutdown_vector_store_save() -> None:
-    """Attempt to save the FAISS index on shutdown. Exceptions are swallowed
-    to avoid crashing the shutdown process.
-    """
-    try:
-        _vector_store_singleton.save()
-    except Exception:
-        pass
-
-
-def get_genai_client() -> genai.Client:
-    """Return the singleton genai client."""
-    return _genai_client_singleton
-
-
-def get_llm_service() -> LLMService:
-    """Return an LLMService that uses the shared genai client."""
-    return LLMService(client=get_genai_client())
+def get_settings():
+    return _container.get_settings()
 
 
 def get_storage_service() -> FileStorageService:
-    """Return the singleton file storage service."""
-    return _storage_singleton
+    return _container.get_storage_service()
 
 
-def get_document_service() -> DocumentService:
-    """Request-scoped DocumentService.
+def get_genai_client() -> genai.Client:
+    return _container.get_genai_client()
 
-    DocumentService is constructed with the shared VectorStoreService singleton
-    so the same FAISS index and embeddings are reused.
-    """
-    return DocumentService(vector_store=get_vector_store())
+
+def get_embedding_model() -> HuggingFaceEmbeddings:
+    return _container.get_embedding_model()
+
+
+def get_embedding_service() -> EmbeddingService:
+    return _container.get_embedding_service()
+
+
+def get_vector_store() -> VectorStoreService:
+    return _container.get_vector_store()
 
 
 def get_reranker() -> Reranker:
-    """Return the shared Reranker singleton."""
-    return _reranker_singleton
+    return _container.get_reranker()
+
+
+def get_bm25_retriever() -> BM25Retriever:
+    return _container.get_bm25_retriever()
+
+
+def get_hybrid_retriever() -> HybridRetriever:
+    return _container.get_hybrid_retriever()
 
 
 def get_retrieval_service() -> RetrievalService:
-    """Return the shared RetrievalService that uses the singleton retriever and reranker."""
-    return _retrieval_service_singleton
+    return _container.get_retrieval_service()
+
+
+def get_llm_service() -> LLMService:
+    return _container.get_llm_service()
+
+
+def get_document_service() -> DocumentService:
+    return _container.get_document_service()
+
+
+def get_conversation_memory() -> ConversationMemory:
+    return _container.get_conversation_memory()
+
+
+def get_context_builder() -> ContextBuilder:
+    return _container.get_context_builder()
+
+
+def get_query_rewriter() -> QueryRewriter:
+    return _container.get_query_rewriter()
 
 
 def get_rag_service() -> RAGService:
-    """Request-scoped RAGService.
+    return _container.get_rag_service()
 
-    Provide shared retrieval and LLM services to the request-scoped RAGService.
-    """
-    llm = get_llm_service()
-    # Create a QueryRewriter that uses the same LLMService instance
-    from app.services.rag.query_rewriter import QueryRewriter
 
-    qr = QueryRewriter(llm_service=llm)
+def init_vector_store() -> bool:
+    return _container.init_vector_store()
 
-    return RAGService(llm_service=llm, query_rewriter=qr, retrieval_service=get_retrieval_service())
+
+def shutdown_vector_store_save() -> None:
+    _container.shutdown_vector_store_save()

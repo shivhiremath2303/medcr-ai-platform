@@ -30,9 +30,19 @@ class RetrievalService:
                 Mainly used for testing.
         """
 
-        self.retriever = retriever if retriever is not None else HybridRetriever()
+        if retriever is None:
+            from app.di import get_hybrid_retriever
 
-        self.reranker = reranker if reranker is not None else Reranker()
+            self.retriever = get_hybrid_retriever()
+        else:
+            self.retriever = retriever
+
+        if reranker is None:
+            from app.di import get_reranker
+
+            self.reranker = get_reranker()
+        else:
+            self.reranker = reranker
 
     # ----------------------------------------------------------
     # Retrieval

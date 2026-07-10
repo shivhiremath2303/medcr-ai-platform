@@ -1,8 +1,3 @@
-from langchain_huggingface import HuggingFaceEmbeddings
-
-from app.core.constants import EMBEDDING_MODEL
-
-
 class EmbeddingService:
     """
     Generates embeddings for document chunks.
@@ -12,9 +7,12 @@ class EmbeddingService:
         self,
         model=None,
     ):
-        self.model = model or HuggingFaceEmbeddings(
-            model_name=EMBEDDING_MODEL,
-        )
+        if model is None:
+            from app.di import get_embedding_model
+
+            self.model = get_embedding_model()
+        else:
+            self.model = model
 
     def embed_documents(
         self,
