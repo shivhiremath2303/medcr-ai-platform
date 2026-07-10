@@ -27,7 +27,9 @@ class HybridRetriever:
         """
 
         if vector_store is None:
-            self.vector_store = VectorStoreService()
+            from app.di import get_vector_store
+
+            self.vector_store = get_vector_store()
 
             loaded = self.vector_store.load()
 
@@ -38,7 +40,12 @@ class HybridRetriever:
         else:
             self.vector_store = vector_store
 
-        self.bm25 = bm25 if bm25 is not None else BM25Retriever()
+        if bm25 is None:
+            from app.di import get_bm25_retriever
+
+            self.bm25 = get_bm25_retriever()
+        else:
+            self.bm25 = bm25
 
         self._build_bm25_index()
 

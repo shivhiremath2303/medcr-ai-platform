@@ -7,15 +7,15 @@ BASE_DIR = Path(__file__).resolve().parents[3]
 
 
 class Settings(BaseSettings):
-    app_name: str
-    app_version: str
-    app_description: str
-    gemini_api_key: str
+    app_name: str = "medcr-ai-platform"
+    app_version: str = "1.0.0"
+    app_description: str = "Production-grade Legal AI RAG Platform"
+    gemini_api_key: str = ""
 
-    debug: bool
+    debug: bool = False
 
-    host: str
-    port: int
+    host: str = "0.0.0.0"
+    port: int = 8000
 
     # ----------------------------
     # File Upload Settings
@@ -32,8 +32,5 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-
-print("BASE_DIR:", BASE_DIR)
-print("ENV FILE:", BASE_DIR / ".env")
 
 settings = Settings()
