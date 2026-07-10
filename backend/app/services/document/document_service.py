@@ -9,7 +9,7 @@ from app.services.document.cleaner import TextCleaner
 logger = get_logger(__name__)
 
 
-class DocumentService(DocumentRepository):
+class DocumentService:
     """
     Coordinates the complete document ingestion pipeline.
     """
@@ -19,10 +19,12 @@ class DocumentService(DocumentRepository):
         chunker: Chunker,
         vector_store: VectorStoreRepository,
         parser: DocumentParser,
+        document_repository: DocumentRepository,
     ):
         self.chunker = chunker
         self.vector_store = vector_store
         self.parser = parser
+        self.document_repository = document_repository
 
         loaded = self.vector_store.load()
         if loaded:
@@ -73,6 +75,9 @@ class DocumentService(DocumentRepository):
 
         logger.info("Vector index saved successfully.")
 
+        # Persist document metadata.
+        self.document_repository.save(document)
+
         logger.info(
             "Completed ingestion of '%s'.",
             document.filename,
@@ -100,11 +105,8 @@ class DocumentService(DocumentRepository):
             k=k,
         )
 
-    def save(self, document: Document) -> Document:
-        return document
+    def get_document(self, document_id: str) -> Document | None:
+        return self.document_repository.get_by_id(document_id)
 
-    def get_by_id(self, document_id: str) -> Document | None:
-        return None
-
-    def list_all(self) -> list[Document]:
-        return []
+    def list_documents(self) -> list[Document]:
+        return self.document_repository.list_all()

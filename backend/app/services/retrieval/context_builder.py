@@ -1,6 +1,7 @@
 from app.domain.models import SearchResult
+from app.domain.repositories.context_builder import ContextBuilder as IContextBuilder
 
-class ContextBuilder:
+class ContextBuilder(IContextBuilder):
     """
     Builds LLM context from retrieval results.
 
@@ -8,8 +9,8 @@ class ContextBuilder:
     retrieval results into prompt-ready context.
     """
 
-    @staticmethod
     def build(
+        self,
         results: list[SearchResult],
     ) -> str:
         """

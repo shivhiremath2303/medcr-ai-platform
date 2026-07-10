@@ -1,7 +1,8 @@
 from app.domain.repositories.llm_provider import LLMProvider
+from app.domain.repositories.query_rewriter import QueryRewriter as IQueryRewriter
 
 
-class QueryRewriter:
+class QueryRewriter(IQueryRewriter):
     """
     Rewrites follow-up questions into standalone questions.
     """
