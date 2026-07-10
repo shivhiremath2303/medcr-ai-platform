@@ -110,7 +110,19 @@ def get_rag_service() -> RAGService:
     llm = get_llm_service()
     # Create a QueryRewriter that uses the same LLMService instance
     from app.services.rag.query_rewriter import QueryRewriter
+    from app.services.rag.conversation_memory import ConversationMemory
+    from app.services.retrieval.context_builder import ContextBuilder
 
     qr = QueryRewriter(llm_service=llm)
 
-    return RAGService(llm_service=llm, query_rewriter=qr, retrieval_service=get_retrieval_service())
+    # Create a request-scoped ConversationMemory and ContextBuilder
+    memory = ConversationMemory()
+    context_builder = ContextBuilder()
+
+    return RAGService(
+        retrieval_service=get_retrieval_service(),
+        context_builder=context_builder,
+        llm_service=llm,
+        memory=memory,
+        query_rewriter=qr,
+    )

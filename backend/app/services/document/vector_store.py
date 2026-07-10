@@ -24,28 +24,19 @@ class VectorStoreService(VectorStoreRepository):
 
     def __init__(
         self,
-        embedding_service: EmbeddingService | None = None,
+        embedding_service: EmbeddingService,
         faiss_dir: Path | None = None,
     ):
         """
-        Initialize the vector store.
+        Initialize the vector store with required embedding service.
 
         Args:
-            embedding_service:
-                Optional embedding service.
-                Mainly used for testing.
-
-            faiss_dir:
-                Optional directory where the FAISS index is stored.
-                Mainly used for testing.
+            embedding_service: EmbeddingService (injected)
+            faiss_dir: Optional directory where the FAISS index is stored.
         """
 
-        self.embedding_service = (
-            embedding_service if embedding_service is not None else EmbeddingService()
-        )
-
+        self.embedding_service = embedding_service
         self.faiss_dir = faiss_dir if faiss_dir is not None else settings.faiss_dir
-
         self.vector_store = None
 
     # ----------------------------------------------------------

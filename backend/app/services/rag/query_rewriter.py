@@ -6,10 +6,9 @@ class QueryRewriter:
     Rewrites follow-up questions into standalone questions.
     """
 
-    def __init__(self, llm_service: LLMService | None = None):
-        # Accept an injected LLMService. Keep backwards compatibility by
-        # creating one if not provided.
-        self.llm_service = llm_service if llm_service is not None else LLMService()
+    def __init__(self, llm_service: LLMService):
+        # Require an injected LLMService.
+        self.llm_service = llm_service
 
     def rewrite(
         self,

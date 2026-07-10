@@ -10,36 +10,21 @@ class HybridRetriever:
 
     def __init__(
         self,
-        vector_store: VectorStoreService | None = None,
-        bm25: BM25Retriever | None = None,
+        vector_store: VectorStoreService,
+        bm25: BM25Retriever,
     ):
         """
-        Initialize the hybrid retriever.
+        Initialize the hybrid retriever with required collaborators.
 
         Args:
-            vector_store:
-                Optional VectorStoreService.
-                Mainly used for testing.
-
-            bm25:
-                Optional BM25Retriever.
-                Mainly used for testing.
+            vector_store: VectorStoreService (injected)
+            bm25: BM25Retriever (injected)
         """
 
-        if vector_store is None:
-            self.vector_store = VectorStoreService()
+        self.vector_store = vector_store
+        self.bm25 = bm25
 
-            loaded = self.vector_store.load()
-
-            if not loaded:
-                raise RuntimeError(
-                    "No FAISS index found. Please ingest documents first."
-                )
-        else:
-            self.vector_store = vector_store
-
-        self.bm25 = bm25 if bm25 is not None else BM25Retriever()
-
+        # Build BM25 index from existing vector store chunks
         self._build_bm25_index()
 
     # ----------------------------------------------------------
