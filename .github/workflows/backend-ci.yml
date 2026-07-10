@@ -64,8 +64,20 @@ jobs:
           ls -la
           python -c "import app; print('App imported successfully')"
 
-      - name: Run tests with coverage
+      - name: Show domain models files
         run: |
+          echo "Working dir: $(pwd)"
+          echo "Listing app/domain:"
+          ls -la app/domain || true
+          echo "Listing app/domain/models:"
+          ls -la app/domain/models || true
+
+      - name: Run tests with coverage
+        env:
+          PYTHONPATH: "${{ github.workspace }}/backend"
+        run: |
+          echo "PYTHONPATH=$PYTHONPATH"
+          python -c "import sys; print('sys.path:', sys.path)"
           coverage run -m pytest -q
           coverage xml -i
 
