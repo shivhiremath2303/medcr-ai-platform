@@ -21,8 +21,8 @@ from app.services.retrieval.retrieval_service import RetrievalService
 # Singleton storage service (filesystem adapter)
 _storage_singleton = FileStorageService()
 
-# Singleton genai client for Gemini
-_genai_client_singleton = genai.Client(api_key=settings.gemini_api_key)
+# Singleton genai client for Gemini (created on-demand or during init_models)
+_genai_client_singleton = None
 
 # Placeholders for heavy models — will be initialized at startup
 _hf_embedding_model = None
@@ -50,6 +50,11 @@ def init_models() -> None:
     if _cross_encoder_model is None:
         _cross_encoder_model = CrossEncoder(Reranker.MODEL_NAME)
         _reranker_singleton = Reranker(model=_cross_encoder_model)
+
+    # Create genai client singleton at startup if not already created
+    global _genai_client_singleton
+    if _genai_client_singleton is None:
+        _genai_client_singleton = genai.Client(api_key=settings.gemini_api_key)
 
     # Ensure vector store and retrieval are created once models exist
     if _vector_store_singleton is None:
@@ -85,7 +90,15 @@ def shutdown_vector_store_save() -> None:
 
 
 def get_genai_client() -> genai.Client:
-    """Return the singleton genai client."""
+    """Return the singleton genai client.
+
+    If the client has not been initialized via init_models(), create it on-demand
+    for backwards compatibility. Prefer calling init_models() at FastAPI startup
+    to control when network/SDK initialization happens.
+    """
+    global _genai_client_singleton
+    if _genai_client_singleton is None:
+        _genai_client_singleton = genai.Client(api_key=settings.gemini_api_key)
     return _genai_client_singleton
 
 
