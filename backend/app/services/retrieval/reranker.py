@@ -9,13 +9,12 @@ class Reranker:
 
     MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
-    def __init__(self, model: CrossEncoder | None = None):
+    def __init__(self, model: CrossEncoder):
         """
-        Accept an injected CrossEncoder model. If none is provided, create one
-        using the default MODEL_NAME. This allows the composition root to
-        provide a shared model instance.
+        Require an injected CrossEncoder model. The composition root provides
+        the shared model instance.
         """
-        self.model = model if model is not None else CrossEncoder(self.MODEL_NAME)
+        self.model = model
 
     def rerank(
         self,

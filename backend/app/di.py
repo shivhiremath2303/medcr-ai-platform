@@ -21,25 +21,46 @@ from app.services.retrieval.retrieval_service import RetrievalService
 # Singleton storage service (filesystem adapter)
 _storage_singleton = FileStorageService()
 
-# Singleton genai client for Gemini
-_genai_client_singleton = genai.Client(api_key=settings.gemini_api_key)
+# Singleton genai client for Gemini (created on-demand or during init_models)
+_genai_client_singleton = None
 
-# Singleton embedding model (HuggingFace)
-_hf_embedding_model = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
-_embedding_service_singleton = EmbeddingService(model=_hf_embedding_model)
+# Placeholders for heavy models — will be initialized at startup
+_hf_embedding_model = None
+_embedding_service_singleton = None
 
-# Singleton CrossEncoder model and Reranker
-_cross_encoder_model = CrossEncoder(Reranker.MODEL_NAME)
-_reranker_singleton = Reranker(model=_cross_encoder_model)
+_cross_encoder_model = None
+_reranker_singleton = None
 
-# Singleton VectorStoreService (uses singleton embedding service)
-_vector_store_singleton = VectorStoreService(embedding_service=_embedding_service_singleton)
+# Vector store and retrieval singletons (created after models are initialized)
+_vector_store_singleton = None
+_hybrid_retriever_singleton = None
+_retrieval_service_singleton = None
 
-# Hybrid retriever uses singleton vector store and a fresh BM25 retriever
-_hybrid_retriever_singleton = HybridRetriever(vector_store=_vector_store_singleton, bm25=BM25Retriever())
 
-# Retrieval service using singletons
-_retrieval_service_singleton = RetrievalService(retriever=_hybrid_retriever_singleton, reranker=_reranker_singleton)
+def init_models() -> None:
+    """Initialize heavy ML models and services. Should be called on FastAPI startup."""
+    global _hf_embedding_model, _embedding_service_singleton
+    global _cross_encoder_model, _reranker_singleton
+    global _vector_store_singleton, _hybrid_retriever_singleton, _retrieval_service_singleton
+
+    if _hf_embedding_model is None:
+        _hf_embedding_model = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+        _embedding_service_singleton = EmbeddingService(model=_hf_embedding_model)
+
+    if _cross_encoder_model is None:
+        _cross_encoder_model = CrossEncoder(Reranker.MODEL_NAME)
+        _reranker_singleton = Reranker(model=_cross_encoder_model)
+
+    # Create genai client singleton at startup if not already created
+    global _genai_client_singleton
+    if _genai_client_singleton is None:
+        _genai_client_singleton = genai.Client(api_key=settings.gemini_api_key)
+
+    # Ensure vector store and retrieval are created once models exist
+    if _vector_store_singleton is None:
+        _vector_store_singleton = VectorStoreService(embedding_service=_embedding_service_singleton)
+        _hybrid_retriever_singleton = HybridRetriever(vector_store=_vector_store_singleton, bm25=BM25Retriever())
+        _retrieval_service_singleton = RetrievalService(retriever=_hybrid_retriever_singleton, reranker=_reranker_singleton)
 
 
 def get_vector_store() -> VectorStoreService:
@@ -69,7 +90,15 @@ def shutdown_vector_store_save() -> None:
 
 
 def get_genai_client() -> genai.Client:
-    """Return the singleton genai client."""
+    """Return the singleton genai client.
+
+    If the client has not been initialized via init_models(), create it on-demand
+    for backwards compatibility. Prefer calling init_models() at FastAPI startup
+    to control when network/SDK initialization happens.
+    """
+    global _genai_client_singleton
+    if _genai_client_singleton is None:
+        _genai_client_singleton = genai.Client(api_key=settings.gemini_api_key)
     return _genai_client_singleton
 
 
@@ -102,6 +131,11 @@ def get_retrieval_service() -> RetrievalService:
     return _retrieval_service_singleton
 
 
+def get_vector_store() -> VectorStoreService:
+    """Return the singleton VectorStoreService."""
+    return _vector_store_singleton
+
+
 def get_rag_service() -> RAGService:
     """Request-scoped RAGService.
 
@@ -110,7 +144,19 @@ def get_rag_service() -> RAGService:
     llm = get_llm_service()
     # Create a QueryRewriter that uses the same LLMService instance
     from app.services.rag.query_rewriter import QueryRewriter
+    from app.services.rag.conversation_memory import ConversationMemory
+    from app.services.retrieval.context_builder import ContextBuilder
 
     qr = QueryRewriter(llm_service=llm)
 
-    return RAGService(llm_service=llm, query_rewriter=qr, retrieval_service=get_retrieval_service())
+    # Create a request-scoped ConversationMemory and ContextBuilder
+    memory = ConversationMemory()
+    context_builder = ContextBuilder()
+
+    return RAGService(
+        retrieval_service=get_retrieval_service(),
+        context_builder=context_builder,
+        llm_service=llm,
+        memory=memory,
+        query_rewriter=qr,
+    )

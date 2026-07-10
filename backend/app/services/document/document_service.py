@@ -14,23 +14,11 @@ class DocumentService(DocumentRepository):
     Coordinates the complete document ingestion pipeline.
     """
 
-    def __init__(self, vector_store: VectorStoreService | None = None):
-        self.chunker = DocumentChunker()
-
-        # Accept an injected VectorStoreService to allow the composition root to
-        # provide a singleton instance. If none is provided, create one and
-        # attempt to load any existing index (backwards-compatible behavior).
-        if vector_store is None:
-            self.vector_store = VectorStoreService()
-
-            loaded = self.vector_store.load()
-
-            if loaded:
-                logger.info("Loaded existing FAISS index.")
-            else:
-                logger.info("No existing FAISS index found. A new index will be created.")
-        else:
-            self.vector_store = vector_store
+    def __init__(self, vector_store: VectorStoreService, chunker: DocumentChunker | None = None):
+        # Require VectorStoreService to be injected. Chunker is optional and
+        # defaults to a new DocumentChunker for convenience in tests.
+        self.chunker = chunker if chunker is not None else DocumentChunker()
+        self.vector_store = vector_store
 
     def ingest_document(
         self,

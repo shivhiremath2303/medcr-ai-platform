@@ -22,7 +22,7 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - "3.12"
+          - "3.11"
 
     env:
       APP_NAME: "CI Test"
@@ -57,14 +57,17 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt -r requirements-dev.txt
+          echo "Attempting to install faiss-cpu (required for FAISS vectorstore tests)."
+          pip install faiss-cpu || pip install faiss || echo "faiss install failed; tests may fail on FAISS-related cases"
 
-      - name: Show working directory
+      - name: Show installed packages
         run: |
-          pwd
-          ls -la
-          python -c "import app; print('App imported successfully')"
+          python -m pip --version
+          python -m pip list --format=columns
 
       - name: Run tests with coverage
+        env:
+          PYTHONPATH: "${{ github.workspace }}/backend"
         run: |
           coverage run -m pytest -q
           coverage xml -i
@@ -74,4 +77,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage
-          path: coverage.xml
+          path: backend/coverage.xml

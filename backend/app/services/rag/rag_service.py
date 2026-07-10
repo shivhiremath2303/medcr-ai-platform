@@ -12,25 +12,18 @@ class RAGService:
 
     def __init__(
         self,
-        retrieval_service: RetrievalService | None = None,
-        context_builder: ContextBuilder | None = None,
-        llm_service: LLMService | None = None,
-        memory: ConversationMemory | None = None,
-        query_rewriter: QueryRewriter | None = None,
+        retrieval_service: RetrievalService,
+        context_builder: ContextBuilder,
+        llm_service: LLMService,
+        memory: ConversationMemory,
+        query_rewriter: QueryRewriter,
     ):
-        # Allow constructor injection for all collaborators. Backwards-compatible
-        # defaults create the original components when not provided (useful for
-        # tests that directly instantiate RAGService).
-        self.retrieval_service = retrieval_service if retrieval_service is not None else RetrievalService()
-        self.context_builder = context_builder if context_builder is not None else ContextBuilder()
-        self.llm_service = llm_service if llm_service is not None else LLMService()
-        self.memory = memory if memory is not None else ConversationMemory()
-        # Ensure QueryRewriter uses the same LLMService instance to avoid
-        # creating multiple genai.Client instances.
-        if query_rewriter is not None:
-            self.query_rewriter = query_rewriter
-        else:
-            self.query_rewriter = QueryRewriter(llm_service=self.llm_service)
+        # Require all collaborators to be injected to enforce DI.
+        self.retrieval_service = retrieval_service
+        self.context_builder = context_builder
+        self.llm_service = llm_service
+        self.memory = memory
+        self.query_rewriter = query_rewriter
 
     def answer_question(
         self,
