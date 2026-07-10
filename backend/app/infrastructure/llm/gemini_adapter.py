@@ -1,5 +1,4 @@
 from google import genai
-from app.core.config import settings
 from app.domain.repositories.llm_provider import LLMProvider
 
 
@@ -8,20 +7,20 @@ class GeminiLLMAdapter(LLMProvider):
     Adapter for Google Gemini AI.
     """
 
-    MODEL_NAME = "gemini-2.0-flash"  # Consistent with existing service if it was changed, wait, existing was gemini-2.5-pro? Let me check.
-
-    def __init__(self, client: genai.Client | None = None):
+    def __init__(
+        self,
+        client: genai.Client,
+        model_name: str,
+        temperature: float = 0.1,
+        max_tokens: int = 2048,
+    ):
         """
-        Accept an injected genai.Client. If none provided, create one using
-        settings. This keeps backwards compatibility for tests that instantiate
-        LLMService without DI.
+        Accept an injected genai.Client and configuration.
         """
-        if client is None:
-            from app.di import get_genai_client
-
-            self.client = get_genai_client()
-        else:
-            self.client = client
+        self.client = client
+        self.model_name = model_name
+        self.temperature = temperature
+        self.max_tokens = max_tokens
 
     def generate_answer(
         self,
@@ -36,9 +35,17 @@ class GeminiLLMAdapter(LLMProvider):
         )
 
         try:
+            # Note: The new genai SDK might use a different config structure.
+            # We'll stick to what was working or adjust as per actual library usage if needed.
+            # Assuming GenerateContentConfig is needed for temperature/max_tokens if available.
+
             response = self.client.models.generate_content(
-                model=self.MODEL_NAME,
+                model=self.model_name,
                 contents=prompt,
+                config={
+                    "temperature": self.temperature,
+                    "max_output_tokens": self.max_tokens,
+                }
             )
 
             return response.text
@@ -73,8 +80,11 @@ Latest Question:
 
         try:
             response = self.client.models.generate_content(
-                model=self.MODEL_NAME,
+                model=self.model_name,
                 contents=prompt,
+                config={
+                    "temperature": 0.0, # Usually better for rewriting
+                }
             )
 
             return response.text.strip()

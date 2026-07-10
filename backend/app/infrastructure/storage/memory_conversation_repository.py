@@ -7,7 +7,7 @@ class MemoryConversationRepository(ConversationRepository):
     In-memory implementation of conversation history.
     """
 
-    def __init__(self, max_messages: int = 10):
+    def __init__(self, max_messages: int):
         self.messages = deque(maxlen=max_messages)
 
     def add_message(self, role: str, content: str) -> None:

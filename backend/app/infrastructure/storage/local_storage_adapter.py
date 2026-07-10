@@ -1,29 +1,32 @@
+import shutil
 from pathlib import Path
 from uuid import uuid4
+
 from fastapi import UploadFile
-from app.core.config import settings
 from app.domain.repositories.storage_provider import StorageProvider
 
 
 class LocalStorageAdapter(StorageProvider):
     """
-    Adapter for local file system storage.
+    Local filesystem implementation of StorageProvider.
     """
 
-    ALLOWED_EXTENSIONS = {".pdf", ".docx"}
+    def __init__(self, upload_dir: Path):
+        self.upload_dir = upload_dir
 
     def save(self, file: UploadFile) -> Path:
         extension = Path(file.filename).suffix.lower()
+        unique_filename = f"{uuid4()}{extension}"
 
-        if extension not in self.ALLOWED_EXTENSIONS:
-            raise ValueError(f"Unsupported file type: {extension}")
+        # Ensure directory exists
+        self.upload_dir.mkdir(parents=True, exist_ok=True)
 
-        settings.upload_dir.mkdir(parents=True, exist_ok=True)
+        destination = self.upload_dir / unique_filename
 
-        unique_filename = f"{uuid4().hex}{extension}"
-        destination = settings.upload_dir / unique_filename
-
-        with destination.open("wb") as buffer:
-            buffer.write(file.file.read())
+        try:
+            with destination.open("wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+        finally:
+            file.file.close()
 
         return destination

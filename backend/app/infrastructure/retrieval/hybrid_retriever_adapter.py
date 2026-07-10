@@ -13,9 +13,13 @@ class HybridRetrieverAdapter(Retriever):
         self,
         vector_store: VectorStoreRepository,
         keyword_retriever: KeywordRetriever,
+        vector_weight: float = 0.7,
+        similarity_threshold: float = 0.0,
     ):
         self.vector_store = vector_store
         self.keyword_retriever = keyword_retriever
+        self.vector_weight = vector_weight
+        self.similarity_threshold = similarity_threshold
         self._build_keyword_index()
 
     def _build_keyword_index(self) -> None:
@@ -57,12 +61,16 @@ class HybridRetrieverAdapter(Retriever):
             merged_results.append(
                 SearchResult(
                     chunk=chunk,
-                    score=0.0,
+                    score=0.0, # BM25 adapter doesn't provide normalized scores yet
                     rank=next_rank,
                 )
             )
 
             existing_chunk_ids.add(chunk.chunk_id)
             next_rank += 1
+
+        # Filter by threshold if needed (though scores are not well-normalized here yet)
+        if self.similarity_threshold > 0:
+            merged_results = [r for r in merged_results if r.score >= self.similarity_threshold]
 
         return merged_results[:k]

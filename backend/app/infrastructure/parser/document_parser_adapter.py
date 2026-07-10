@@ -1,57 +1,63 @@
 from pathlib import Path
-from uuid import uuid4
-from docx import Document as DocxDocument
-from pypdf import PdfReader
+from typing import Set
 
-from app.core.constants import SUPPORTED_EXTENSIONS
+from pypdf import PdfReader
+from docx import Document as DocxDocument
+
 from app.domain.models import Document, Page
 from app.domain.repositories.document_parser import DocumentParser
 
 
 class DocumentParserAdapter(DocumentParser):
     """
-    Adapter for parsing PDF and DOCX documents.
+    Adapter for various document parsers (PyPDF, python-docx).
     """
+
+    def __init__(self, supported_extensions: Set[str]):
+        self.supported_extensions = supported_extensions
 
     def parse_document(self, file_path: str) -> Document:
         extension = Path(file_path).suffix.lower()
 
-        if extension not in SUPPORTED_EXTENSIONS:
-            raise ValueError(f"Unsupported file type: {extension}")
+        if extension not in self.supported_extensions:
+            raise ValueError(f"Unsupported file extension: {extension}")
 
         if extension == ".pdf":
             pages = self._parse_pdf(file_path)
-        else:
+        elif extension == ".docx":
             pages = self._parse_docx(file_path)
+        else:
+            raise ValueError(f"Unsupported file extension: {extension}")
 
         return Document(
-            document_id=str(uuid4()),
+            document_id=Path(file_path).stem,
             filename=Path(file_path).name,
             pages=pages,
         )
 
     def _parse_pdf(self, file_path: str) -> list[Page]:
         reader = PdfReader(file_path)
-        pages: list[Page] = []
+        pages = []
 
-        for index, page in enumerate(reader.pages, start=1):
+        for i, page in enumerate(reader.pages):
             text = page.extract_text()
-            if text and text.strip():
+            if text:
                 pages.append(
                     Page(
-                        page_number=index,
+                        page_number=i + 1,
                         text=text,
                     )
                 )
+
         return pages
 
     def _parse_docx(self, file_path: str) -> list[Page]:
         document = DocxDocument(file_path)
-        paragraphs = [p.text for p in document.paragraphs if p.text.strip()]
+        text = "\n".join([paragraph.text for paragraph in document.paragraphs])
 
         return [
             Page(
                 page_number=1,
-                text="\n".join(paragraphs),
+                text=text,
             )
         ]

@@ -2,13 +2,14 @@ from fastapi import FastAPI
 from app.api.routes.documents import router as document_router
 from app.api.routes.rag import router as rag_router
 from app.api.router import router
-from app.core.config import settings
+from app.core.config import get_settings
 from app.core.logger import get_logger
 
 # Import composition root
 from app import di
 
 logger = get_logger(__name__)
+settings = get_settings()
 
 app = FastAPI(
     title=settings.app_name,

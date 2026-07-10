@@ -1,6 +1,3 @@
-from app.core.constants import (
-    MIN_RETRIEVAL_CANDIDATES,
-)
 from app.domain.models.search_result import SearchResult
 from app.services.retrieval.retrieval_service import RetrievalService
 from tests.fixtures.chunk_factory import make_chunk
@@ -47,6 +44,8 @@ def test_retrieve_delegates_to_retriever_and_reranker():
     service = RetrievalService(
         retriever=retriever,
         reranker=reranker,
+        min_candidates=20,
+        candidate_multiplier=4
     )
 
     results = service.retrieve(
@@ -60,8 +59,9 @@ def test_retrieve_delegates_to_retriever_and_reranker():
         "contract breach",
     ]
 
+    # k * multiplier = 5 * 4 = 20. min_candidates = 20. max(20, 20) = 20.
     assert retriever.k_values == [
-        MIN_RETRIEVAL_CANDIDATES,
+        20,
     ]
 
     assert reranker.queries == [

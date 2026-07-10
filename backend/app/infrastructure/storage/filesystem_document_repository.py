@@ -2,7 +2,6 @@ import pickle
 from pathlib import Path
 from typing import List, Optional
 
-from app.core.config import settings
 from app.domain.models import Document
 from app.domain.repositories.document_repository import DocumentRepository
 
@@ -13,8 +12,8 @@ class FilesystemDocumentRepository(DocumentRepository):
     Stores documents as pickled files in the metadata directory.
     """
 
-    def __init__(self, storage_dir: Optional[Path] = None):
-        self.storage_dir = storage_dir or settings.metadata_dir
+    def __init__(self, storage_dir: Path):
+        self.storage_dir = storage_dir
         self.storage_dir.mkdir(parents=True, exist_ok=True)
 
     def save(self, document: Document) -> Document:
