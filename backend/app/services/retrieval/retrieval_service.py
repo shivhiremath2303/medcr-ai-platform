@@ -1,7 +1,3 @@
-from app.core.constants import (
-    MIN_RETRIEVAL_CANDIDATES,
-    RETRIEVAL_CANDIDATE_MULTIPLIER,
-)
 from app.domain.models import SearchResult
 from app.domain.repositories.retriever import Retriever
 from app.domain.repositories.reranker import Reranker
@@ -17,9 +13,13 @@ class RetrievalService(Retriever):
         self,
         retriever: Retriever,
         reranker: Reranker,
+        candidate_multiplier: int = 4,
+        min_candidates: int = 20,
     ):
         self.retriever = retriever
         self.reranker = reranker
+        self.candidate_multiplier = candidate_multiplier
+        self.min_candidates = min_candidates
 
     def retrieve(
         self,
@@ -31,8 +31,8 @@ class RetrievalService(Retriever):
         """
 
         candidate_count = max(
-            k * RETRIEVAL_CANDIDATE_MULTIPLIER,
-            MIN_RETRIEVAL_CANDIDATES,
+            k * self.candidate_multiplier,
+            self.min_candidates,
         )
 
         candidates = self.retriever.retrieve(

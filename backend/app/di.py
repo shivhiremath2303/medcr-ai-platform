@@ -1,4 +1,6 @@
+from google import genai
 from fastapi import Depends
+from app.core.config import get_settings
 from app.domain.repositories.document_parser import DocumentParser
 from app.domain.repositories.vector_store_repository import VectorStoreRepository
 from app.domain.repositories.embedding_repository import EmbeddingRepository
@@ -31,25 +33,74 @@ from app.services.retrieval.context_builder import ContextBuilder
 from app.services.rag.rag_service import RAGService
 from app.services.rag.query_rewriter import QueryRewriter
 
-# Singletons
-_embedding_provider = HuggingFaceEmbeddingAdapter()
-_vector_repository = FAISSVectorRepository(embedding_provider=_embedding_provider)
-_llm_provider = GeminiLLMAdapter()
-_storage_provider = LocalStorageAdapter()
-_document_repository = FilesystemDocumentRepository()
-_conversation_repository = MemoryConversationRepository()
-_parser = DocumentParserAdapter()
-_chunker = LangChainChunkerAdapter()
-_keyword_retriever = BM25Adapter()
-_reranker = CrossEncoderAdapter()
+# Load settings - validation happens inside get_settings()
+settings = get_settings()
 
-# Adapters that require other adapters (also Singletons for efficiency)
-_hybrid_retriever = HybridRetrieverAdapter(
-    vector_store=_vector_repository,
-    keyword_retriever=_keyword_retriever
+# --- Infrastructure Adapters (Singletons) ---
+
+_genai_client = genai.Client(api_key=settings.gemini_api_key)
+
+_embedding_provider = HuggingFaceEmbeddingAdapter(
+    model_name=settings.embedding_model,
+    device=settings.embedding_device
 )
 
-# Providers
+_vector_repository = FAISSVectorRepository(
+    embedding_provider=_embedding_provider,
+    faiss_dir=settings.faiss_dir,
+    index_name=settings.faiss_index_name,
+    default_top_k=settings.default_top_k
+)
+
+_llm_provider = GeminiLLMAdapter(
+    client=_genai_client,
+    model_name=settings.gemini_model,
+    temperature=settings.llm_temperature,
+    max_tokens=settings.llm_max_tokens
+)
+
+_storage_provider = LocalStorageAdapter(
+    upload_dir=settings.upload_dir
+)
+
+_document_repository = FilesystemDocumentRepository(
+    storage_dir=settings.metadata_dir
+)
+
+_conversation_repository = MemoryConversationRepository(
+    max_messages=settings.max_conversation_messages
+)
+
+_parser = DocumentParserAdapter(
+    supported_extensions=settings.supported_extensions
+)
+
+_chunker = LangChainChunkerAdapter(
+    chunk_size=settings.chunk_size,
+    chunk_overlap=settings.chunk_overlap
+)
+
+_keyword_retriever = BM25Adapter()
+
+_reranker = CrossEncoderAdapter(
+    model_name=settings.reranker_model
+)
+
+_hybrid_retriever = HybridRetrieverAdapter(
+    vector_store=_vector_repository,
+    keyword_retriever=_keyword_retriever,
+    vector_weight=settings.hybrid_weight_vector,
+    similarity_threshold=settings.similarity_threshold
+)
+
+# --- Dependency Injection Providers ---
+
+def get_settings_provider():
+    return settings
+
+def get_genai_client() -> genai.Client:
+    return _genai_client
+
 def get_llm_provider() -> LLMProvider:
     return _llm_provider
 
@@ -80,14 +131,8 @@ def get_reranker() -> Reranker:
 def get_retriever() -> Retriever:
     return _hybrid_retriever
 
-# Legacy compatibility/Service aliases for routes if they use these names
-def get_storage_service() -> StorageProvider:
-    return _storage_provider
+# --- Application Services ---
 
-def get_llm_service() -> LLMProvider:
-    return _llm_provider
-
-# Services
 def get_document_service(
     chunker: Chunker = Depends(get_chunker),
     vector_store: VectorStoreRepository = Depends(get_vector_repository),
@@ -105,7 +150,12 @@ def get_retrieval_service(
     retriever: Retriever = Depends(get_retriever),
     reranker: Reranker = Depends(get_reranker),
 ) -> Retriever:
-    return RetrievalService(retriever=retriever, reranker=reranker)
+    return RetrievalService(
+        retriever=retriever,
+        reranker=reranker,
+        candidate_multiplier=settings.retrieval_candidate_multiplier,
+        min_candidates=settings.min_retrieval_candidates
+    )
 
 def get_context_builder() -> IContextBuilder:
     return ContextBuilder()
@@ -130,7 +180,8 @@ def get_rag_service(
         context_builder=context_builder
     )
 
-# Lifecycle management
+# --- Lifecycle Management ---
+
 def init_vector_store() -> bool:
     return _vector_repository.load()
 

@@ -29,7 +29,7 @@ def test_chunk_creation():
 
     document = build_document("This is a short legal document.")
 
-    chunker = LangChainChunkerAdapter()
+    chunker = LangChainChunkerAdapter(chunk_size=100, chunk_overlap=10)
 
     chunks = chunker.split_document(document)
 
@@ -43,7 +43,7 @@ def test_document_metadata_preserved():
 
     document = build_document("This is another legal document.")
 
-    chunker = LangChainChunkerAdapter()
+    chunker = LangChainChunkerAdapter(chunk_size=100, chunk_overlap=10)
 
     chunks = chunker.split_document(document)
 
@@ -60,7 +60,7 @@ def test_chunk_id_is_uuid():
 
     document = build_document("Testing UUID generation.")
 
-    chunker = LangChainChunkerAdapter()
+    chunker = LangChainChunkerAdapter(chunk_size=100, chunk_overlap=10)
 
     chunks = chunker.split_document(document)
 
@@ -75,7 +75,7 @@ def test_empty_document():
 
     document = build_document("")
 
-    chunker = LangChainChunkerAdapter()
+    chunker = LangChainChunkerAdapter(chunk_size=100, chunk_overlap=10)
 
     chunks = chunker.split_document(document)
 
@@ -91,7 +91,7 @@ def test_long_document_creates_multiple_chunks():
 
     document = build_document(text)
 
-    chunker = LangChainChunkerAdapter()
+    chunker = LangChainChunkerAdapter(chunk_size=100, chunk_overlap=10)
 
     chunks = chunker.split_document(document)
 

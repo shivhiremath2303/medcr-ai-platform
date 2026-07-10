@@ -12,7 +12,7 @@ def test_parse_pdf(fixtures_dir: Path):
     """
 
     pdf_file = fixtures_dir / "sample.pdf"
-    parser = DocumentParserAdapter()
+    parser = DocumentParserAdapter(supported_extensions={".pdf", ".docx"})
 
     document = parser.parse_document(
         str(pdf_file),
@@ -30,7 +30,7 @@ def test_parse_docx(fixtures_dir: Path):
     """
 
     docx_file = fixtures_dir / "sample.docx"
-    parser = DocumentParserAdapter()
+    parser = DocumentParserAdapter(supported_extensions={".pdf", ".docx"})
 
     document = parser.parse_document(
         str(docx_file),
@@ -48,7 +48,7 @@ def test_unsupported_file_type(tmp_path: Path):
     """
 
     file = tmp_path / "sample.txt"
-    parser = DocumentParserAdapter()
+    parser = DocumentParserAdapter(supported_extensions={".pdf", ".docx"})
 
     file.write_text("Hello World")
 

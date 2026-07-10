@@ -1,17 +1,17 @@
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.embeddings import Embeddings
-from app.core.constants import EMBEDDING_MODEL
 from app.domain.repositories.embedding_repository import EmbeddingRepository
 
 
 class HuggingFaceEmbeddingAdapter(EmbeddingRepository, Embeddings):
     """
-    Adapter for HuggingFace embeddings using LangChain.
+    Adapter for Hugging Face Sentence-Transformers using LangChain.
     """
 
-    def __init__(self, model_name: str = EMBEDDING_MODEL):
+    def __init__(self, model_name: str, device: str = "cpu"):
         self.model = HuggingFaceEmbeddings(
             model_name=model_name,
+            model_kwargs={"device": device}
         )
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:

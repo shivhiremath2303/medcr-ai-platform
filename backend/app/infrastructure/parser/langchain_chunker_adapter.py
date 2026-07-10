@@ -1,6 +1,5 @@
 from uuid import uuid4
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from app.core.constants import CHUNK_OVERLAP, CHUNK_SIZE
 from app.domain.models import Chunk, Document, Metadata
 from app.domain.repositories.chunker import Chunker
 
@@ -12,8 +11,8 @@ class LangChainChunkerAdapter(Chunker):
 
     def __init__(
         self,
-        chunk_size: int = CHUNK_SIZE,
-        chunk_overlap: int = CHUNK_OVERLAP,
+        chunk_size: int,
+        chunk_overlap: int,
     ):
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
