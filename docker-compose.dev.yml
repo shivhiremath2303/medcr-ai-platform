@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: legal-ai-backend-dev
+    environment:
+      - ENVIRONMENT=development
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - .env.development
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/uploads/documents:/app/uploads/documents
+      - ./backend/data/faiss:/app/data/faiss
+      - ./backend/data/metadata:/app/data/metadata
+      - ./backend/logs:/app/logs
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - legal-ai-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: legal-ai-redis-dev
+    ports:
+      - "6379:6379"
+    networks:
+      - legal-ai-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+networks:
+  legal-ai-network:
+    driver: bridge

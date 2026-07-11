@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: legal-ai-backend
+    restart: always
+    environment:
+      - ENVIRONMENT=production
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - .env.production
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend-uploads:/app/uploads/documents
+      - backend-faiss:/app/data/faiss
+      - backend-metadata:/app/data/metadata
+      - backend-logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - legal-ai-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: legal-ai-redis
+    restart: always
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis-data:/data
+    networks:
+      - legal-ai-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  legal-ai-network:
+    driver: bridge
+
+volumes:
+  backend-uploads:
+  backend-faiss:
+  backend-metadata:
+  backend-logs:
+  redis-data:

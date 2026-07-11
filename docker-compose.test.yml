@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  backend-test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: legal-ai-backend-test
+    environment:
+      - ENVIRONMENT=testing
+      - REDIS_URL=redis-test:6379/0
+    env_file:
+      - .env.testing
+    command: python -m pytest tests
+    depends_on:
+      redis-test:
+        condition: service_healthy
+    networks:
+      - legal-ai-test-network
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: legal-ai-redis-test
+    networks:
+      - legal-ai-test-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+networks:
+  legal-ai-test-network:
+    driver: bridge
