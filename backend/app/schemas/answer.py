@@ -55,6 +55,15 @@ class SourceResponse(BaseModel):
     page_number: int
 
 
+class EvaluationSchema(BaseModel):
+    retrieval_ndcg: float
+    grounding_score: float
+    reasoning_consistency: float
+    hallucination_rate: float
+    overall_score: float
+    estimated_cost_usd: float
+
+
 class AnswerResponse(BaseModel):
     """
     Response returned by the RAG endpoint.
@@ -70,5 +79,6 @@ class AnswerResponse(BaseModel):
     contradictions: List[str] = []
     reasoning_notes: Optional[str] = None
     reasoning_metadata: Optional[ReasoningMetadataSchema] = None
+    evaluation: Optional[EvaluationSchema] = None
     sources: List[SourceResponse] = []
     retrieval_diagnostics: Optional[Dict[str, Any]] = None

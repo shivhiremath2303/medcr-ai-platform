@@ -1,18 +1,22 @@
 import re
+import time
+from typing import Optional, List, Dict, Any
 from app.domain.repositories.llm_provider import LLMProvider
 from app.domain.repositories.conversation_repository import ConversationRepository
 from app.domain.repositories.retriever import Retriever
 from app.domain.repositories.query_rewriter import QueryRewriter
 from app.domain.repositories.context_builder import ContextBuilder
+from app.domain.repositories.benchmark_repository import BenchmarkRepository
 from app.services.rag.grounding_engine import GroundingEngine
 from app.services.rag.reasoning_engine import ReasoningEngine
+from app.services.rag.evaluation_engine import EvaluationEngine
 from app.core.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
 class RAGService:
     """
-    Coordinates the advanced Retrieval-Augmented Generation workflow with deep legal reasoning.
+    Coordinates the advanced Retrieval-Augmented Generation workflow with scientific evaluation.
     """
 
     def __init__(
@@ -24,6 +28,8 @@ class RAGService:
         context_builder: ContextBuilder,
         grounding_engine: GroundingEngine,
         reasoning_engine: ReasoningEngine,
+        evaluation_engine: EvaluationEngine,
+        benchmark_repo: BenchmarkRepository,
     ):
         self.retrieval_service = retrieval_service
         self.llm_provider = llm_provider
@@ -32,15 +38,19 @@ class RAGService:
         self.context_builder = context_builder
         self.grounding_engine = grounding_engine
         self.reasoning_engine = reasoning_engine
+        self.evaluation_engine = evaluation_engine
+        self.benchmark_repo = benchmark_repo
 
     def answer_question(
         self,
         question: str,
         k: int = 3,
+        enable_evaluation: bool = True
     ) -> dict:
         """
-        Retrieve context using intelligent retrieval, generate an answer with deep reasoning, and return detailed diagnostics.
+        Retrieve context, generate an answer, and perform scientific evaluation.
         """
+        overall_start = time.perf_counter()
 
         # Store the user's question
         self.memory.add_user_message(question)
@@ -54,14 +64,16 @@ class RAGService:
             conversation_context=memory_context,
         )
 
-        # Retrieve relevant chunks using intelligent retrieval
+        # Retrieve relevant chunks
+        retrieval_start = time.perf_counter()
         results = self.retrieval_service.retrieve(
             query=understanding.original_query,
             k=k,
             params={"understanding": understanding}
         )
+        retrieval_ms = (time.perf_counter() - retrieval_start) * 1000
 
-        # 1. Evidence Sufficiency Analysis
+        # Evidence Sufficiency Analysis
         raw_confidence = sum(r.score for r in results[:1]) if results else 0.0
         sufficiency = self.grounding_engine.analyze_sufficiency(results, raw_confidence)
 
@@ -75,10 +87,12 @@ class RAGService:
         context = self.context_builder.build(results)
 
         # 2. Grounded Answer Generation with Deep Reasoning
+        llm_start = time.perf_counter()
         answer = self.llm_provider.generate_answer(
             question=question,
             context=context,
         )
+        llm_ms = (time.perf_counter() - llm_start) * 1000
 
         # Store assistant response
         self.memory.add_assistant_message(answer)
@@ -91,7 +105,7 @@ class RAGService:
         contradictions = self.grounding_engine.detect_contradictions(answer)
         missing_docs = self.grounding_engine.detect_missing_evidence(answer)
 
-        # 4. Structured Reasoning Extraction (Phase 7.4.8)
+        # 4. Structured Reasoning Extraction
         reasoning_metadata = self.reasoning_engine.extract_reasoning(answer, evidence_list)
 
         # 5. Grounding Score Calculation
@@ -110,12 +124,40 @@ class RAGService:
             contradictions=contradictions
         )
 
-        # 7. Get Retrieval Diagnostics
+        # 7. Scientific Evaluation (Phase 7.5)
+        eval_report = None
+        if enable_evaluation:
+            # Find benchmark case if any
+            expected_ids = []
+            for case in self.benchmark_repo.get_all_cases():
+                if case.query.lower() in question.lower():
+                    expected_ids = case.expected_evidence_ids
+                    break
+
+            retrieval_metrics = self.evaluation_engine.evaluate_retrieval(results, expected_ids)
+            grounding_metrics = self.evaluation_engine.evaluate_grounding(answer, evidence_list, grounding_score)
+            reasoning_metrics = self.evaluation_engine.evaluate_reasoning(reasoning_metadata)
+            performance_metrics = self.evaluation_engine.evaluate_performance(
+                retrieval_ms=retrieval_ms,
+                total_ms=(time.perf_counter() - overall_start) * 1000,
+                tokens_in=len(context) // 4, # estimation
+                tokens_out=len(answer) // 4  # estimation
+            )
+
+            eval_report = self.evaluation_engine.generate_report(
+                query=question,
+                retrieval=retrieval_metrics,
+                grounding=grounding_metrics,
+                reasoning=reasoning_metrics,
+                performance=performance_metrics
+            )
+
+        # Get Retrieval Diagnostics
         diagnostics = None
         if hasattr(self.retrieval_service, "last_diagnostics"):
             diagnostics = self.retrieval_service.last_diagnostics
 
-        # Build source list (for backward compatibility)
+        # Build source list
         sources = [
             {
                 "filename": ev.document_name,
@@ -138,6 +180,16 @@ class RAGService:
             "reasoning_metadata": reasoning_metadata.__dict__,
             "sources": sources,
         }
+
+        if eval_report:
+            response_data["evaluation"] = {
+                "retrieval_ndcg": eval_report.retrieval.ndcg,
+                "grounding_score": eval_report.grounding.grounding_score,
+                "reasoning_consistency": eval_report.reasoning.logical_consistency_score,
+                "hallucination_rate": eval_report.hallucination_rate,
+                "overall_score": eval_report.overall_score,
+                "estimated_cost_usd": eval_report.performance.estimated_cost_usd
+            }
 
         if diagnostics:
             response_data["retrieval_diagnostics"] = diagnostics.__dict__

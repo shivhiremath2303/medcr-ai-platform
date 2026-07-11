@@ -4,7 +4,9 @@ from app.services.retrieval.context_builder import ContextBuilder
 from app.services.rag.query_rewriter import QueryRewriter
 from app.services.rag.grounding_engine import GroundingEngine
 from app.services.rag.reasoning_engine import ReasoningEngine
+from app.services.rag.evaluation_engine import EvaluationEngine
 from app.infrastructure.storage.memory_conversation_repository import MemoryConversationRepository
+from app.infrastructure.storage.memory_benchmark_repository import MemoryBenchmarkRepository
 from tests.fixtures.fake_hybrid_retriever import FakeHybridRetriever
 from tests.fixtures.fake_llm_provider import FakeLLMProvider
 from tests.fixtures.chunk_factory import make_chunk
@@ -40,6 +42,8 @@ The user is liable.
     rewriter = QueryRewriter(llm_provider=llm)
     grounding_engine = GroundingEngine()
     reasoning_engine = ReasoningEngine()
+    evaluation_engine = EvaluationEngine()
+    benchmark_repo = MemoryBenchmarkRepository()
 
     service = RAGService(
         retrieval_service=retriever,
@@ -48,7 +52,9 @@ The user is liable.
         memory=memory,
         context_builder=context_builder,
         grounding_engine=grounding_engine,
-        reasoning_engine=reasoning_engine
+        reasoning_engine=reasoning_engine,
+        evaluation_engine=evaluation_engine,
+        benchmark_repo=benchmark_repo
     )
 
     # Execute
