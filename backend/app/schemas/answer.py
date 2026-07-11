@@ -17,6 +17,36 @@ class EvidenceSchema(BaseModel):
     rank: int
 
 
+class LegalIssueSchema(BaseModel):
+    title: str
+    description: str
+    severity: str
+    evidence_ids: List[str] = []
+
+
+class TimelineEventSchema(BaseModel):
+    date: str
+    event: str
+    description: str
+    evidence_id: str
+
+
+class LegalRelationshipSchema(BaseModel):
+    source: str
+    target: str
+    relationship_type: str
+    description: str
+
+
+class ReasoningMetadataSchema(BaseModel):
+    facts: List[str] = []
+    issues: List[LegalIssueSchema] = []
+    timeline: List[TimelineEventSchema] = []
+    relationships: List[LegalRelationshipSchema] = []
+    conflicts: List[str] = []
+    uncertainties: List[str] = []
+
+
 class SourceResponse(BaseModel):
     """
     Source supporting the generated answer.
@@ -39,5 +69,6 @@ class AnswerResponse(BaseModel):
     missing_documents: List[str] = []
     contradictions: List[str] = []
     reasoning_notes: Optional[str] = None
+    reasoning_metadata: Optional[ReasoningMetadataSchema] = None
     sources: List[SourceResponse] = []
     retrieval_diagnostics: Optional[Dict[str, Any]] = None

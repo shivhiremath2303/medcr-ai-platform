@@ -5,13 +5,14 @@ from app.domain.repositories.retriever import Retriever
 from app.domain.repositories.query_rewriter import QueryRewriter
 from app.domain.repositories.context_builder import ContextBuilder
 from app.services.rag.grounding_engine import GroundingEngine
+from app.services.rag.reasoning_engine import ReasoningEngine
 from app.core.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
 class RAGService:
     """
-    Coordinates the advanced Retrieval-Augmented Generation workflow.
+    Coordinates the advanced Retrieval-Augmented Generation workflow with deep legal reasoning.
     """
 
     def __init__(
@@ -22,6 +23,7 @@ class RAGService:
         memory: ConversationRepository,
         context_builder: ContextBuilder,
         grounding_engine: GroundingEngine,
+        reasoning_engine: ReasoningEngine,
     ):
         self.retrieval_service = retrieval_service
         self.llm_provider = llm_provider
@@ -29,6 +31,7 @@ class RAGService:
         self.memory = memory
         self.context_builder = context_builder
         self.grounding_engine = grounding_engine
+        self.reasoning_engine = reasoning_engine
 
     def answer_question(
         self,
@@ -36,7 +39,7 @@ class RAGService:
         k: int = 3,
     ) -> dict:
         """
-        Retrieve context using intelligent retrieval, generate an answer and return detailed diagnostics.
+        Retrieve context using intelligent retrieval, generate an answer with deep reasoning, and return detailed diagnostics.
         """
 
         # Store the user's question
@@ -52,7 +55,6 @@ class RAGService:
         )
 
         # Retrieve relevant chunks using intelligent retrieval
-        # RetrievalService.retrieve handles the dynamic strategy
         results = self.retrieval_service.retrieve(
             query=understanding.original_query,
             k=k,
@@ -72,7 +74,7 @@ class RAGService:
         # Build LLM context
         context = self.context_builder.build(results)
 
-        # 2. Grounded Answer Generation
+        # 2. Grounded Answer Generation with Deep Reasoning
         answer = self.llm_provider.generate_answer(
             question=question,
             context=context,
@@ -89,7 +91,10 @@ class RAGService:
         contradictions = self.grounding_engine.detect_contradictions(answer)
         missing_docs = self.grounding_engine.detect_missing_evidence(answer)
 
-        # 4. Grounding Score Calculation
+        # 4. Structured Reasoning Extraction (Phase 7.4.8)
+        reasoning_metadata = self.reasoning_engine.extract_reasoning(answer, evidence_list)
+
+        # 5. Grounding Score Calculation
         grounding_score = self.grounding_engine.calculate_grounding_score(
             evidence_list=evidence_list,
             citations=citations,
@@ -97,7 +102,7 @@ class RAGService:
             contradictions=contradictions
         )
 
-        # 5. Answer Status Categorization
+        # 6. Answer Status Categorization
         status = self.grounding_engine.determine_status(
             answer=answer,
             sufficiency=sufficiency,
@@ -105,8 +110,7 @@ class RAGService:
             contradictions=contradictions
         )
 
-        # 6. Get Retrieval Diagnostics (Phase 7.3.10)
-        # Note: We can access it from retrieval_service if it's an instance of RetrievalService
+        # 7. Get Retrieval Diagnostics
         diagnostics = None
         if hasattr(self.retrieval_service, "last_diagnostics"):
             diagnostics = self.retrieval_service.last_diagnostics
@@ -131,6 +135,7 @@ class RAGService:
             "missing_documents": missing_docs,
             "contradictions": contradictions,
             "reasoning_notes": f"Validation Errors: {', '.join(validation_errors)}" if validation_errors else None,
+            "reasoning_metadata": reasoning_metadata.__dict__,
             "sources": sources,
         }
 
@@ -151,11 +156,12 @@ class RAGService:
             "missing_documents": [],
             "contradictions": [],
             "reasoning_notes": "Retrieval returned no results or confidence too low.",
+            "reasoning_metadata": None,
             "sources": [],
         }
 
     def _extract_summary(self, answer: str) -> str:
-        match = re.search(r"Summary:(.*?)(Analysis:|Conclusion:|Final Legal Answer:|$)", answer, re.DOTALL | re.IGNORECASE)
+        match = re.search(r"### Summary(.*?)(###|$)", answer, re.DOTALL | re.IGNORECASE)
         if match:
             return match.group(1).strip()
         return ""

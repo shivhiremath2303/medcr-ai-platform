@@ -12,6 +12,7 @@ from .search_result import SearchResult
 from .user import User, UserRole
 from .evidence import Evidence
 from .grounding import AnswerStatus, SufficiencyLevel, GroundingReport
+from .reasoning import LegalIssue, TimelineEvent, LegalEntityRelationship, ClauseComparison, ReasoningReport
 
 __all__ = [
     "Document",
@@ -25,4 +26,9 @@ __all__ = [
     "AnswerStatus",
     "SufficiencyLevel",
     "GroundingReport",
+    "LegalIssue",
+    "TimelineEvent",
+    "LegalEntityRelationship",
+    "ClauseComparison",
+    "ReasoningReport",
 ]
