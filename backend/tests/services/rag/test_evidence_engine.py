@@ -2,6 +2,7 @@ import pytest
 from app.services.rag.rag_service import RAGService
 from app.services.retrieval.context_builder import ContextBuilder
 from app.services.rag.query_rewriter import QueryRewriter
+from app.services.rag.grounding_engine import GroundingEngine
 from app.infrastructure.storage.memory_conversation_repository import MemoryConversationRepository
 from tests.fixtures.fake_hybrid_retriever import FakeHybridRetriever
 from tests.fixtures.fake_llm_provider import FakeLLMProvider
@@ -18,13 +19,15 @@ def test_rag_service_returns_structured_evidence():
     memory = MemoryConversationRepository(max_messages=10)
     context_builder = ContextBuilder()
     rewriter = QueryRewriter(llm_provider=llm)
+    grounding_engine = GroundingEngine()
 
     service = RAGService(
         retrieval_service=retriever,
         llm_provider=llm,
         query_rewriter=rewriter,
         memory=memory,
-        context_builder=context_builder
+        context_builder=context_builder,
+        grounding_engine=grounding_engine
     )
 
     # Execute
@@ -48,13 +51,15 @@ def test_rag_service_handles_missing_evidence():
     memory = MemoryConversationRepository(max_messages=10)
     context_builder = ContextBuilder()
     rewriter = QueryRewriter(llm_provider=llm)
+    grounding_engine = GroundingEngine()
 
     service = RAGService(
         retrieval_service=retriever,
         llm_provider=llm,
         query_rewriter=rewriter,
         memory=memory,
-        context_builder=context_builder
+        context_builder=context_builder,
+        grounding_engine=grounding_engine
     )
 
     # Execute
@@ -62,7 +67,8 @@ def test_rag_service_handles_missing_evidence():
 
     # Assert
     assert "No supporting evidence" in response["answer"]
-    assert response["confidence"] == 0.0
+    assert response["answer_status"] == "insufficient_evidence"
+    assert response["grounding_score"] == 0.0
     assert len(response["evidence"]) == 0
     assert response["citations"] == []
 

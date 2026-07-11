@@ -4,13 +4,14 @@ from app.domain.repositories.conversation_repository import ConversationReposito
 from app.domain.repositories.retriever import Retriever
 from app.domain.repositories.query_rewriter import QueryRewriter
 from app.domain.repositories.context_builder import ContextBuilder
+from app.services.rag.grounding_engine import GroundingEngine
 from app.core.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
 class RAGService:
     """
-    Coordinates the Retrieval-Augmented Generation workflow with Evidence tracking.
+    Coordinates the Retrieval-Augmented Generation workflow with Evidence tracking and Grounding validation.
     """
 
     def __init__(
@@ -20,12 +21,14 @@ class RAGService:
         query_rewriter: QueryRewriter,
         memory: ConversationRepository,
         context_builder: ContextBuilder,
+        grounding_engine: GroundingEngine,
     ):
         self.retrieval_service = retrieval_service
         self.llm_provider = llm_provider
         self.query_rewriter = query_rewriter
         self.memory = memory
         self.context_builder = context_builder
+        self.grounding_engine = grounding_engine
 
     def answer_question(
         self,
@@ -33,7 +36,7 @@ class RAGService:
         k: int = 3,
     ) -> dict:
         """
-        Retrieve context, generate an answer and return detailed evidence and citations.
+        Retrieve context, generate an answer and return detailed evidence, citations and grounding analysis.
         """
 
         # Store the user's question
@@ -54,15 +57,13 @@ class RAGService:
             k=k,
         )
 
-        if not results:
-            return {
-                "answer": "No supporting evidence was found in the uploaded legal documents.",
-                "summary": "No evidence found.",
-                "citations": [],
-                "evidence": [],
-                "confidence": 0.0,
-                "sources": [],
-            }
+        # 1. Evidence Sufficiency Analysis
+        # Calculate raw confidence from top results
+        raw_confidence = sum(r.score for r in results[:1]) if results else 0.0
+        sufficiency = self.grounding_engine.analyze_sufficiency(results, raw_confidence)
+
+        if not results or sufficiency == "insufficient":
+             return self._generate_insufficient_response()
 
         # Convert results to structured Evidence objects
         evidence_list = self.context_builder.results_to_evidence(results)
@@ -70,7 +71,7 @@ class RAGService:
         # Build LLM context
         context = self.context_builder.build(results)
 
-        # Generate answer
+        # 2. Grounded Answer Generation
         answer = self.llm_provider.generate_answer(
             question=question,
             context=context,
@@ -79,17 +80,36 @@ class RAGService:
         # Store assistant response
         self.memory.add_assistant_message(answer)
 
-        # Extract summary from LLM response if possible (heuristic based on prompt structure)
+        # 3. Hallucination Detection & Verification
+
+        # Verify citations (Phase 7.2.8)
+        validation_errors = self.grounding_engine.validate_answer(answer, evidence_list)
+        if validation_errors:
+            logger.warning(f"Answer verification failed: {validation_errors}")
+            # In production, we might want to regenerate or redact,
+            # for now we'll append a note or just flag it.
+
+        # Extract components for API
         summary = self._extract_summary(answer)
-
-        # Extract citations used in the answer
         citations = self._extract_citations(answer)
+        contradictions = self.grounding_engine.detect_contradictions(answer)
+        missing_docs = self.grounding_engine.detect_missing_evidence(answer)
 
-        # Filter evidence to only those cited (optional, but requested by some users)
-        # For now, we return all retrieved evidence as they are context.
+        # 4. Grounding Score Calculation (Phase 7.2.7)
+        grounding_score = self.grounding_engine.calculate_grounding_score(
+            evidence_list=evidence_list,
+            citations=citations,
+            sufficiency=sufficiency,
+            contradictions=contradictions
+        )
 
-        # Calculate overall confidence (average of cited evidence or top evidence)
-        overall_confidence = self._calculate_overall_confidence(evidence_list, citations)
+        # 5. Answer Status Categorization (Phase 7.2.6)
+        status = self.grounding_engine.determine_status(
+            answer=answer,
+            sufficiency=sufficiency,
+            grounding_score=grounding_score,
+            contradictions=contradictions
+        )
 
         # Build source list (for backward compatibility)
         sources = [
@@ -105,13 +125,33 @@ class RAGService:
             "summary": summary,
             "citations": citations,
             "evidence": evidence_list,
-            "confidence": overall_confidence,
+            "confidence": raw_confidence, # backward compatibility
+            "grounding_score": grounding_score,
+            "answer_status": status.value,
+            "missing_documents": missing_docs,
+            "contradictions": contradictions,
+            "reasoning_notes": f"Validation Errors: {', '.join(validation_errors)}" if validation_errors else None,
             "sources": sources,
+        }
+
+    def _generate_insufficient_response(self) -> dict:
+        return {
+            "answer": "No supporting evidence was found in the uploaded legal documents.",
+            "summary": "No evidence found.",
+            "citations": [],
+            "evidence": [],
+            "confidence": 0.0,
+            "grounding_score": 0.0,
+            "answer_status": "insufficient_evidence",
+            "missing_documents": [],
+            "contradictions": [],
+            "reasoning_notes": "Retrieval returned no results or confidence too low.",
+            "sources": [],
         }
 
     def _extract_summary(self, answer: str) -> str:
         """Heuristic to extract summary from structured LLM response."""
-        match = re.search(r"Summary:(.*?)(Analysis:|Conclusion:|$)", answer, re.DOTALL | re.IGNORECASE)
+        match = re.search(r"Summary:(.*?)(Analysis:|Conclusion:|Final Legal Answer:|$)", answer, re.DOTALL | re.IGNORECASE)
         if match:
             return match.group(1).strip()
         return ""
@@ -119,27 +159,3 @@ class RAGService:
     def _extract_citations(self, answer: str) -> list[str]:
         """Extract [Evidence X] style citations."""
         return list(set(re.findall(r"\[Evidence \d+\]", answer)))
-
-    def _calculate_overall_confidence(self, evidence_list: list, citations: list[str]) -> float:
-        """Calculate overall confidence score."""
-        if not evidence_list:
-            return 0.0
-
-        if not citations:
-            # If no citations but we have evidence, maybe LLM didn't cite but context was relevant
-            return sum(e.confidence for e in evidence_list[:1]) / 1.0
-
-        # Map citations like "[Evidence 1]" back to index
-        cited_indices = []
-        for cit in citations:
-            match = re.search(r"\d+", cit)
-            if match:
-                idx = int(match.group()) - 1
-                if 0 <= idx < len(evidence_list):
-                    cited_indices.append(idx)
-
-        if not cited_indices:
-            return sum(e.confidence for e in evidence_list[:1]) / 1.0
-
-        cited_evidence = [evidence_list[i] for i in cited_indices]
-        return sum(e.confidence for e in cited_evidence) / len(cited_evidence)
