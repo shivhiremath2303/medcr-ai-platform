@@ -1,5 +1,6 @@
 from app.domain.models.search_result import SearchResult
 from app.services.retrieval.retrieval_service import RetrievalService
+from app.core.observability.metrics import NoOpMetricsProvider, MetricsRegistry
 from tests.fixtures.chunk_factory import make_chunk
 from tests.fixtures.fake_hybrid_retriever import FakeHybridRetriever
 from tests.fixtures.fake_reranker import FakeReranker
@@ -41,9 +42,12 @@ def test_retrieve_delegates_to_retriever_and_reranker():
         results=final_results,
     )
 
+    metrics = MetricsRegistry(provider=NoOpMetricsProvider())
+
     service = RetrievalService(
         retriever=retriever,
         reranker=reranker,
+        metrics=metrics,
         min_candidates=20,
         candidate_multiplier=4
     )

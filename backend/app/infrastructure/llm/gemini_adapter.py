@@ -1,5 +1,7 @@
+import time
 from google import genai
 from app.domain.repositories.llm_provider import LLMProvider
+from app.core.observability.metrics import MetricsRegistry
 
 
 class GeminiLLMAdapter(LLMProvider):
@@ -11,6 +13,7 @@ class GeminiLLMAdapter(LLMProvider):
         self,
         client: genai.Client,
         model_name: str,
+        metrics: MetricsRegistry,
         temperature: float = 0.1,
         max_tokens: int = 2048,
     ):
@@ -19,6 +22,7 @@ class GeminiLLMAdapter(LLMProvider):
         """
         self.client = client
         self.model_name = model_name
+        self.metrics = metrics
         self.temperature = temperature
         self.max_tokens = max_tokens
 
@@ -34,11 +38,8 @@ class GeminiLLMAdapter(LLMProvider):
             question=question,
         )
 
+        start_time = time.perf_counter()
         try:
-            # Note: The new genai SDK might use a different config structure.
-            # We'll stick to what was working or adjust as per actual library usage if needed.
-            # Assuming GenerateContentConfig is needed for temperature/max_tokens if available.
-
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
@@ -47,6 +48,9 @@ class GeminiLLMAdapter(LLMProvider):
                     "max_output_tokens": self.max_tokens,
                 }
             )
+
+            duration = time.perf_counter() - start_time
+            self.metrics.track_llm_call("google", self.model_name, duration)
 
             return response.text
 
@@ -78,6 +82,7 @@ Latest Question:
 {question}
 """
 
+        start_time = time.perf_counter()
         try:
             response = self.client.models.generate_content(
                 model=self.model_name,
@@ -86,6 +91,9 @@ Latest Question:
                     "temperature": 0.0, # Usually better for rewriting
                 }
             )
+
+            duration = time.perf_counter() - start_time
+            self.metrics.track_llm_call("google", self.model_name, duration)
 
             return response.text.strip()
 

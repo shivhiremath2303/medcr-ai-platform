@@ -76,6 +76,7 @@ class FAISSVectorRepository(VectorStoreRepository):
             ),
             score=score,
             rank=rank,
+            retrieval_score=score,
         )
 
     def save(self) -> None:
