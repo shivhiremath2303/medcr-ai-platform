@@ -1,5 +1,5 @@
 import time
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from app.domain.models import SearchResult, Chunk
 from app.domain.models.retrieval import QueryUnderstanding, QueryIntent, RetrievalDiagnostics
 from app.domain.repositories.retriever import Retriever
