@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 
 class EvidenceSchema(BaseModel):
@@ -40,3 +40,4 @@ class AnswerResponse(BaseModel):
     contradictions: List[str] = []
     reasoning_notes: Optional[str] = None
     sources: List[SourceResponse] = []
+    retrieval_diagnostics: Optional[Dict[str, Any]] = None

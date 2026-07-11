@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional, Any, Dict
 from app.domain.models import Chunk, SearchResult
 
 
@@ -8,5 +9,10 @@ class Retriever(ABC):
     """
 
     @abstractmethod
-    def retrieve(self, query: str, k: int = 5) -> list[SearchResult]:
+    def retrieve(
+        self,
+        query: str,
+        k: int = 5,
+        params: Optional[Dict[str, Any]] = None
+    ) -> list[SearchResult]:
         """Retrieve relevant results for a query."""

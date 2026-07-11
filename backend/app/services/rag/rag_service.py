@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 
 class RAGService:
     """
-    Coordinates the Retrieval-Augmented Generation workflow with Evidence tracking and Grounding validation.
+    Coordinates the advanced Retrieval-Augmented Generation workflow.
     """
 
     def __init__(
@@ -36,7 +36,7 @@ class RAGService:
         k: int = 3,
     ) -> dict:
         """
-        Retrieve context, generate an answer and return detailed evidence, citations and grounding analysis.
+        Retrieve context using intelligent retrieval, generate an answer and return detailed diagnostics.
         """
 
         # Store the user's question
@@ -45,20 +45,21 @@ class RAGService:
         # Get conversation history
         memory_context = self.memory.get_context()
 
-        # Rewrite the question
-        retrieval_query = self.query_rewriter.rewrite(
+        # Phase 7.3.1: Legal Query Understanding
+        understanding = self.query_rewriter.understand_query(
             question=question,
             conversation_context=memory_context,
         )
 
-        # Retrieve relevant chunks
+        # Retrieve relevant chunks using intelligent retrieval
+        # RetrievalService.retrieve handles the dynamic strategy
         results = self.retrieval_service.retrieve(
-            query=retrieval_query,
+            query=understanding.original_query,
             k=k,
+            params={"understanding": understanding}
         )
 
         # 1. Evidence Sufficiency Analysis
-        # Calculate raw confidence from top results
         raw_confidence = sum(r.score for r in results[:1]) if results else 0.0
         sufficiency = self.grounding_engine.analyze_sufficiency(results, raw_confidence)
 
@@ -81,21 +82,14 @@ class RAGService:
         self.memory.add_assistant_message(answer)
 
         # 3. Hallucination Detection & Verification
-
-        # Verify citations (Phase 7.2.8)
         validation_errors = self.grounding_engine.validate_answer(answer, evidence_list)
-        if validation_errors:
-            logger.warning(f"Answer verification failed: {validation_errors}")
-            # In production, we might want to regenerate or redact,
-            # for now we'll append a note or just flag it.
 
-        # Extract components for API
         summary = self._extract_summary(answer)
         citations = self._extract_citations(answer)
         contradictions = self.grounding_engine.detect_contradictions(answer)
         missing_docs = self.grounding_engine.detect_missing_evidence(answer)
 
-        # 4. Grounding Score Calculation (Phase 7.2.7)
+        # 4. Grounding Score Calculation
         grounding_score = self.grounding_engine.calculate_grounding_score(
             evidence_list=evidence_list,
             citations=citations,
@@ -103,13 +97,19 @@ class RAGService:
             contradictions=contradictions
         )
 
-        # 5. Answer Status Categorization (Phase 7.2.6)
+        # 5. Answer Status Categorization
         status = self.grounding_engine.determine_status(
             answer=answer,
             sufficiency=sufficiency,
             grounding_score=grounding_score,
             contradictions=contradictions
         )
+
+        # 6. Get Retrieval Diagnostics (Phase 7.3.10)
+        # Note: We can access it from retrieval_service if it's an instance of RetrievalService
+        diagnostics = None
+        if hasattr(self.retrieval_service, "last_diagnostics"):
+            diagnostics = self.retrieval_service.last_diagnostics
 
         # Build source list (for backward compatibility)
         sources = [
@@ -120,12 +120,12 @@ class RAGService:
             for ev in evidence_list
         ]
 
-        return {
+        response_data = {
             "answer": answer,
             "summary": summary,
             "citations": citations,
             "evidence": evidence_list,
-            "confidence": raw_confidence, # backward compatibility
+            "confidence": raw_confidence,
             "grounding_score": grounding_score,
             "answer_status": status.value,
             "missing_documents": missing_docs,
@@ -133,6 +133,11 @@ class RAGService:
             "reasoning_notes": f"Validation Errors: {', '.join(validation_errors)}" if validation_errors else None,
             "sources": sources,
         }
+
+        if diagnostics:
+            response_data["retrieval_diagnostics"] = diagnostics.__dict__
+
+        return response_data
 
     def _generate_insufficient_response(self) -> dict:
         return {
@@ -150,12 +155,10 @@ class RAGService:
         }
 
     def _extract_summary(self, answer: str) -> str:
-        """Heuristic to extract summary from structured LLM response."""
         match = re.search(r"Summary:(.*?)(Analysis:|Conclusion:|Final Legal Answer:|$)", answer, re.DOTALL | re.IGNORECASE)
         if match:
             return match.group(1).strip()
         return ""
 
     def _extract_citations(self, answer: str) -> list[str]:
-        """Extract [Evidence X] style citations."""
         return list(set(re.findall(r"\[Evidence \d+\]", answer)))
