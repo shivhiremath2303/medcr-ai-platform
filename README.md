@@ -35,8 +35,9 @@ An enterprise-grade AI platform for legal investigation assistance using:
 ✅ **Milestone 7.3: Advanced Legal Retrieval Intelligence** - COMPLETE
 ✅ **Milestone 7.4: Multi-Agent Legal Reasoning & Cross-Document Synthesis** - COMPLETE
 ✅ **Milestone 7.5: AI Evaluation & Benchmarking Framework** - COMPLETE
+✅ **Milestone 8.1: Production Dockerization & Containerization** - COMPLETE
 
-🚧 Under Development: Milestone 8.1 (Production Database & Relational Persistence)
+🚧 Under Development: Milestone 8.2 (Relational Persistence & PostgreSQL)
 
 ## Architecture
 
@@ -46,3 +47,19 @@ The project follows **Clean Architecture** and **SOLID** principles:
 - **Application Layer:** Use cases and services (depends only on interfaces).
 - **Infrastructure Layer:** Adapters for external libraries (LangChain, FAISS, Google Gemini).
 - **API Layer:** FastAPI routes and schemas.
+
+## Containerization
+
+The platform is fully containerized for production deployment.
+
+### Quick Start with Docker
+
+```bash
+# Start in production mode
+docker-compose up --build -d
+
+# Start in development mode
+docker-compose -f docker-compose.dev.yml up --build
+```
+
+For more details, see [docker-README.md](docker-README.md).
