@@ -34,4 +34,9 @@ class AnswerResponse(BaseModel):
     citations: List[str] = []
     evidence: List[EvidenceSchema] = []
     confidence: float = 0.0
+    grounding_score: float = 0.0
+    answer_status: str = "supported"
+    missing_documents: List[str] = []
+    contradictions: List[str] = []
+    reasoning_notes: Optional[str] = None
     sources: List[SourceResponse] = []

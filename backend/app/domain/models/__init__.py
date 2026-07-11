@@ -11,6 +11,7 @@ from .metadata import Metadata
 from .search_result import SearchResult
 from .user import User, UserRole
 from .evidence import Evidence
+from .grounding import AnswerStatus, SufficiencyLevel, GroundingReport
 
 __all__ = [
     "Document",
@@ -21,4 +22,7 @@ __all__ = [
     "User",
     "UserRole",
     "Evidence",
+    "AnswerStatus",
+    "SufficiencyLevel",
+    "GroundingReport",
 ]
