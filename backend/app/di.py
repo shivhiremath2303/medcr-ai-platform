@@ -40,6 +40,10 @@ from app.services.rag.rag_service import RAGService
 from app.services.rag.query_rewriter import QueryRewriter
 from app.services.rag.grounding_engine import GroundingEngine
 from app.services.rag.reasoning_engine import ReasoningEngine
+from app.services.rag.evaluation_engine import EvaluationEngine
+
+from app.domain.repositories.benchmark_repository import BenchmarkRepository
+from app.infrastructure.storage.memory_benchmark_repository import MemoryBenchmarkRepository
 
 from app.core.observability.health import HealthService
 from app.core.observability.metrics import NoOpMetricsProvider, MetricsRegistry
@@ -160,6 +164,8 @@ _reranker = CrossEncoderAdapter(
 
 _grounding_engine = GroundingEngine()
 _reasoning_engine = ReasoningEngine()
+_evaluation_engine = EvaluationEngine()
+_benchmark_repo = MemoryBenchmarkRepository()
 
 _hybrid_retriever = HybridRetrieverAdapter(
     vector_store=_vector_repository,
@@ -238,6 +244,12 @@ def get_grounding_engine() -> GroundingEngine:
 def get_reasoning_engine() -> ReasoningEngine:
     return _reasoning_engine
 
+def get_evaluation_engine() -> EvaluationEngine:
+    return _evaluation_engine
+
+def get_benchmark_repository() -> BenchmarkRepository:
+    return _benchmark_repo
+
 def get_health_service() -> HealthService:
     return _health_service
 
@@ -303,6 +315,8 @@ def get_rag_service(
     context_builder: IContextBuilder = Depends(get_context_builder),
     grounding_engine: GroundingEngine = Depends(get_grounding_engine),
     reasoning_engine: ReasoningEngine = Depends(get_reasoning_engine),
+    evaluation_engine: EvaluationEngine = Depends(get_evaluation_engine),
+    benchmark_repo: BenchmarkRepository = Depends(get_benchmark_repository),
 ) -> RAGService:
     return RAGService(
         retrieval_service=retrieval_service,
@@ -311,7 +325,9 @@ def get_rag_service(
         memory=conversation_repository,
         context_builder=context_builder,
         grounding_engine=grounding_engine,
-        reasoning_engine=reasoning_engine
+        reasoning_engine=reasoning_engine,
+        evaluation_engine=evaluation_engine,
+        benchmark_repo=benchmark_repo
     )
 
 # --- Lifecycle Management ---

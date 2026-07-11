@@ -13,6 +13,7 @@ from .user import User, UserRole
 from .evidence import Evidence
 from .grounding import AnswerStatus, SufficiencyLevel, GroundingReport
 from .reasoning import LegalIssue, TimelineEvent, LegalEntityRelationship, ClauseComparison, ReasoningReport
+from .evaluation import RetrievalMetrics, GroundingMetrics, ReasoningMetrics, PerformanceMetrics, EvaluationReport
 
 __all__ = [
     "Document",
@@ -31,4 +32,9 @@ __all__ = [
     "LegalEntityRelationship",
     "ClauseComparison",
     "ReasoningReport",
+    "RetrievalMetrics",
+    "GroundingMetrics",
+    "ReasoningMetrics",
+    "PerformanceMetrics",
+    "EvaluationReport",
 ]
