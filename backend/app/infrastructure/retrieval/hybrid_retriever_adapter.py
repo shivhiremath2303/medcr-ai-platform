@@ -1,3 +1,4 @@
+from typing import Optional, Dict, Any
 from app.domain.models import SearchResult
 from app.domain.repositories.vector_store_repository import VectorStoreRepository
 from app.domain.repositories.keyword_retriever import KeywordRetriever
@@ -7,6 +8,7 @@ from app.domain.repositories.retriever import Retriever
 class HybridRetrieverAdapter(Retriever):
     """
     Adapter that combines vector search and BM25 keyword search.
+    Supports dynamic weights via params.
     """
 
     def __init__(
@@ -34,10 +36,16 @@ class HybridRetrieverAdapter(Retriever):
         self,
         query: str,
         k: int = 5,
+        params: Optional[Dict[str, Any]] = None
     ) -> list[SearchResult]:
         """
         Retrieve using both vector search and BM25.
         """
+
+        # Override weights if provided in params
+        vector_weight = self.vector_weight
+        if params and "vector_weight" in params:
+            vector_weight = params["vector_weight"]
 
         vector_results = self.vector_store.similarity_search(
             query=query,
@@ -61,15 +69,16 @@ class HybridRetrieverAdapter(Retriever):
             merged_results.append(
                 SearchResult(
                     chunk=chunk,
-                    score=0.0, # BM25 adapter doesn't provide normalized scores yet
+                    score=0.0,
                     rank=next_rank,
+                    retrieval_score=0.0
                 )
             )
 
             existing_chunk_ids.add(chunk.chunk_id)
             next_rank += 1
 
-        # Filter by threshold if needed (though scores are not well-normalized here yet)
+        # Filter by threshold
         if self.similarity_threshold > 0:
             merged_results = [r for r in merged_results if r.score >= self.similarity_threshold]
 
