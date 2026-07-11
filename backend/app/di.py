@@ -39,6 +39,7 @@ from app.services.retrieval.context_builder import ContextBuilder
 from app.services.rag.rag_service import RAGService
 from app.services.rag.query_rewriter import QueryRewriter
 from app.services.rag.grounding_engine import GroundingEngine
+from app.services.rag.reasoning_engine import ReasoningEngine
 
 from app.core.observability.health import HealthService
 from app.core.observability.metrics import NoOpMetricsProvider, MetricsRegistry
@@ -158,6 +159,7 @@ _reranker = CrossEncoderAdapter(
 )
 
 _grounding_engine = GroundingEngine()
+_reasoning_engine = ReasoningEngine()
 
 _hybrid_retriever = HybridRetrieverAdapter(
     vector_store=_vector_repository,
@@ -233,6 +235,9 @@ def get_retriever() -> Retriever:
 def get_grounding_engine() -> GroundingEngine:
     return _grounding_engine
 
+def get_reasoning_engine() -> ReasoningEngine:
+    return _reasoning_engine
+
 def get_health_service() -> HealthService:
     return _health_service
 
@@ -297,6 +302,7 @@ def get_rag_service(
     query_rewriter: IQueryRewriter = Depends(get_query_rewriter),
     context_builder: IContextBuilder = Depends(get_context_builder),
     grounding_engine: GroundingEngine = Depends(get_grounding_engine),
+    reasoning_engine: ReasoningEngine = Depends(get_reasoning_engine),
 ) -> RAGService:
     return RAGService(
         retrieval_service=retrieval_service,
@@ -304,7 +310,8 @@ def get_rag_service(
         query_rewriter=query_rewriter,
         memory=conversation_repository,
         context_builder=context_builder,
-        grounding_engine=grounding_engine
+        grounding_engine=grounding_engine,
+        reasoning_engine=reasoning_engine
     )
 
 # --- Lifecycle Management ---

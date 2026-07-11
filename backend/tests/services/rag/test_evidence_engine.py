@@ -3,6 +3,7 @@ from app.services.rag.rag_service import RAGService
 from app.services.retrieval.context_builder import ContextBuilder
 from app.services.rag.query_rewriter import QueryRewriter
 from app.services.rag.grounding_engine import GroundingEngine
+from app.services.rag.reasoning_engine import ReasoningEngine
 from app.infrastructure.storage.memory_conversation_repository import MemoryConversationRepository
 from tests.fixtures.fake_hybrid_retriever import FakeHybridRetriever
 from tests.fixtures.fake_llm_provider import FakeLLMProvider
@@ -15,11 +16,24 @@ def test_rag_service_returns_structured_evidence():
     results = [SearchResult(chunk=chunk, score=0.9, rank=1, retrieval_score=0.9)]
 
     retriever = FakeHybridRetriever(results=results)
-    llm = FakeLLMProvider(answer="Summary: liability found. Analysis: found in [Evidence 1]. Conclusion: liable.")
+
+    answer_text = """
+### Summary
+liability found.
+
+### Analysis
+found in [Evidence 1].
+
+### Conclusion
+liable.
+    """
+
+    llm = FakeLLMProvider(answer=answer_text)
     memory = MemoryConversationRepository(max_messages=10)
     context_builder = ContextBuilder()
     rewriter = QueryRewriter(llm_provider=llm)
     grounding_engine = GroundingEngine()
+    reasoning_engine = ReasoningEngine()
 
     service = RAGService(
         retrieval_service=retriever,
@@ -27,7 +41,8 @@ def test_rag_service_returns_structured_evidence():
         query_rewriter=rewriter,
         memory=memory,
         context_builder=context_builder,
-        grounding_engine=grounding_engine
+        grounding_engine=grounding_engine,
+        reasoning_engine=reasoning_engine
     )
 
     # Execute
@@ -52,6 +67,7 @@ def test_rag_service_handles_missing_evidence():
     context_builder = ContextBuilder()
     rewriter = QueryRewriter(llm_provider=llm)
     grounding_engine = GroundingEngine()
+    reasoning_engine = ReasoningEngine()
 
     service = RAGService(
         retrieval_service=retriever,
@@ -59,7 +75,8 @@ def test_rag_service_handles_missing_evidence():
         query_rewriter=rewriter,
         memory=memory,
         context_builder=context_builder,
-        grounding_engine=grounding_engine
+        grounding_engine=grounding_engine,
+        reasoning_engine=reasoning_engine
     )
 
     # Execute
