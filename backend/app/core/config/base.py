@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Set, List, Optional
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parents[4]
@@ -25,16 +25,30 @@ class Settings(BaseSettings):
     # --- Security ---
     gemini_api_key: str = Field("", description="Google Gemini API Key")
 
+    # --- Rate Limiting ---
+    rate_limit_enabled: bool = Field(True, description="Enable rate limiting")
+    rate_limit_auth_requests: int = Field(10, description="Max auth requests per minute")
+    rate_limit_upload_requests: int = Field(5, description="Max upload requests per minute")
+    rate_limit_rag_requests: int = Field(30, description="Max RAG requests per minute")
+    rate_limit_general_requests: int = Field(100, description="Max general requests per minute")
+    rate_limit_window_seconds: int = Field(60, description="Rate limit window in seconds")
+
+    # --- File Upload Security ---
+    max_upload_size_mb: int = Field(20, description="Maximum upload size in MB")
+    max_upload_files: int = Field(5, description="Maximum number of files per request")
+    supported_extensions: Set[str] = Field({".pdf", ".docx"}, description="Supported file extensions")
+    allowed_mime_types: Set[str] = Field(
+        {"application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+        description="Allowed MIME types for uploads"
+    )
+    file_encoding: str = Field("utf-8", description="Default file encoding")
+
     # --- Storage ---
     upload_dir: Path = Field(BASE_DIR / "backend" / "uploads" / "documents", description="Directory for uploaded documents")
     faiss_dir: Path = Field(BASE_DIR / "backend" / "data" / "faiss", description="Directory for FAISS index")
     metadata_dir: Path = Field(BASE_DIR / "backend" / "data" / "metadata", description="Directory for document metadata")
     temp_dir: Path = Field(BASE_DIR / "backend" / "data" / "temp", description="Directory for temporary files")
     cache_dir: Path = Field(BASE_DIR / "backend" / "data" / "cache", description="Directory for cached data")
-
-    max_upload_size_mb: int = Field(20, description="Maximum upload size in MB")
-    supported_extensions: Set[str] = Field({".pdf", ".docx"}, description="Supported file extensions")
-    file_encoding: str = Field("utf-8", description="Default file encoding")
 
     # --- AI - Embeddings ---
     embedding_model: str = Field("sentence-transformers/all-MiniLM-L6-v2", description="Model for document embeddings")
@@ -64,22 +78,21 @@ class Settings(BaseSettings):
     hybrid_weight_vector: float = Field(0.7, description="Weight for vector search in hybrid retrieval")
     similarity_threshold: float = Field(0.0, description="Minimum similarity score for results")
 
-    # --- Memory ---
-    max_conversation_messages: int = Field(10, description="Maximum messages in conversation history")
+    # --- Persistence & Cache ---
+    redis_url: Optional[str] = Field(None, description="Redis connection URL (e.g., redis://localhost:6379/0)")
+    redis_timeout: int = Field(5, description="Redis connection timeout")
+
+    conversation_ttl: int = Field(3600 * 24, description="Conversation history TTL in seconds (24h)")
+    token_revocation_ttl: int = Field(3600 * 2, description="Token revocation record TTL in seconds")
+    cache_ttl: int = Field(3600, description="General cache TTL in seconds")
+
+    cleanup_interval_seconds: int = Field(3600, description="Interval for background cleanup tasks")
 
     # --- Future Infrastructure Models (Not implemented) ---
-
-    # Database
     database_url: Optional[str] = Field(None, description="Database connection URL")
     database_pool_size: int = Field(5, description="Database connection pool size")
     database_echo: bool = Field(False, description="Enable SQL echoing")
     database_max_overflow: int = Field(10, description="Database pool max overflow")
-
-    # Redis
-    redis_url: Optional[str] = Field(None, description="Redis connection URL")
-    redis_password: Optional[str] = Field(None, description="Redis password")
-    redis_database: int = Field(0, description="Redis database index")
-    redis_timeout: int = Field(5, description="Redis connection timeout")
 
     # Object Storage
     storage_provider: str = Field("local", description="Storage provider (local, s3)")
@@ -120,7 +133,8 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
-    @validator("upload_dir", "faiss_dir", "metadata_dir", "temp_dir", "cache_dir", "log_directory", pre=True)
+    @field_validator("upload_dir", "faiss_dir", "metadata_dir", "temp_dir", "cache_dir", "log_directory", mode="before")
+    @classmethod
     def ensure_path(cls, v):
         if isinstance(v, str):
             return Path(v)

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from app.domain.models import SearchResult
+from app.domain.models import SearchResult, Evidence
 
 
 class ContextBuilder(ABC):
@@ -14,4 +14,10 @@ class ContextBuilder(ABC):
     ) -> str:
         """
         Convert retrieval results into a context string.
+        """
+
+    @abstractmethod
+    def results_to_evidence(self, results: list[SearchResult]) -> list[Evidence]:
+        """
+        Convert search results to domain Evidence objects.
         """

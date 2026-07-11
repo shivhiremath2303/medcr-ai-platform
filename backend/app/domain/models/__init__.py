@@ -9,6 +9,8 @@ from .page import Page
 from .chunk import Chunk
 from .metadata import Metadata
 from .search_result import SearchResult
+from .user import User, UserRole
+from .evidence import Evidence
 
 __all__ = [
     "Document",
@@ -16,4 +18,7 @@ __all__ = [
     "Chunk",
     "Metadata",
     "SearchResult",
+    "User",
+    "UserRole",
+    "Evidence",
 ]

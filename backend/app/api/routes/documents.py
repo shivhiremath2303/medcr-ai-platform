@@ -2,14 +2,14 @@ from fastapi import APIRouter, File, HTTPException, UploadFile, Depends, Request
 
 from app.services.document.document_service import DocumentService
 from app.domain.repositories.storage_provider import StorageProvider
-from app.di import get_document_service, get_storage_provider
+from app.di import get_document_service, get_storage_provider, get_rate_limiter_service
 from app.core.security.dependencies import (
     get_current_active_user,
     RoleChecker,
     CurrentUser,
 )
 from app.domain.models.user import UserRole
-from app.core.security.rate_limiter import get_rate_limiter_service
+from app.core.security.rate_limiter import RateLimiterService
 from app.core.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -22,20 +22,20 @@ router = APIRouter(
 
 @router.post("/upload")
 async def upload_document(
+    request: Request,
     file: UploadFile = File(...),
     storage: StorageProvider = Depends(get_storage_provider),
     document_service: DocumentService = Depends(get_document_service),
     current_user: CurrentUser = Depends(get_current_active_user),
     _role: CurrentUser = Depends(RoleChecker([UserRole.ADMIN, UserRole.LAWYER])),
-    limiter=Depends(get_rate_limiter_service),
+    limiter: RateLimiterService = Depends(get_rate_limiter_service),
 ):
     """
     Upload and index a legal document.
     """
 
     # Rate limit by user id
-    rl = limiter.check_rate_limit(current_user.user_id, "/documents/upload", "POST")
-    if not rl.allowed:
+    if not await limiter.check(current_user.user_id, request.url.path, request.method):
         raise HTTPException(status_code=429, detail="Too Many Requests")
 
     try:
@@ -69,6 +69,7 @@ async def upload_document(
         logger.error(
             "Upload processing error",
             extra_data={"user_id": current_user.user_id, "error": str(e)},
+            exc_info=True
         )
         raise HTTPException(
             status_code=500,

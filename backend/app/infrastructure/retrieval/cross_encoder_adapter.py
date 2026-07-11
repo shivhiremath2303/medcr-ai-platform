@@ -27,6 +27,7 @@ class CrossEncoderAdapter(Reranker):
         scores = self.model.predict(pairs)
 
         for result, score in zip(results, scores):
+            result.reranker_score = float(score)
             result.score = float(score)
 
         results.sort(key=lambda x: x.score, reverse=True)

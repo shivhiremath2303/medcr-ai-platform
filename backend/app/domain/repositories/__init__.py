@@ -14,6 +14,10 @@ from .storage_provider import StorageProvider
 from .keyword_retriever import KeywordRetriever
 from .query_rewriter import QueryRewriter
 from .context_builder import ContextBuilder
+from .user_repository import UserRepository
+from .revocation_repository import RevocationRepository
+from .rate_limiter import RateLimiter
+from .cache_provider import CacheProvider
 
 __all__ = [
     "ChunkRepository",
@@ -30,4 +34,8 @@ __all__ = [
     "KeywordRetriever",
     "QueryRewriter",
     "ContextBuilder",
+    "UserRepository",
+    "RevocationRepository",
+    "RateLimiter",
+    "CacheProvider",
 ]
