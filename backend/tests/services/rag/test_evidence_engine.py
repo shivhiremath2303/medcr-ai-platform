@@ -12,6 +12,8 @@ from tests.fixtures.fake_llm_provider import FakeLLMProvider
 from tests.fixtures.chunk_factory import make_chunk
 from app.domain.models.search_result import SearchResult
 
+from app.core.observability.metrics import NoOpMetricsProvider, MetricsRegistry
+
 def test_rag_service_returns_structured_evidence():
     # Setup
     chunk = make_chunk("chunk-1", "Evidence text about liability.")
@@ -38,6 +40,7 @@ liable.
     reasoning_engine = ReasoningEngine()
     evaluation_engine = EvaluationEngine()
     benchmark_repo = MemoryBenchmarkRepository()
+    metrics = MetricsRegistry(NoOpMetricsProvider())
 
     service = RAGService(
         retrieval_service=retriever,
@@ -48,7 +51,8 @@ liable.
         grounding_engine=grounding_engine,
         reasoning_engine=reasoning_engine,
         evaluation_engine=evaluation_engine,
-        benchmark_repo=benchmark_repo
+        benchmark_repo=benchmark_repo,
+        metrics=metrics
     )
 
     # Execute
@@ -76,6 +80,7 @@ def test_rag_service_handles_missing_evidence():
     reasoning_engine = ReasoningEngine()
     evaluation_engine = EvaluationEngine()
     benchmark_repo = MemoryBenchmarkRepository()
+    metrics = MetricsRegistry(NoOpMetricsProvider())
 
     service = RAGService(
         retrieval_service=retriever,
@@ -86,7 +91,8 @@ def test_rag_service_handles_missing_evidence():
         grounding_engine=grounding_engine,
         reasoning_engine=reasoning_engine,
         evaluation_engine=evaluation_engine,
-        benchmark_repo=benchmark_repo
+        benchmark_repo=benchmark_repo,
+        metrics=metrics
     )
 
     # Execute

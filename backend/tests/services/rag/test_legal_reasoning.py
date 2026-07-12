@@ -12,6 +12,8 @@ from tests.fixtures.fake_llm_provider import FakeLLMProvider
 from tests.fixtures.chunk_factory import make_chunk
 from app.domain.models.search_result import SearchResult
 
+from app.core.observability.metrics import NoOpMetricsProvider, MetricsRegistry
+
 def test_rag_service_extracts_legal_issues():
     # Setup
     chunk = make_chunk("chunk-1", "Liability clause details.")
@@ -44,6 +46,7 @@ The user is liable.
     reasoning_engine = ReasoningEngine()
     evaluation_engine = EvaluationEngine()
     benchmark_repo = MemoryBenchmarkRepository()
+    metrics = MetricsRegistry(NoOpMetricsProvider())
 
     service = RAGService(
         retrieval_service=retriever,
@@ -54,7 +57,8 @@ The user is liable.
         grounding_engine=grounding_engine,
         reasoning_engine=reasoning_engine,
         evaluation_engine=evaluation_engine,
-        benchmark_repo=benchmark_repo
+        benchmark_repo=benchmark_repo,
+        metrics=metrics
     )
 
     # Execute
