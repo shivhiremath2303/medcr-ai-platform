@@ -36,6 +36,7 @@ jobs:
 
       - name: Docker Compose Validation
         run: |
+          touch .env.production
           docker compose config
 
       - name: Verify Startup
