@@ -25,6 +25,10 @@ COPY requirements-dev.txt .
 RUN pip install --upgrade pip && \
     pip install --user --no-warn-script-location -r requirements.txt
 
+# Pre-download ML models to speed up container startup and ensure CI stability
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')" && \
+    python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
+
 # --- Stage 2: Production ---
 FROM python:3.12-slim as runtime
 
@@ -34,13 +38,16 @@ RUN groupadd -r legalai && useradd -r -g legalai legalai
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    SENTENCE_TRANSFORMERS_HOME=/home/legalai/.cache/torch/sentence_transformers
 
 # Set work directory
 WORKDIR /app
 
-# Copy dependencies from builder
+# Copy dependencies and pre-downloaded models from builder
 COPY --from=builder /root/.local /home/legalai/.local
+COPY --from=builder /root/.cache /home/legalai/.cache
+
 ENV PATH=/home/legalai/.local/bin:$PATH
 
 # Install runtime system dependencies (if any)
@@ -53,7 +60,7 @@ COPY . .
 
 # Create necessary directories and set permissions
 RUN mkdir -p uploads/documents data/faiss data/metadata data/temp data/cache logs && \
-    chown -R legalai:legalai /app
+    chown -R legalai:legalai /app /home/legalai/.cache
 
 # Switch to non-root user
 USER legalai

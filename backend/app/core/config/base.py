@@ -3,7 +3,9 @@ from typing import Set, List, Optional
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-BASE_DIR = Path(__file__).resolve().parents[4]
+# BASE_DIR should point to the backend root directory (containing 'app')
+# This file is at backend/app/core/config/base.py
+BASE_DIR = Path(__file__).resolve().parents[3]
 
 class Settings(BaseSettings):
     # --- Application Settings ---
@@ -44,11 +46,12 @@ class Settings(BaseSettings):
     file_encoding: str = Field("utf-8", description="Default file encoding")
 
     # --- Storage ---
-    upload_dir: Path = Field(BASE_DIR / "backend" / "uploads" / "documents", description="Directory for uploaded documents")
-    faiss_dir: Path = Field(BASE_DIR / "backend" / "data" / "faiss", description="Directory for FAISS index")
-    metadata_dir: Path = Field(BASE_DIR / "backend" / "data" / "metadata", description="Directory for document metadata")
-    temp_dir: Path = Field(BASE_DIR / "backend" / "data" / "temp", description="Directory for temporary files")
-    cache_dir: Path = Field(BASE_DIR / "backend" / "data" / "cache", description="Directory for cached data")
+    # Paths are relative to BASE_DIR (the backend root)
+    upload_dir: Path = Field(BASE_DIR / "uploads" / "documents", description="Directory for uploaded documents")
+    faiss_dir: Path = Field(BASE_DIR / "data" / "faiss", description="Directory for FAISS index")
+    metadata_dir: Path = Field(BASE_DIR / "data" / "metadata", description="Directory for document metadata")
+    temp_dir: Path = Field(BASE_DIR / "data" / "temp", description="Directory for temporary files")
+    cache_dir: Path = Field(BASE_DIR / "data" / "cache", description="Directory for cached data")
 
     # --- AI - Embeddings ---
     embedding_model: str = Field("sentence-transformers/all-MiniLM-L6-v2", description="Model for document embeddings")
@@ -122,12 +125,12 @@ class Settings(BaseSettings):
     log_level: str = Field("INFO", description="Global log level")
     log_format: str = Field("text", description="Log format (text, json)")
     log_json: bool = Field(False, description="Enable JSON logging")
-    log_directory: Path = Field(BASE_DIR / "backend" / "logs", description="Directory for log files")
+    log_directory: Path = Field(BASE_DIR / "logs", description="Directory for log files")
     log_rotation_size: str = Field("10MB", description="Log file rotation size")
     log_retention_days: int = Field(7, description="Log file retention days")
 
     model_config = SettingsConfigDict(
-        env_file=BASE_DIR / ".env",
+        env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore"

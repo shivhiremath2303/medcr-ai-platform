@@ -1,77 +1,71 @@
 from __future__ import annotations
 
+from fastapi import BackgroundTasks, Depends
 from google import genai
-from fastapi import Depends, BackgroundTasks
 
 from app.core.config import get_settings
+from app.core.observability.health import HealthService
+from app.core.observability.metrics import MetricsRegistry, NoOpMetricsProvider
+from app.core.security.auth_service import AuthService
+from app.core.security.jwt import JWTManager
+from app.core.security.password import PasswordHasher
+from app.core.security.rate_limiter import RateLimiterService
+from app.domain.models.user import User, UserRole
 from app.domain.repositories import (
-    DocumentParser,
-    VectorStoreRepository,
-    EmbeddingRepository,
-    LLMProvider,
-    StorageProvider,
-    KeywordRetriever,
-    Reranker,
-    Chunker,
-    Retriever,
-    DocumentRepository,
-    ConversationRepository,
-    UserRepository,
-    RevocationRepository,
-    RateLimiter,
     CacheProvider,
+    Chunker,
+    ConversationRepository,
+    DocumentParser,
+    DocumentRepository,
+    EmbeddingRepository,
+    KeywordRetriever,
+    LLMProvider,
     MetricsProvider,
+    RateLimiter,
+    Reranker,
+    Retriever,
+    RevocationRepository,
+    StorageProvider,
+    UserRepository,
+    VectorStoreRepository,
 )
-from app.domain.repositories.query_rewriter import QueryRewriter as IQueryRewriter
-from app.domain.repositories.context_builder import ContextBuilder as IContextBuilder
 from app.domain.repositories.background_tasks import BackgroundTaskProvider
-
+from app.domain.repositories.benchmark_repository import BenchmarkRepository
+from app.domain.repositories.context_builder import ContextBuilder as IContextBuilder
+from app.domain.repositories.query_rewriter import QueryRewriter as IQueryRewriter
+from app.infrastructure.background.fastapi_background_tasks import FastAPIBackgroundTaskProvider
 from app.infrastructure.llm.gemini_adapter import GeminiLLMAdapter
 from app.infrastructure.embeddings.huggingface_adapter import HuggingFaceEmbeddingAdapter
-from app.infrastructure.vectorstore.faiss_repository import FAISSVectorRepository
-from app.infrastructure.storage.local_storage_adapter import LocalStorageAdapter
-from app.infrastructure.storage.filesystem_document_repository import FilesystemDocumentRepository
-from app.infrastructure.storage.memory_conversation_repository import MemoryConversationRepository
-from app.infrastructure.storage.redis_conversation_repository import RedisConversationRepository
-from app.infrastructure.storage.memory_user_repository import MemoryUserRepository
-from app.infrastructure.storage.redis_revocation_repository import RedisRevocationRepository
-from app.infrastructure.storage.redis_rate_limiter import RedisRateLimiter
-from app.infrastructure.storage.noop_rate_limiter import NoOpRateLimiter
-from app.infrastructure.storage.redis_cache_provider import RedisCacheProvider
-from app.infrastructure.storage.memory_cache_provider import MemoryCacheProvider
-from app.infrastructure.storage.redis_client import RedisClient
-
+from app.infrastructure.observability.prometheus_metrics import PrometheusMetricsProvider
+from app.infrastructure.observability.storage_health import StorageHealthCheck
+from app.infrastructure.observability.vector_store_health import VectorStoreHealthCheck
 from app.infrastructure.parser.document_parser_adapter import DocumentParserAdapter
 from app.infrastructure.parser.langchain_chunker_adapter import LangChainChunkerAdapter
 from app.infrastructure.retrieval.bm25_adapter import BM25Adapter
 from app.infrastructure.retrieval.cross_encoder_adapter import CrossEncoderAdapter
 from app.infrastructure.retrieval.hybrid_retriever_adapter import HybridRetrieverAdapter
-from app.infrastructure.background.fastapi_background_tasks import FastAPIBackgroundTaskProvider
-
-from app.services.document.document_service import DocumentService
-from app.services.retrieval.retrieval_service import RetrievalService
-from app.services.retrieval.context_builder import ContextBuilder
-from app.services.rag.rag_service import RAGService
-from app.services.rag.query_rewriter import QueryRewriter
-from app.services.rag.grounding_engine import GroundingEngine
-from app.services.rag.reasoning_engine import ReasoningEngine
-from app.services.rag.evaluation_engine import EvaluationEngine
-
-from app.domain.repositories.benchmark_repository import BenchmarkRepository
+from app.infrastructure.storage.filesystem_document_repository import FilesystemDocumentRepository
+from app.infrastructure.storage.local_storage_adapter import LocalStorageAdapter
 from app.infrastructure.storage.memory_benchmark_repository import MemoryBenchmarkRepository
-
-from app.core.observability.health import HealthService
-from app.core.observability.metrics import NoOpMetricsProvider, MetricsRegistry
-from app.infrastructure.observability.prometheus_metrics import PrometheusMetricsProvider
-from app.infrastructure.observability.vector_store_health import VectorStoreHealthCheck
-from app.infrastructure.observability.storage_health import StorageHealthCheck
-
-from app.core.security.jwt import JWTManager
-from app.core.security.auth_service import AuthService
-from app.domain.models.user import User, UserRole
-from app.core.security.password import PasswordHasher
-from app.core.security.rate_limiter import RateLimiterService
+from app.infrastructure.storage.memory_cache_provider import MemoryCacheProvider
+from app.infrastructure.storage.memory_conversation_repository import MemoryConversationRepository
+from app.infrastructure.storage.memory_user_repository import MemoryUserRepository
+from app.infrastructure.storage.noop_rate_limiter import NoOpRateLimiter
+from app.infrastructure.storage.redis_cache_provider import RedisCacheProvider
+from app.infrastructure.storage.redis_client import RedisClient
+from app.infrastructure.storage.redis_conversation_repository import RedisConversationRepository
+from app.infrastructure.storage.redis_rate_limiter import RedisRateLimiter
+from app.infrastructure.storage.redis_revocation_repository import RedisRevocationRepository
+from app.infrastructure.vectorstore.faiss_repository import FAISSVectorRepository
+from app.services.document.document_service import DocumentService
 from app.services.maintenance.cleanup_service import CleanupService
+from app.services.rag.evaluation_engine import EvaluationEngine
+from app.services.rag.grounding_engine import GroundingEngine
+from app.services.rag.query_rewriter import QueryRewriter
+from app.services.rag.rag_service import RAGService
+from app.services.rag.reasoning_engine import ReasoningEngine
+from app.services.retrieval.context_builder import ContextBuilder
+from app.services.retrieval.retrieval_service import RetrievalService
 
 # Load settings - validation happens inside get_settings()
 settings = get_settings()
