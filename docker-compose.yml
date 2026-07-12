@@ -8,10 +8,10 @@ services:
     environment:
       - ENVIRONMENT=production
       - REDIS_URL=redis://redis:6379/0
-      # These allow passing variables from the host environment to the container
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      # Pass through from host shell if defined, otherwise env_file values are used
+      - GEMINI_API_KEY
+      - JWT_SECRET_KEY
+      - CORS_ALLOWED_ORIGINS
     env_file:
       - .env.production
     ports:

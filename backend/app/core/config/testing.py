@@ -1,15 +1,18 @@
 from app.core.config.base import Settings, BASE_DIR
 
 class TestingSettings(Settings):
+    """
+    Settings for automated testing.
+    """
     environment: str = "testing"
     debug: bool = True
     log_level: str = "DEBUG"
 
-    # Isolated storage for tests
-    upload_dir: str = str(BASE_DIR / "backend" / "tests" / "uploads")
-    faiss_dir: str = str(BASE_DIR / "backend" / "tests" / "data" / "faiss")
-    metadata_dir: str = str(BASE_DIR / "backend" / "tests" / "data" / "metadata")
-    log_directory: str = str(BASE_DIR / "backend" / "tests" / "logs")
+    # Isolated storage for tests - relative to BASE_DIR
+    upload_dir: str = str(BASE_DIR / "tests" / "uploads")
+    faiss_dir: str = str(BASE_DIR / "tests" / "data" / "faiss")
+    metadata_dir: str = str(BASE_DIR / "tests" / "data" / "metadata")
+    log_directory: str = str(BASE_DIR / "tests" / "logs")
 
     # Speed up tests
     chunk_size: int = 500
@@ -21,7 +24,7 @@ class TestingSettings(Settings):
 
     # Test CORS
     cors_allowed_origins: list[str] = ["http://testserver", "http://localhost"]
-    cors_allowed_methods: list[str] = ["*"]
+    cors_allowed_methods: list[str] = ["GET", "POST", "OPTIONS"]
     cors_allowed_headers: list[str] = ["*"]
 
     # High rate limits for tests (effectively unlimited)
