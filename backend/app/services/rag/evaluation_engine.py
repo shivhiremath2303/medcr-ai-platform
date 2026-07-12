@@ -1,17 +1,18 @@
-import time
 import math
-from typing import List, Dict, Any, Optional
-from app.domain.models import (
-    SearchResult,
-    Evidence,
-    ReasoningReport,
-    EvaluationReport,
-    RetrievalMetrics,
-    GroundingMetrics,
-    ReasoningMetrics,
-    PerformanceMetrics,
-)
+import time
+from typing import Any, Dict, List, Optional
+
 from app.core.observability.logger import get_logger
+from app.domain.models import (
+    EvaluationReport,
+    Evidence,
+    GroundingMetrics,
+    PerformanceMetrics,
+    ReasoningMetrics,
+    ReasoningReport,
+    RetrievalMetrics,
+    SearchResult,
+)
 
 logger = get_logger(__name__)
 

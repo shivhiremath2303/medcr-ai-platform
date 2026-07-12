@@ -1,4 +1,5 @@
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 from app.domain.models.search_result import SearchResult
 
 

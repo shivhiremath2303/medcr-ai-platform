@@ -1,9 +1,10 @@
 import pickle
 from typing import Any, Optional
-from app.domain.repositories.cache_provider import CacheProvider
-from app.infrastructure.storage.redis_client import RedisClient
+
 from app.core.observability.metrics import MetricsRegistry
 from app.core.observability.telemetry import get_tracer
+from app.domain.repositories.cache_provider import CacheProvider
+from app.infrastructure.storage.redis_client import RedisClient
 
 tracer = get_tracer(__name__)
 

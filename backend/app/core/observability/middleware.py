@@ -5,7 +5,7 @@ from typing import Callable
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.core.observability.context import set_request_id, set_correlation_id
+from app.core.observability.context import set_correlation_id, set_request_id
 from app.core.observability.logger import get_logger
 
 logger = get_logger(__name__)

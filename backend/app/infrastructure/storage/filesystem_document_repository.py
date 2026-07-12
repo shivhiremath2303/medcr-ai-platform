@@ -1,7 +1,7 @@
 import json
-from pathlib import Path
-from typing import List, Optional, Any
 from dataclasses import asdict
+from pathlib import Path
+from typing import Any, List, Optional
 
 from app.domain.models import Document, Page
 from app.domain.repositories.document_repository import DocumentRepository

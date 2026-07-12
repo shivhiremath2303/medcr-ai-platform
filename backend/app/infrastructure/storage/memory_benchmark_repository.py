@@ -1,7 +1,8 @@
 from typing import List
+
 from app.domain.repositories.benchmark_repository import (
-    BenchmarkRepository,
     BenchmarkCase,
+    BenchmarkRepository,
 )
 
 

@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 from typing import Any, Dict
 
-from app.core.observability.context import get_request_id, get_correlation_id
+from app.core.observability.context import get_correlation_id, get_request_id
 
 
 class StructuredFormatter(logging.Formatter):

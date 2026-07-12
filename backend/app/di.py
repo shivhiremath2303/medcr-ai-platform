@@ -36,10 +36,10 @@ from app.domain.repositories.query_rewriter import QueryRewriter as IQueryRewrit
 from app.infrastructure.background.fastapi_background_tasks import (
     FastAPIBackgroundTaskProvider,
 )
-from app.infrastructure.llm.gemini_adapter import GeminiLLMAdapter
 from app.infrastructure.embeddings.huggingface_adapter import (
     HuggingFaceEmbeddingAdapter,
 )
+from app.infrastructure.llm.gemini_adapter import GeminiLLMAdapter
 from app.infrastructure.observability.prometheus_metrics import (
     PrometheusMetricsProvider,
 )

@@ -1,8 +1,10 @@
 import time
+
 from google import genai
-from app.domain.repositories.llm_provider import LLMProvider
+
 from app.core.observability.metrics import MetricsRegistry
 from app.core.observability.telemetry import get_tracer
+from app.domain.repositories.llm_provider import LLMProvider
 
 tracer = get_tracer(__name__)
 

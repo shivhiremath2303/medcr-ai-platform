@@ -1,14 +1,15 @@
 import re
-from typing import List, Dict, Any, Optional
-from app.domain.models import (
-    LegalIssue,
-    TimelineEvent,
-    LegalEntityRelationship,
-    ClauseComparison,
-    ReasoningReport,
-    Evidence,
-)
+from typing import Any, Dict, List, Optional
+
 from app.core.observability.logger import get_logger
+from app.domain.models import (
+    ClauseComparison,
+    Evidence,
+    LegalEntityRelationship,
+    LegalIssue,
+    ReasoningReport,
+    TimelineEvent,
+)
 
 logger = get_logger(__name__)
 

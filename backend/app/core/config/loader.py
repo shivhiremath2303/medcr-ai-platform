@@ -5,8 +5,8 @@ from typing import Dict, Type
 
 from app.core.config.base import Settings
 from app.core.config.development import DevelopmentSettings
-from app.core.config.testing import TestingSettings
 from app.core.config.production import ProductionSettings
+from app.core.config.testing import TestingSettings
 from app.core.config.validation import validate_config
 
 _environments: Dict[str, Type[Settings]] = {

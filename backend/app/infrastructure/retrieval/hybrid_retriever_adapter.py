@@ -1,8 +1,9 @@
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 from app.domain.models import SearchResult
-from app.domain.repositories.vector_store_repository import VectorStoreRepository
 from app.domain.repositories.keyword_retriever import KeywordRetriever
 from app.domain.repositories.retriever import Retriever
+from app.domain.repositories.vector_store_repository import VectorStoreRepository
 
 
 class HybridRetrieverAdapter(Retriever):

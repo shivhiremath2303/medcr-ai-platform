@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
+
 from app.core.observability.health import HealthService
 from app.di import get_health_service
 

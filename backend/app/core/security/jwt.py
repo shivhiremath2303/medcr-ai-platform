@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Dict, Optional, Tuple
 
 import jwt
+
 from app.core.config.base import Settings
 
 

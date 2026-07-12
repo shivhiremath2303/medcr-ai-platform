@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
-from app.core.security.auth_service import AuthService
-from app.di import get_auth_service, get_rate_limiter_service
-from app.core.security.dependencies import get_current_user, CurrentUser
-from app.core.security.rate_limiter import RateLimiterService
+
 from app.core.observability.logger import get_logger
+from app.core.security.auth_service import AuthService
+from app.core.security.dependencies import CurrentUser, get_current_user
+from app.core.security.rate_limiter import RateLimiterService
+from app.di import get_auth_service, get_rate_limiter_service
 
 router = APIRouter(
     prefix="/auth",

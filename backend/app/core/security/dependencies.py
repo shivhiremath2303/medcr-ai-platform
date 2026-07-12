@@ -1,14 +1,16 @@
 from dataclasses import dataclass
-from typing import Optional, List
-from fastapi import Depends, HTTPException, status, Request
+from typing import List, Optional
+
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
+
+from app.core.observability.context import set_user_id
+from app.core.observability.logger import get_logger
+from app.core.security.auth_service import AuthService
+from app.core.security.jwt import JWTManager
+from app.di import get_auth_service, get_jwt_manager, get_user_repository
 from app.domain.models.user import User, UserRole
 from app.domain.repositories.user_repository import UserRepository
-from app.core.security.jwt import JWTManager
-from app.core.security.auth_service import AuthService
-from app.di import get_user_repository, get_jwt_manager, get_auth_service
-from app.core.observability.logger import get_logger
-from app.core.observability.context import set_user_id
 
 logger = get_logger(__name__)
 

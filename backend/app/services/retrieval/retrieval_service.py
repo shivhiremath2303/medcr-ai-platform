@@ -1,15 +1,16 @@
 import time
-from typing import List, Dict, Any, Tuple, Optional
-from app.domain.models import SearchResult, Chunk
-from app.domain.models.retrieval import (
-    QueryUnderstanding,
-    QueryIntent,
-    RetrievalDiagnostics,
-)
-from app.domain.repositories.retriever import Retriever
-from app.domain.repositories.reranker import Reranker
+from typing import Any, Dict, List, Optional, Tuple
+
 from app.core.observability.metrics import MetricsRegistry
 from app.core.observability.telemetry import get_tracer
+from app.domain.models import Chunk, SearchResult
+from app.domain.models.retrieval import (
+    QueryIntent,
+    QueryUnderstanding,
+    RetrievalDiagnostics,
+)
+from app.domain.repositories.reranker import Reranker
+from app.domain.repositories.retriever import Retriever
 
 tracer = get_tracer(__name__)
 

@@ -1,4 +1,5 @@
 from sentence_transformers import CrossEncoder
+
 from app.domain.models import SearchResult
 from app.domain.repositories.reranker import Reranker
 

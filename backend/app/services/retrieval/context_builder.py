@@ -1,6 +1,7 @@
-import re
 import math
-from app.domain.models import SearchResult, Evidence
+import re
+
+from app.domain.models import Evidence, SearchResult
 from app.domain.repositories.context_builder import ContextBuilder as IContextBuilder
 
 

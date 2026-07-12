@@ -1,7 +1,8 @@
 from typing import Tuple
+
 from app.core.config.base import Settings
-from app.domain.repositories.rate_limiter import RateLimiter
 from app.core.observability.logger import get_logger
+from app.domain.repositories.rate_limiter import RateLimiter
 
 logger = get_logger(__name__)
 

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from app.domain.models import SearchResult, Evidence
+
+from app.domain.models import Evidence, SearchResult
 
 
 class ContextBuilder(ABC):

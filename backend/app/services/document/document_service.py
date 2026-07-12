@@ -1,11 +1,12 @@
 from pathlib import Path
+
 from app.core.observability.logger import get_logger
 from app.core.observability.metrics import MetricsRegistry
 from app.core.observability.telemetry import get_tracer
 from app.domain.models import Document
-from app.domain.repositories.document_repository import DocumentRepository
 from app.domain.repositories.chunker import Chunker
 from app.domain.repositories.document_parser import DocumentParser
+from app.domain.repositories.document_repository import DocumentRepository
 from app.domain.repositories.vector_store_repository import VectorStoreRepository
 from app.services.document.cleaner import TextCleaner
 

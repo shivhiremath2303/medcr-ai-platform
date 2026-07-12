@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List
 from datetime import datetime
+from typing import Any, Dict, List
 
 
 class HealthCheck(ABC):

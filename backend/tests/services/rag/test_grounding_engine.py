@@ -1,6 +1,7 @@
 import pytest
+
+from app.domain.models import AnswerStatus, Evidence, SearchResult, SufficiencyLevel
 from app.services.rag.grounding_engine import GroundingEngine
-from app.domain.models import Evidence, SearchResult, AnswerStatus, SufficiencyLevel
 from tests.fixtures.chunk_factory import make_chunk
 
 

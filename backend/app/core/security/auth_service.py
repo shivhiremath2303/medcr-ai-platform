@@ -1,12 +1,13 @@
 import time
 from datetime import timedelta, timezone
-from typing import Optional, Tuple, Dict, Any
-from app.domain.models.user import User
-from app.domain.repositories.user_repository import UserRepository
-from app.domain.repositories.revocation_repository import RevocationRepository
-from app.core.security.password import PasswordHasher
-from app.core.security.jwt import JWTManager, TokenType
+from typing import Any, Dict, Optional, Tuple
+
 from app.core.observability.logger import get_logger
+from app.core.security.jwt import JWTManager, TokenType
+from app.core.security.password import PasswordHasher
+from app.domain.models.user import User
+from app.domain.repositories.revocation_repository import RevocationRepository
+from app.domain.repositories.user_repository import UserRepository
 
 logger = get_logger(__name__)
 

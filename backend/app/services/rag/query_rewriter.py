@@ -1,8 +1,9 @@
 import json
+
+from app.core.observability.logger import get_logger
+from app.domain.models.retrieval import QueryIntent, QueryUnderstanding
 from app.domain.repositories.llm_provider import LLMProvider
 from app.domain.repositories.query_rewriter import QueryRewriter as IQueryRewriter
-from app.domain.models.retrieval import QueryUnderstanding, QueryIntent
-from app.core.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

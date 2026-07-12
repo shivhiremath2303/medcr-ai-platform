@@ -1,5 +1,6 @@
 import time
-from typing import Any, Optional, Dict
+from typing import Any, Dict, Optional
+
 from app.domain.repositories.cache_provider import CacheProvider
 
 

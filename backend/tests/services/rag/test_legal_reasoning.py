@@ -1,22 +1,22 @@
 import pytest
-from app.services.rag.rag_service import RAGService
-from app.services.retrieval.context_builder import ContextBuilder
-from app.services.rag.query_rewriter import QueryRewriter
-from app.services.rag.grounding_engine import GroundingEngine
-from app.services.rag.reasoning_engine import ReasoningEngine
-from app.services.rag.evaluation_engine import EvaluationEngine
-from app.infrastructure.storage.memory_conversation_repository import (
-    MemoryConversationRepository,
-)
+
+from app.core.observability.metrics import MetricsRegistry, NoOpMetricsProvider
+from app.domain.models.search_result import SearchResult
 from app.infrastructure.storage.memory_benchmark_repository import (
     MemoryBenchmarkRepository,
 )
+from app.infrastructure.storage.memory_conversation_repository import (
+    MemoryConversationRepository,
+)
+from app.services.rag.evaluation_engine import EvaluationEngine
+from app.services.rag.grounding_engine import GroundingEngine
+from app.services.rag.query_rewriter import QueryRewriter
+from app.services.rag.rag_service import RAGService
+from app.services.rag.reasoning_engine import ReasoningEngine
+from app.services.retrieval.context_builder import ContextBuilder
+from tests.fixtures.chunk_factory import make_chunk
 from tests.fixtures.fake_hybrid_retriever import FakeHybridRetriever
 from tests.fixtures.fake_llm_provider import FakeLLMProvider
-from tests.fixtures.chunk_factory import make_chunk
-from app.domain.models.search_result import SearchResult
-
-from app.core.observability.metrics import NoOpMetricsProvider, MetricsRegistry
 
 
 def test_rag_service_extracts_legal_issues():

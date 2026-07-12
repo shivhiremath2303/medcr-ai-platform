@@ -1,5 +1,7 @@
-import redis
 from typing import Optional
+
+import redis
+
 from app.core.observability.logger import get_logger
 
 logger = get_logger(__name__)

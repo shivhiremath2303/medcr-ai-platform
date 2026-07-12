@@ -1,5 +1,6 @@
 import time
 from typing import Dict
+
 from app.domain.repositories.revocation_repository import RevocationRepository
 
 

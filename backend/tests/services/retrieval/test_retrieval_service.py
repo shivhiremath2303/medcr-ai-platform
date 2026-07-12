@@ -1,6 +1,6 @@
+from app.core.observability.metrics import MetricsRegistry, NoOpMetricsProvider
 from app.domain.models.search_result import SearchResult
 from app.services.retrieval.retrieval_service import RetrievalService
-from app.core.observability.metrics import NoOpMetricsProvider, MetricsRegistry
 from tests.fixtures.chunk_factory import make_chunk
 from tests.fixtures.fake_hybrid_retriever import FakeHybridRetriever
 from tests.fixtures.fake_reranker import FakeReranker

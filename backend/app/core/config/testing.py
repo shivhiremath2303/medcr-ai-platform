@@ -1,4 +1,4 @@
-from app.core.config.base import Settings, BASE_DIR
+from app.core.config.base import BASE_DIR, Settings
 
 
 class TestingSettings(Settings):

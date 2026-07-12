@@ -1,5 +1,6 @@
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.embeddings import Embeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+
 from app.domain.repositories.embedding_repository import EmbeddingRepository
 
 

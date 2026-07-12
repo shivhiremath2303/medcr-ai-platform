@@ -1,5 +1,7 @@
 from uuid import uuid4
+
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 from app.domain.models import Chunk, Document, Metadata
 from app.domain.repositories.chunker import Chunker
 

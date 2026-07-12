@@ -1,6 +1,7 @@
-from fastapi import HTTPException, Request, status, Depends
-from app.domain.repositories.rate_limiter import RateLimiter
+from fastapi import Depends, HTTPException, Request, status
+
 from app.di import get_rate_limiter, get_settings_provider
+from app.domain.repositories.rate_limiter import RateLimiter
 
 
 class RateLimit:

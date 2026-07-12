@@ -1,4 +1,5 @@
-from typing import Dict, Any
+from typing import Any, Dict
+
 from app.core.observability.health import HealthCheck
 from app.infrastructure.storage.redis_client import RedisClient
 

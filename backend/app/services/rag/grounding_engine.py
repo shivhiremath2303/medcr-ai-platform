@@ -1,13 +1,14 @@
 import re
-from typing import List, Dict, Any
-from app.domain.models import (
-    Evidence,
-    SearchResult,
-    AnswerStatus,
-    SufficiencyLevel,
-    GroundingReport,
-)
+from typing import Any, Dict, List
+
 from app.core.observability.logger import get_logger
+from app.domain.models import (
+    AnswerStatus,
+    Evidence,
+    GroundingReport,
+    SearchResult,
+    SufficiencyLevel,
+)
 
 logger = get_logger(__name__)
 

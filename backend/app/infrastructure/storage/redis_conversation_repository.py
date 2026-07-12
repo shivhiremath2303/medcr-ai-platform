@@ -1,8 +1,9 @@
 import json
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
+from app.core.observability.context import get_user_id
 from app.domain.repositories.conversation_repository import ConversationRepository
 from app.infrastructure.storage.redis_client import RedisClient
-from app.core.observability.context import get_user_id
 
 
 class RedisConversationRepository(ConversationRepository):

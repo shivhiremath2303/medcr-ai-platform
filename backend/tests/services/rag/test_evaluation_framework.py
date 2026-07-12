@@ -1,6 +1,7 @@
 import pytest
+
+from app.domain.models import LegalIssue, ReasoningReport, SearchResult
 from app.services.rag.evaluation_engine import EvaluationEngine
-from app.domain.models import SearchResult, ReasoningReport, LegalIssue
 from tests.fixtures.chunk_factory import make_chunk
 
 
