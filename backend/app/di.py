@@ -7,8 +7,7 @@ from app.domain.repositories import (
     DocumentParser, VectorStoreRepository, EmbeddingRepository,
     LLMProvider, StorageProvider, KeywordRetriever, Reranker,
     Chunker, Retriever, DocumentRepository, ConversationRepository,
-    UserRepository, RevocationRepository, RateLimiter, CacheProvider,
-    MetricsProvider
+    UserRepository, RevocationRepository, RateLimiter, CacheProvider
 )
 from app.domain.repositories.query_rewriter import QueryRewriter as IQueryRewriter
 from app.domain.repositories.context_builder import ContextBuilder as IContextBuilder
@@ -49,7 +48,7 @@ from app.domain.repositories.benchmark_repository import BenchmarkRepository
 from app.infrastructure.storage.memory_benchmark_repository import MemoryBenchmarkRepository
 
 from app.core.observability.health import HealthService
-from app.core.observability.metrics import NoOpMetricsProvider, MetricsRegistry
+from app.core.observability.metrics import NoOpMetricsProvider, MetricsRegistry, MetricsProvider
 from app.infrastructure.observability.prometheus_metrics import PrometheusMetricsProvider
 from app.infrastructure.observability.vector_store_health import VectorStoreHealthCheck
 from app.infrastructure.observability.storage_health import StorageHealthCheck
@@ -58,6 +57,8 @@ from app.core.security.jwt import JWTManager
 from app.core.security.auth_service import AuthService
 from app.domain.models.user import User, UserRole
 from app.core.security.password import PasswordHasher
+from app.core.security.rate_limiter import RateLimiterService
+from app.services.maintenance.cleanup_service import CleanupService
 
 # Load settings - validation happens inside get_settings()
 settings = get_settings()
@@ -230,7 +231,6 @@ def get_rate_limiter_service(
     limiter: RateLimiter = Depends(get_rate_limiter),
     settings = Depends(get_settings_provider),
 ) -> RateLimiterService:
-    from app.core.security.rate_limiter import RateLimiterService
     return RateLimiterService(limiter, settings)
 
 def get_cache_provider() -> CacheProvider:
@@ -279,7 +279,6 @@ def get_auth_service() -> AuthService:
     return _auth_service
 
 def get_cleanup_service() -> CleanupService:
-    from app.services.maintenance.cleanup_service import CleanupService
     return CleanupService(settings, _revocation_repository)
 
 def get_background_task_provider(background_tasks: BackgroundTasks) -> BackgroundTaskProvider:
