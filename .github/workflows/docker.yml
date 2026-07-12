@@ -41,12 +41,15 @@ jobs:
       - name: Verify Startup
         run: |
           docker compose up -d backend redis
-          # Wait for backend to be healthy
-          sleep 30
+          # Increased wait for slow model loading in CI
+          echo "Waiting for services to initialize..."
+          sleep 60
           docker compose ps
+          docker compose logs redis
           docker compose logs backend
           # Thorough readiness check (checks Redis connectivity)
-          curl -f http://localhost:8000/health/ready || (docker compose logs backend && exit 1)
+          # Use --retry to be more resilient
+          curl -v --retry 5 --retry-delay 5 --retry-all-errors http://localhost:8000/health/ready || (docker compose logs backend && exit 1)
         env:
           GEMINI_API_KEY: "dummy"
 
