@@ -32,12 +32,10 @@ class ContextBuilder(IContextBuilder):
             compressed_text = self._compress_text(result.chunk.text)
 
             context_parts.append(
-                (
-                    f"--- [Evidence {i}] ---\n"
-                    f"Source Document: {metadata.filename}\n"
-                    f"Page: {metadata.page_number}\n"
-                    f"Excerpt:\n{compressed_text}\n"
-                )
+                f"--- [Evidence {i}] ---\n"
+                f"Source Document: {metadata.filename}\n"
+                f"Page: {metadata.page_number}\n"
+                f"Excerpt:\n{compressed_text}\n"
             )
 
         return "\n".join(context_parts)
@@ -66,7 +64,6 @@ class ContextBuilder(IContextBuilder):
         if len(results) <= 3: return results
 
         diversified = []
-        seen_docs = {} # doc_id -> count
 
         # Round-robin like selection from doc groups
         doc_groups = {}
