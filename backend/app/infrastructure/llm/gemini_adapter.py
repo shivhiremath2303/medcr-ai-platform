@@ -62,7 +62,7 @@ class GeminiLLMAdapter(LLMProvider):
 
             except Exception as e:
                 span.record_exception(e)
-                raise RuntimeError(f"LLM request failed: {e}")
+                raise RuntimeError(f"LLM request failed: {e}") from e
 
     def rewrite_question(
         self,

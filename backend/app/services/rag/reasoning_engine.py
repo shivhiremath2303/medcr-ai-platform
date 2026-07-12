@@ -63,7 +63,8 @@ class ReasoningEngine:
                     severity=severity,
                     evidence_ids=evidence_ids
                 ))
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Failed to parse issue line: {line}. Error: {str(e)}")
                 continue
         return issues
 
@@ -111,7 +112,8 @@ class ReasoningEngine:
                             relationship_type=entities[1].strip() if len(entities) > 2 else "related_to",
                             description=parts[1].strip()
                         ))
-                except Exception:
+                except Exception as e:
+                    logger.warning(f"Failed to parse relationship line: {line}. Error: {str(e)}")
                     continue
         return rels
 

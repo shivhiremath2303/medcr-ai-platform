@@ -56,4 +56,4 @@ async def ask_question(
         raise HTTPException(
             status_code=500,
             detail="Internal Server Error",
-        )
+        ) from e

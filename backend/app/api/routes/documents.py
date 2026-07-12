@@ -63,15 +63,15 @@ async def upload_document(
         raise HTTPException(
             status_code=400,
             detail=str(e),
-        )
+        ) from e
 
     except Exception as e:
         logger.error(
             "Upload processing error",
             extra_data={"user_id": current_user.user_id, "error": str(e)},
-            exc_info=True
+            exc_info=True,
         )
         raise HTTPException(
             status_code=500,
             detail="Internal Server Error",
-        )
+        ) from e
