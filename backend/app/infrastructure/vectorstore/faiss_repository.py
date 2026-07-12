@@ -104,7 +104,7 @@ class FAISSVectorRepository(VectorStoreRepository):
 
     def get_all_chunks(self) -> List[Chunk]:
         if self.vector_store is None:
-            return []
+            raise ValueError("Vector store has not been created.")
 
         chunks = []
         docstore = self.vector_store.docstore

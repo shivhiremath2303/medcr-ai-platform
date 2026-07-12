@@ -19,6 +19,18 @@ class VectorStoreHealthCheck(HealthCheck):
                 "status": "up",
                 "chunk_count": len(chunks)
             }
+        except ValueError as e:
+            # Specific handling for non-initialized state which is "up" but empty
+            if "Vector store has not been created" in str(e):
+                return {
+                    "status": "up",
+                    "chunk_count": 0,
+                    "info": "Vector store not yet initialized"
+                }
+            return {
+                "status": "down",
+                "error": str(e)
+            }
         except Exception as e:
             return {
                 "status": "down",
