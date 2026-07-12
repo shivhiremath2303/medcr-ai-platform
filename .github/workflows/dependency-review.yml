@@ -3,6 +3,9 @@ name: 'Dependency Review'
 on:
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - '**/requirements*.txt'
+      - 'backend/pyproject.toml'
 
 permissions:
   contents: read

@@ -3,8 +3,16 @@ name: Docker Validation
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/docker.yml'
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/docker.yml'
 
 jobs:
   docker-build:

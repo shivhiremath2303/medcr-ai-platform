@@ -3,8 +3,14 @@ name: Continuous Integration
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci.yml'
 
 jobs:
   test:
@@ -15,6 +21,7 @@ jobs:
         working-directory: backend
 
     env:
+      PYTHONPATH: .
       APP_NAME: "Legal AI CI"
       APP_VERSION: "1.0.0"
       GEMINI_API_KEY: "dummy"

@@ -3,8 +3,14 @@ name: Code Quality
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/quality.yml'
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/quality.yml'
 
 jobs:
   quality:
@@ -13,6 +19,9 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    
+    env:
+      PYTHONPATH: .
 
     steps:
       - uses: actions/checkout@v4

@@ -19,6 +19,7 @@ WORKDIR /build
 
 # Install dependencies
 COPY requirements.txt .
+COPY requirements-dev.txt .
 RUN pip install --upgrade pip && \
     pip install --user --no-warn-script-location -r requirements.txt
 

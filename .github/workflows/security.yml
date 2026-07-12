@@ -3,8 +3,14 @@ name: Security Scanning
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/security.yml'
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/security.yml'
   schedule:
     - cron: '0 0 * * 0' # Weekly scan
 
