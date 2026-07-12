@@ -18,6 +18,7 @@ from .user_repository import UserRepository
 from .revocation_repository import RevocationRepository
 from .rate_limiter import RateLimiter
 from .cache_provider import CacheProvider
+from .metrics_provider import MetricsProvider
 
 __all__ = [
     "ChunkRepository",
@@ -38,4 +39,5 @@ __all__ = [
     "RevocationRepository",
     "RateLimiter",
     "CacheProvider",
+    "MetricsProvider",
 ]

@@ -2,12 +2,25 @@ from __future__ import annotations
 
 from google import genai
 from fastapi import Depends, BackgroundTasks
+
 from app.core.config import get_settings
 from app.domain.repositories import (
-    DocumentParser, VectorStoreRepository, EmbeddingRepository,
-    LLMProvider, StorageProvider, KeywordRetriever, Reranker,
-    Chunker, Retriever, DocumentRepository, ConversationRepository,
-    UserRepository, RevocationRepository, RateLimiter, CacheProvider
+    DocumentParser,
+    VectorStoreRepository,
+    EmbeddingRepository,
+    LLMProvider,
+    StorageProvider,
+    KeywordRetriever,
+    Reranker,
+    Chunker,
+    Retriever,
+    DocumentRepository,
+    ConversationRepository,
+    UserRepository,
+    RevocationRepository,
+    RateLimiter,
+    CacheProvider,
+    MetricsProvider,
 )
 from app.domain.repositories.query_rewriter import QueryRewriter as IQueryRewriter
 from app.domain.repositories.context_builder import ContextBuilder as IContextBuilder
@@ -48,7 +61,7 @@ from app.domain.repositories.benchmark_repository import BenchmarkRepository
 from app.infrastructure.storage.memory_benchmark_repository import MemoryBenchmarkRepository
 
 from app.core.observability.health import HealthService
-from app.core.observability.metrics import NoOpMetricsProvider, MetricsRegistry, MetricsProvider
+from app.core.observability.metrics import NoOpMetricsProvider, MetricsRegistry
 from app.infrastructure.observability.prometheus_metrics import PrometheusMetricsProvider
 from app.infrastructure.observability.vector_store_health import VectorStoreHealthCheck
 from app.infrastructure.observability.storage_health import StorageHealthCheck
@@ -86,7 +99,7 @@ if settings.redis_url:
 # --- Repositories & Adapters (Singletons) ---
 
 _jwt_manager = JWTManager(settings=settings)
-_user_repository = MemoryUserRepository() # TODO: Move to DB in next milestone
+_user_repository = MemoryUserRepository()  # TODO: Move to DB in next milestone
 
 # Revocation
 if _redis_client and _redis_client.is_available():
@@ -118,6 +131,7 @@ _auth_service = AuthService(
     revocation_repository=_revocation_repository
 )
 
+
 # Initialize with a default admin user for development
 def init_dev_user():
     if not _user_repository.get_by_username("admin"):
@@ -129,6 +143,7 @@ def init_dev_user():
             role=UserRole.ADMIN,
             full_name="System Administrator"
         ))
+
 
 # AI Infrastructure
 _genai_client = genai.Client(api_key=settings.gemini_api_key)
@@ -195,37 +210,48 @@ if _redis_client:
     from app.infrastructure.observability.redis_health import RedisHealthCheck
     _health_service.add_readiness_check(RedisHealthCheck(_redis_client))
 
+
 # --- Dependency Injection Providers ---
 
 def get_settings_provider():
     return settings
 
+
 def get_genai_client() -> genai.Client:
     return _genai_client
+
 
 def get_llm_provider() -> LLMProvider:
     return _llm_provider
 
+
 def get_vector_repository() -> VectorStoreRepository:
     return _vector_repository
+
 
 def get_storage_provider() -> StorageProvider:
     return _storage_provider
 
+
 def get_document_repository() -> DocumentRepository:
     return _document_repository
+
 
 def get_conversation_repository() -> ConversationRepository:
     return _conversation_repository
 
+
 def get_user_repository() -> UserRepository:
     return _user_repository
+
 
 def get_revocation_repository() -> RevocationRepository:
     return _revocation_repository
 
+
 def get_rate_limiter() -> RateLimiter:
     return _rate_limiter
+
 
 def get_rate_limiter_service(
     limiter: RateLimiter = Depends(get_rate_limiter),
@@ -233,56 +259,74 @@ def get_rate_limiter_service(
 ) -> RateLimiterService:
     return RateLimiterService(limiter, settings)
 
+
 def get_cache_provider() -> CacheProvider:
     return _cache_provider
+
 
 def get_document_parser() -> DocumentParser:
     return _parser
 
+
 def get_chunker() -> Chunker:
     return _chunker
+
 
 def get_keyword_retriever() -> KeywordRetriever:
     return _keyword_retriever
 
+
 def get_reranker() -> Reranker:
     return _reranker
+
 
 def get_retriever() -> Retriever:
     return _hybrid_retriever
 
+
 def get_grounding_engine() -> GroundingEngine:
     return _grounding_engine
+
 
 def get_reasoning_engine() -> ReasoningEngine:
     return _reasoning_engine
 
+
 def get_evaluation_engine() -> EvaluationEngine:
     return _evaluation_engine
+
 
 def get_benchmark_repository() -> BenchmarkRepository:
     return _benchmark_repo
 
+
 def get_health_service() -> HealthService:
     return _health_service
+
 
 def get_metrics_registry() -> MetricsRegistry:
     return _metrics_registry
 
+
 def get_metrics_provider() -> MetricsProvider:
     return _metrics_provider
+
 
 def get_jwt_manager() -> JWTManager:
     return _jwt_manager
 
+
 def get_auth_service() -> AuthService:
     return _auth_service
+
 
 def get_cleanup_service() -> CleanupService:
     return CleanupService(settings, _revocation_repository)
 
+
 def get_background_task_provider(background_tasks: BackgroundTasks) -> BackgroundTaskProvider:
     return FastAPIBackgroundTaskProvider(background_tasks)
+
 
 # --- Application Services ---
 
@@ -301,6 +345,7 @@ def get_document_service(
         metrics=metrics
     )
 
+
 def get_retrieval_service(
     retriever: Retriever = Depends(get_retriever),
     reranker: Reranker = Depends(get_reranker),
@@ -314,13 +359,16 @@ def get_retrieval_service(
         min_candidates=settings.min_retrieval_candidates
     )
 
+
 def get_context_builder() -> IContextBuilder:
     return ContextBuilder()
+
 
 def get_query_rewriter(
     llm_provider: LLMProvider = Depends(get_llm_provider)
 ) -> IQueryRewriter:
     return QueryRewriter(llm_provider=llm_provider)
+
 
 def get_rag_service(
     retrieval_service: Retriever = Depends(get_retrieval_service),
@@ -347,11 +395,13 @@ def get_rag_service(
         metrics=metrics
     )
 
+
 # --- Lifecycle Management ---
 
 def init_vector_store() -> bool:
     init_dev_user()
     return _vector_repository.load()
+
 
 def shutdown_vector_store_save() -> None:
     _vector_repository.save()
