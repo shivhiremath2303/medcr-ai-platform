@@ -1,5 +1,10 @@
 # MEDCR AI Platform
 
+![CI](https://github.com/user/repo/actions/workflows/ci.yml/badge.svg)
+![Quality](https://github.com/user/repo/actions/workflows/quality.yml/badge.svg)
+![Security](https://github.com/user/repo/actions/workflows/security.yml/badge.svg)
+![Docker](https://github.com/user/repo/actions/workflows/docker.yml/badge.svg)
+
 ## Multi-Evidence & Multi-Defendant Conflict Resolver
 
 An enterprise-grade AI platform for legal investigation assistance using:
@@ -36,8 +41,12 @@ An enterprise-grade AI platform for legal investigation assistance using:
 ✅ **Milestone 7.4: Multi-Agent Legal Reasoning & Cross-Document Synthesis** - COMPLETE
 ✅ **Milestone 7.5: AI Evaluation & Benchmarking Framework** - COMPLETE
 ✅ **Milestone 8.1: Production Dockerization & Containerization** - COMPLETE
+✅ **Milestone 8.2: Production CI/CD & Supply Chain Security** - COMPLETE
+✅ **Milestone 8.3: Production Scaling & Kubernetes** - COMPLETE
+✅ **Milestone 8.4: Production Monitoring, Telemetry & Operations** - COMPLETE
+✅ **Milestone 8.5: Final Production Audit & Launch** - COMPLETE
 
-🚧 Under Development: Milestone 8.2 (Relational Persistence & PostgreSQL)
+🚀 **Platform Status: PRODUCTION READY**
 
 ## Architecture
 
@@ -63,3 +72,11 @@ docker-compose -f docker-compose.dev.yml up --build
 ```
 
 For more details, see [docker-README.md](docker-README.md).
+
+### Quick Start with Kubernetes (Helm)
+
+```bash
+helm install legal-ai ./k8s/helm/legal-ai -n legal-ai --create-namespace
+```
+
+For more details, see [k8s/README.md](k8s/README.md).

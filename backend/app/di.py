@@ -47,6 +47,7 @@ from app.infrastructure.storage.memory_benchmark_repository import MemoryBenchma
 
 from app.core.observability.health import HealthService
 from app.core.observability.metrics import NoOpMetricsProvider, MetricsRegistry
+from app.infrastructure.observability.prometheus_metrics import PrometheusMetricsProvider
 from app.infrastructure.observability.vector_store_health import VectorStoreHealthCheck
 from app.infrastructure.observability.storage_health import StorageHealthCheck
 
@@ -59,7 +60,11 @@ from app.core.security.password import PasswordHasher
 settings = get_settings()
 
 # --- Observability ---
-_metrics_provider = NoOpMetricsProvider()
+if settings.metrics_enabled:
+    _metrics_provider = PrometheusMetricsProvider()
+else:
+    _metrics_provider = NoOpMetricsProvider()
+
 _metrics_registry = MetricsRegistry(provider=_metrics_provider)
 
 _health_service = HealthService(
@@ -87,7 +92,11 @@ if _redis_client and _redis_client.is_available():
         max_messages=settings.max_conversation_messages
     )
     _rate_limiter = RedisRateLimiter(redis_client=_redis_client)
-    _cache_provider = RedisCacheProvider(redis_client=_redis_client, default_ttl=settings.cache_ttl)
+    _cache_provider = RedisCacheProvider(
+        redis_client=_redis_client,
+        metrics=_metrics_registry,
+        default_ttl=settings.cache_ttl
+    )
 else:
     # Fallback to in-memory if Redis is not configured or unavailable
     from app.infrastructure.storage.memory_revocation_repository import MemoryRevocationRepository
@@ -256,6 +265,9 @@ def get_health_service() -> HealthService:
 def get_metrics_registry() -> MetricsRegistry:
     return _metrics_registry
 
+def get_metrics_provider() -> "app.domain.repositories.metrics_provider.MetricsProvider":
+    return _metrics_provider
+
 def get_jwt_manager() -> JWTManager:
     return _jwt_manager
 
@@ -317,6 +329,7 @@ def get_rag_service(
     reasoning_engine: ReasoningEngine = Depends(get_reasoning_engine),
     evaluation_engine: EvaluationEngine = Depends(get_evaluation_engine),
     benchmark_repo: BenchmarkRepository = Depends(get_benchmark_repository),
+    metrics: MetricsRegistry = Depends(get_metrics_registry),
 ) -> RAGService:
     return RAGService(
         retrieval_service=retrieval_service,
@@ -327,7 +340,8 @@ def get_rag_service(
         grounding_engine=grounding_engine,
         reasoning_engine=reasoning_engine,
         evaluation_engine=evaluation_engine,
-        benchmark_repo=benchmark_repo
+        benchmark_repo=benchmark_repo,
+        metrics=metrics
     )
 
 # --- Lifecycle Management ---

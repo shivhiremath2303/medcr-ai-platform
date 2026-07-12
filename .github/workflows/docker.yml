@@ -1,0 +1,56 @@
+name: Docker Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  docker-build:
+    name: Build & Verify Container
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: false
+          tags: legal-ai-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Docker Compose Validation
+        run: |
+          docker compose config
+
+      - name: Verify Startup
+        run: |
+          docker compose up -d backend redis
+          # Wait for backend to be healthy
+          sleep 30
+          docker compose ps
+          docker compose logs backend
+          # Thorough readiness check (checks Redis connectivity)
+          curl -f http://localhost:8000/health/ready || (docker compose logs backend && exit 1)
+        env:
+          GEMINI_API_KEY: "dummy"
+
+      - name: Container Security Scan (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'legal-ai-backend:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down

@@ -1,0 +1,47 @@
+groups:
+  - name: legal_ai_alerts
+    rules:
+      - alert: HighErrorRate
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High HTTP 5xx error rate on {{ $labels.instance }}"
+          description: "Error rate is above 5% for the last 2 minutes."
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API Latency (p95) on {{ $labels.instance }}"
+          description: "p95 latency is above 2s for the last 5 minutes."
+
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis instance down"
+          description: "Redis instance {{ $labels.instance }} is unreachable."
+
+      - alert: HighHallucinationRate
+        expr: avg(evaluation_scores{metric="grounding"}) < 0.7
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High hallucination rate detected"
+          description: "Average grounding score is below 0.7 for the last 15 minutes."
+
+      - alert: LLMFailureRate
+        expr: sum(rate(llm_calls_total{status="error"}[10m])) / sum(rate(llm_calls_total[10m])) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High LLM failure rate"
+          description: "LLM calls are failing at a rate above 10%."

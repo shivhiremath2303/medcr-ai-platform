@@ -1,6 +1,7 @@
 from pathlib import Path
 from app.core.observability.logger import get_logger
 from app.core.observability.metrics import MetricsRegistry
+from app.core.observability.telemetry import get_tracer
 from app.domain.models import Document
 from app.domain.repositories.document_repository import DocumentRepository
 from app.domain.repositories.chunker import Chunker
@@ -9,6 +10,7 @@ from app.domain.repositories.vector_store_repository import VectorStoreRepositor
 from app.services.document.cleaner import TextCleaner
 
 logger = get_logger(__name__)
+tracer = get_tracer(__name__)
 
 
 class DocumentService:
@@ -46,9 +48,11 @@ class DocumentService:
         extension = Path(file_path).suffix.lower()
         logger.info("Starting document ingestion: %s", file_path)
 
-        try:
-            # Parse into the domain model.
-            document: Document = self.parser.parse_document(file_path)
+        with tracer.start_as_current_span("document_ingestion") as span:
+            span.set_attribute("doc.path", file_path)
+            try:
+                # Parse into the domain model.
+                document: Document = self.parser.parse_document(file_path)
 
             logger.info(
                 "Parsed document '%s' (%d pages).",

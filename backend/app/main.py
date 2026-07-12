@@ -5,6 +5,8 @@ from fastapi.responses import JSONResponse
 from app.api.routes.documents import router as document_router
 from app.api.routes.rag import router as rag_router
 from app.api.routes.health import router as health_router
+from app.api.routes.metrics import router as metrics_router
+from app.core.observability.telemetry import setup_telemetry
 from app.api.routes.auth import router as auth_router
 from app.api.router import router
 
@@ -41,6 +43,14 @@ setup_security(app, settings)
 
 # Add observability middleware
 app.add_middleware(ObservabilityMiddleware)
+
+# Setup OpenTelemetry
+if settings.otel_enabled:
+    setup_telemetry(
+        app,
+        service_name=settings.otel_service_name,
+        otel_endpoint=settings.otel_exporter_endpoint
+    )
 
 # Global exception handler
 @app.exception_handler(Exception)
@@ -108,9 +118,18 @@ async def shutdown_event():
     logger.info(f"Shutdown complete in {duration:.4f}s")
 
 
+@app.get("/version", tags=["Public"])
+async def version():
+    return {
+        "app": settings.app_name,
+        "version": settings.app_version,
+        "environment": settings.environment
+    }
+
 # Include routers
 app.include_router(router)
 app.include_router(auth_router)
 app.include_router(document_router)
 app.include_router(rag_router)
 app.include_router(health_router)
+app.include_router(metrics_router)

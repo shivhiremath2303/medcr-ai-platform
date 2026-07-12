@@ -1,0 +1,30 @@
+{
+  "title": "Legal AI Platform Overview",
+  "panels": [
+    {
+      "title": "Request Rate",
+      "type": "timeseries",
+      "targets": [{ "expr": "sum(rate(http_requests_total[5m])) by (method, path)" }]
+    },
+    {
+      "title": "p95 Latency",
+      "type": "timeseries",
+      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))" }]
+    },
+    {
+      "title": "Error Rate (5xx)",
+      "type": "timeseries",
+      "targets": [{ "expr": "sum(rate(http_requests_total{status=~'5..'}[5m]))" }]
+    },
+    {
+      "title": "LLM Latency",
+      "type": "timeseries",
+      "targets": [{ "expr": "avg(llm_call_duration_seconds)" }]
+    },
+    {
+      "title": "Grounding Scores",
+      "type": "gauge",
+      "targets": [{ "expr": "avg(evaluation_scores{metric='grounding'})" }]
+    }
+  ]
+}

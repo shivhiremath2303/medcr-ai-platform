@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "legal-ai.fullname" . }}-backend
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "legal-ai.labels" . | nindent 4 }}
+    app: backend
+spec:
+  {{- if not .Values.backend.autoscaling.enabled }}
+  replicas: {{ .Values.backend.replicaCount }}
+  {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "legal-ai.selectorLabels" . | nindent 6 }}
+      app: backend
+  template:
+    metadata:
+      labels:
+        {{- include "legal-ai.selectorLabels" . | nindent 8 }}
+        app: backend
+      annotations:
+        prometheus.io/scrape: {{ .Values.backend.env.METRICS_ENABLED | quote }}
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8000"
+    spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "legal-ai.fullname" . }}-config
+            - secretRef:
+                name: {{ include "legal-ai.fullname" . }}-secrets
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            failureThreshold: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads/documents
+            - name: faiss
+              mountPath: /app/data/faiss
+            - name: metadata
+              mountPath: /app/data/metadata
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: {{ include "legal-ai.fullname" . }}-uploads
+        - name: faiss
+          persistentVolumeClaim:
+            claimName: {{ include "legal-ai.fullname" . }}-faiss
+        - name: metadata
+          persistentVolumeClaim:
+            claimName: {{ include "legal-ai.fullname" . }}-metadata
