@@ -5,6 +5,9 @@ from app.domain.models.retrieval import QueryUnderstanding, QueryIntent, Retriev
 from app.domain.repositories.retriever import Retriever
 from app.domain.repositories.reranker import Reranker
 from app.core.observability.metrics import MetricsRegistry
+from app.core.observability.telemetry import get_tracer
+
+tracer = get_tracer(__name__)
 
 
 class RetrievalService(Retriever):
@@ -52,63 +55,68 @@ class RetrievalService(Retriever):
         Perform retrieval based on query understanding.
         """
         start_time = time.perf_counter()
+        with tracer.start_as_current_span("retrieve_intelligent") as span:
+            span.set_attribute("retrieval.query", understanding.original_query)
+            span.set_attribute("retrieval.intent", understanding.intent.value)
 
-        # 1. Calculate Dynamic Top-K (Phase 7.3.4)
-        dynamic_k = self._calculate_dynamic_top_k(understanding, k)
+            # 1. Calculate Dynamic Top-K (Phase 7.3.4)
+            dynamic_k = self._calculate_dynamic_top_k(understanding, k)
 
-        # 2. Determine Dynamic Strategy & Weights (Phase 7.3.3)
-        strategy, weights = self._determine_strategy(understanding)
+            # 2. Determine Dynamic Strategy & Weights (Phase 7.3.3)
+            strategy, weights = self._determine_strategy(understanding)
+            span.set_attribute("retrieval.strategy", strategy)
 
-        # 3. Expanded Query
-        expanded_query = understanding.original_query
-        if understanding.expanded_terms:
-            expanded_query += " " + " ".join(understanding.expanded_terms)
+            # 3. Expanded Query
+            expanded_query = understanding.original_query
+            if understanding.expanded_terms:
+                expanded_query += " " + " ".join(understanding.expanded_terms)
 
-        # 4. Initial Retrieval
-        candidate_count = max(
-            dynamic_k * self.candidate_multiplier,
-            self.min_candidates,
-        )
+            # 4. Initial Retrieval
+            candidate_count = max(
+                dynamic_k * self.candidate_multiplier,
+                self.min_candidates,
+            )
 
-        candidates = self.retriever.retrieve(
-            query=expanded_query,
-            k=candidate_count,
-            params={"vector_weight": weights.get("vector", 0.7)}
-        )
+            candidates = self.retriever.retrieve(
+                query=expanded_query,
+                k=candidate_count,
+                params={"vector_weight": weights.get("vector", 0.7)}
+            )
 
-        # 5. Reranking
-        reranked_results = self.reranker.rerank(
-            query=understanding.original_query,
-            results=candidates,
-            k=dynamic_k,
-        )
+            # 5. Reranking
+            reranked_results = self.reranker.rerank(
+                query=understanding.original_query,
+                results=candidates,
+                k=dynamic_k,
+            )
 
-        # 6. Duplicate Evidence Removal (Phase 7.3.5)
-        filtered_results = self._remove_duplicates(reranked_results)
+            # 6. Duplicate Evidence Removal (Phase 7.3.5)
+            filtered_results = self._remove_duplicates(reranked_results)
 
-        # 7. Ensure Diversity (Phase 7.3.6)
-        final_results = filtered_results[:k]
+            # 7. Ensure Diversity (Phase 7.3.6)
+            final_results = filtered_results[:k]
 
-        latency = (time.perf_counter() - start_time) * 1000
+            latency = (time.perf_counter() - start_time) * 1000
 
-        # 8. Record Diagnostics (Phase 7.3.10)
-        self.last_diagnostics = RetrievalDiagnostics(
-            query_type=understanding.intent.value,
-            retrieval_strategy=strategy,
-            expanded_terms=understanding.expanded_terms,
-            dynamic_top_k=dynamic_k,
-            documents_considered=len(candidates),
-            documents_selected=len(final_results),
-            duplicate_chunks_removed=len(reranked_results) - len(filtered_results),
-            context_compression_ratio=0.0, # To be filled by context builder if needed
-            retrieval_latency_ms=latency,
-            evidence_diversity_score=self._calculate_diversity(final_results),
-            hybrid_weights=weights
-        )
+            # 8. Record Diagnostics (Phase 7.3.10)
+            self.last_diagnostics = RetrievalDiagnostics(
+                query_type=understanding.intent.value,
+                retrieval_strategy=strategy,
+                expanded_terms=understanding.expanded_terms,
+                dynamic_top_k=dynamic_k,
+                documents_considered=len(candidates),
+                documents_selected=len(final_results),
+                duplicate_chunks_removed=len(reranked_results) - len(filtered_results),
+                context_compression_ratio=0.0, # To be filled by context builder if needed
+                retrieval_latency_ms=latency,
+                evidence_diversity_score=self._calculate_diversity(final_results),
+                hybrid_weights=weights
+            )
 
-        self.metrics.track_retrieval(strategy, latency / 1000)
+            self.metrics.track_retrieval(strategy, latency / 1000)
+            span.set_attribute("retrieval.latency_ms", latency)
 
-        return final_results
+            return final_results
 
     def _retrieve_standard(self, query: str, k: int) -> List[SearchResult]:
         candidates = self.retriever.retrieve(query=query, k=k*self.candidate_multiplier)

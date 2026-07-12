@@ -1,0 +1,75 @@
+# Default values for legal-ai.
+
+namespace: legal-ai
+
+backend:
+  replicaCount: 2
+  image:
+    repository: legal-ai-backend
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+  service:
+    type: ClusterIP
+    port: 8000
+  env:
+    ENVIRONMENT: production
+    METRICS_ENABLED: "true"
+    OTEL_ENABLED: "false"
+    OTEL_EXPORTER_ENDPOINT: "http://otel-collector:4317"
+  secrets:
+    geminiApiKey: "CHANGE_ME"
+    jwtSecret: "CHANGE_ME"
+
+redis:
+  image:
+    repository: redis
+    tag: 7-alpine
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: ""
+
+persistence:
+  uploads:
+    size: 10Gi
+    storageClass: ""
+  faiss:
+    size: 5Gi
+    storageClass: ""
+  metadata:
+    size: 2Gi
+    storageClass: ""
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+  hosts:
+    - host: legal-ai.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+networkPolicy:
+  enabled: true

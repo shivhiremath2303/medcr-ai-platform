@@ -2,6 +2,9 @@ import time
 from google import genai
 from app.domain.repositories.llm_provider import LLMProvider
 from app.core.observability.metrics import MetricsRegistry
+from app.core.observability.telemetry import get_tracer
+
+tracer = get_tracer(__name__)
 
 
 class GeminiLLMAdapter(LLMProvider):
@@ -39,23 +42,27 @@ class GeminiLLMAdapter(LLMProvider):
         )
 
         start_time = time.perf_counter()
-        try:
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config={
-                    "temperature": self.temperature,
-                    "max_output_tokens": self.max_tokens,
-                }
-            )
+        with tracer.start_as_current_span("gemini_generate_answer") as span:
+            span.set_attribute("llm.model", self.model_name)
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt,
+                    config={
+                        "temperature": self.temperature,
+                        "max_output_tokens": self.max_tokens,
+                    }
+                )
 
-            duration = time.perf_counter() - start_time
-            self.metrics.track_llm_call("google", self.model_name, duration)
+                duration = time.perf_counter() - start_time
+                self.metrics.track_llm_call("google", self.model_name, duration)
+                span.set_attribute("llm.duration", duration)
 
-            return response.text
+                return response.text
 
-        except Exception as e:
-            raise RuntimeError(f"LLM request failed: {e}")
+            except Exception as e:
+                span.record_exception(e)
+                raise RuntimeError(f"LLM request failed: {e}")
 
     def rewrite_question(
         self,
@@ -83,19 +90,23 @@ Latest Question:
 """
 
         start_time = time.perf_counter()
-        try:
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config={
-                    "temperature": 0.0, # Usually better for rewriting
-                }
-            )
+        with tracer.start_as_current_span("gemini_rewrite_question") as span:
+            span.set_attribute("llm.model", self.model_name)
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt,
+                    config={
+                        "temperature": 0.0, # Usually better for rewriting
+                    }
+                )
 
-            duration = time.perf_counter() - start_time
-            self.metrics.track_llm_call("google", self.model_name, duration)
+                duration = time.perf_counter() - start_time
+                self.metrics.track_llm_call("google", self.model_name, duration)
+                span.set_attribute("llm.duration", duration)
 
-            return response.text.strip()
+                return response.text.strip()
 
-        except Exception:
-            return question
+            except Exception as e:
+                span.record_exception(e)
+                return question

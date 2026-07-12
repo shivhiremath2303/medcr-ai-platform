@@ -51,3 +51,31 @@ class MetricsRegistry:
             "document_uploads_total",
             {"extension": extension, "status": status}
         )
+
+    def track_pipeline_step(self, step: str, duration: float, status: str = "success"):
+        self.provider.increment_counter(
+            "pipeline_steps_total",
+            {"step": step, "status": status}
+        )
+        self.provider.observe_histogram(
+            "pipeline_step_duration_seconds",
+            duration,
+            {"step": step}
+        )
+
+    def track_redis_op(self, operation: str, status: str = "success"):
+        self.provider.increment_counter(
+            "redis_operations_total",
+            {"operation": operation, "status": status}
+        )
+
+    def track_cache_hit(self, hit: bool):
+        status = "hit" if hit else "miss"
+        self.provider.increment_counter("cache_requests_total", {"status": status})
+
+    def track_evaluation(self, metric: str, score: float):
+        self.provider.observe_histogram(
+            "evaluation_scores",
+            score,
+            {"metric": metric}
+        )
