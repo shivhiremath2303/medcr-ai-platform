@@ -5,6 +5,7 @@ from tests.fixtures.chunk_factory import make_chunk
 from tests.fixtures.fake_hybrid_retriever import FakeHybridRetriever
 from tests.fixtures.fake_reranker import FakeReranker
 
+
 def test_retrieve_delegates_to_retriever_and_reranker():
     chunk_1 = make_chunk(
         "chunk-1",
@@ -49,7 +50,7 @@ def test_retrieve_delegates_to_retriever_and_reranker():
         reranker=reranker,
         metrics=metrics,
         min_candidates=20,
-        candidate_multiplier=4
+        candidate_multiplier=4,
     )
 
     results = service.retrieve(

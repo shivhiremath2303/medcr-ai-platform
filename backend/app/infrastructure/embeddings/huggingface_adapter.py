@@ -10,8 +10,7 @@ class HuggingFaceEmbeddingAdapter(EmbeddingRepository, Embeddings):
 
     def __init__(self, model_name: str, device: str = "cpu"):
         self.model = HuggingFaceEmbeddings(
-            model_name=model_name,
-            model_kwargs={"device": device}
+            model_name=model_name, model_kwargs={"device": device}
         )
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:

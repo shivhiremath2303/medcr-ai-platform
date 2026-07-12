@@ -7,13 +7,19 @@ from app.core.observability.telemetry import get_tracer
 
 tracer = get_tracer(__name__)
 
+
 class RedisCacheProvider(CacheProvider):
     """
     Redis implementation for general caching.
     Uses pickle for serialization of arbitrary Python objects.
     """
 
-    def __init__(self, redis_client: RedisClient, metrics: MetricsRegistry, default_ttl: int = 3600):
+    def __init__(
+        self,
+        redis_client: RedisClient,
+        metrics: MetricsRegistry,
+        default_ttl: int = 3600,
+    ):
         self.redis_wrapper = redis_client
         self.metrics = metrics
         self.default_ttl = default_ttl
@@ -29,7 +35,9 @@ class RedisCacheProvider(CacheProvider):
                 self.metrics.track_cache_hit(data is not None)
 
                 if data:
-                    return pickle.loads(data.encode('latin1') if isinstance(data, str) else data)  # noqa: S301
+                    return pickle.loads(
+                        data.encode("latin1") if isinstance(data, str) else data
+                    )  # noqa: S301
                 return None
             except Exception as e:
                 span.record_exception(e)

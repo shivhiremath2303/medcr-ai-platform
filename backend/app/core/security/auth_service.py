@@ -10,16 +10,18 @@ from app.core.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 class AuthService:
     """
     Coordinates authentication operations.
     Supports access tokens, refresh tokens, and token revocation.
     """
+
     def __init__(
         self,
         user_repository: UserRepository,
         jwt_manager: JWTManager,
-        revocation_repository: RevocationRepository
+        revocation_repository: RevocationRepository,
     ):
         self.user_repository = user_repository
         self.jwt_manager = jwt_manager
@@ -32,7 +34,9 @@ class AuthService:
             return None
 
         if not PasswordHasher.verify(password, user.hashed_password):
-            logger.warning(f"Authentication failed: Incorrect password for user {username}")
+            logger.warning(
+                f"Authentication failed: Incorrect password for user {username}"
+            )
             return None
 
         if not user.is_active:
@@ -43,7 +47,11 @@ class AuthService:
 
     def create_tokens(self, user: User) -> Dict[str, Any]:
         access_token, refresh_token = self.jwt_manager.create_token_pair(
-            data={"sub": user.user_id, "role": user.role.value, "username": user.username}
+            data={
+                "sub": user.user_id,
+                "role": user.role.value,
+                "username": user.username,
+            }
         )
         return {
             "access_token": access_token,
@@ -68,11 +76,17 @@ class AuthService:
 
         user = self.user_repository.get_by_id(user_id)
         if not user or not user.is_active:
-            logger.warning(f"Token refresh failed: User {user_id} not found or inactive")
+            logger.warning(
+                f"Token refresh failed: User {user_id} not found or inactive"
+            )
             return None
 
         new_access_token = self.jwt_manager.create_access_token(
-            data={"sub": user.user_id, "role": user.role.value, "username": user.username}
+            data={
+                "sub": user.user_id,
+                "role": user.role.value,
+                "username": user.username,
+            }
         )
         return {
             "access_token": new_access_token,

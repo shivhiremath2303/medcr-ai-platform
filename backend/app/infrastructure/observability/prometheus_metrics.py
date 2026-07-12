@@ -20,7 +20,10 @@ class PrometheusMetricsProvider(MetricsProvider):
         if name not in self.metrics:
             label_names = list(labels.keys()) if labels else []
             self.metrics[name] = Counter(
-                name, f"Counter for {name}", labelnames=label_names, registry=self.registry
+                name,
+                f"Counter for {name}",
+                labelnames=label_names,
+                registry=self.registry,
             )
         return self.metrics[name]
 
@@ -37,7 +40,9 @@ class PrometheusMetricsProvider(MetricsProvider):
             )
         return self.metrics[name]
 
-    def increment_counter(self, name: str, labels: Optional[Dict[str, str]] = None) -> None:
+    def increment_counter(
+        self, name: str, labels: Optional[Dict[str, str]] = None
+    ) -> None:
         counter = self._get_or_create_counter(name, labels)
         if labels:
             counter.labels(**labels).inc()

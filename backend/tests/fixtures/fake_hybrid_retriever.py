@@ -18,10 +18,7 @@ class FakeHybridRetriever:
         self.params_received: list[Optional[Dict[str, Any]]] = []
 
     def retrieve(
-        self,
-        query: str,
-        k: int,
-        params: Optional[Dict[str, Any]] = None
+        self, query: str, k: int, params: Optional[Dict[str, Any]] = None
     ) -> list[SearchResult]:
         self.queries.append(query)
         self.k_values.append(k)

@@ -2,6 +2,7 @@ from typing import Dict, Any
 from app.core.observability.health import HealthCheck
 from app.infrastructure.storage.redis_client import RedisClient
 
+
 class RedisHealthCheck(HealthCheck):
     def __init__(self, redis_client: RedisClient):
         self.redis_wrapper = redis_client

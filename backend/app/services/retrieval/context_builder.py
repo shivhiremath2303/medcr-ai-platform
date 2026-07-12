@@ -3,6 +3,7 @@ import math
 from app.domain.models import SearchResult, Evidence
 from app.domain.repositories.context_builder import ContextBuilder as IContextBuilder
 
+
 class ContextBuilder(IContextBuilder):
     """
     Builds LLM context with diversity optimization and compression.
@@ -54,14 +55,15 @@ class ContextBuilder(IContextBuilder):
                     retrieval_score=result.retrieval_score or 0.0,
                     reranker_score=result.reranker_score,
                     confidence=confidence,
-                    rank=i
+                    rank=i,
                 )
             )
         return evidence_list
 
     def _ensure_diversity(self, results: list[SearchResult]) -> list[SearchResult]:
         """Ensures that many results from the same document don't crowd out others."""
-        if len(results) <= 3: return results
+        if len(results) <= 3:
+            return results
 
         diversified = []
 
@@ -69,7 +71,8 @@ class ContextBuilder(IContextBuilder):
         doc_groups = {}
         for r in results:
             doc_id = r.chunk.document_id
-            if doc_id not in doc_groups: doc_groups[doc_id] = []
+            if doc_id not in doc_groups:
+                doc_groups[doc_id] = []
             doc_groups[doc_id].append(r)
 
         # Limit to max 2 chunks per doc initially

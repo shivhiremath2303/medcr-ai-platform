@@ -2,10 +2,12 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, List
 from datetime import datetime
 
+
 class HealthCheck(ABC):
     """
     Interface for a single health check.
     """
+
     @property
     @abstractmethod
     def name(self) -> str:
@@ -15,10 +17,12 @@ class HealthCheck(ABC):
     async def check(self) -> Dict[str, Any]:
         pass
 
+
 class HealthService:
     """
     Coordinates health checks for the application.
     """
+
     def __init__(self, version: str, environment: str):
         self.version = version
         self.environment = environment
@@ -48,7 +52,7 @@ class HealthService:
             "version": self.version,
             "environment": self.environment,
             "timestamp": datetime.utcnow().isoformat(),
-            "checks": check_results
+            "checks": check_results,
         }
 
     async def get_health(self) -> Dict[str, Any]:

@@ -33,10 +33,7 @@ class HybridRetrieverAdapter(Retriever):
             self.keyword_retriever.index(chunks)
 
     def retrieve(
-        self,
-        query: str,
-        k: int = 5,
-        params: Optional[Dict[str, Any]] = None
+        self, query: str, k: int = 5, params: Optional[Dict[str, Any]] = None
     ) -> list[SearchResult]:
         """
         Retrieve using both vector search and BM25.
@@ -63,10 +60,7 @@ class HybridRetrieverAdapter(Retriever):
 
             merged_results.append(
                 SearchResult(
-                    chunk=chunk,
-                    score=0.0,
-                    rank=next_rank,
-                    retrieval_score=0.0
+                    chunk=chunk, score=0.0, rank=next_rank, retrieval_score=0.0
                 )
             )
 
@@ -75,6 +69,8 @@ class HybridRetrieverAdapter(Retriever):
 
         # Filter by threshold
         if self.similarity_threshold > 0:
-            merged_results = [r for r in merged_results if r.score >= self.similarity_threshold]
+            merged_results = [
+                r for r in merged_results if r.score >= self.similarity_threshold
+            ]
 
         return merged_results[:k]

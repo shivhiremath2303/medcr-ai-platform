@@ -11,7 +11,9 @@ class RedisConversationRepository(ConversationRepository):
     Each user has their own message list in Redis.
     """
 
-    def __init__(self, redis_client: RedisClient, ttl: int = 3600 * 24, max_messages: int = 10):
+    def __init__(
+        self, redis_client: RedisClient, ttl: int = 3600 * 24, max_messages: int = 10
+    ):
         self.redis_wrapper = redis_client
         self.ttl = ttl
         self.max_messages = max_messages

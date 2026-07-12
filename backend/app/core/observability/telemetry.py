@@ -7,13 +7,14 @@ from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 
-def setup_telemetry(app: FastAPI, service_name: str, otel_endpoint: Optional[str] = None) -> None:
+
+def setup_telemetry(
+    app: FastAPI, service_name: str, otel_endpoint: Optional[str] = None
+) -> None:
     """
     Sets up OpenTelemetry tracing for the FastAPI application.
     """
-    resource = Resource(attributes={
-        SERVICE_NAME: service_name
-    })
+    resource = Resource(attributes={SERVICE_NAME: service_name})
 
     provider = TracerProvider(resource=resource)
 
@@ -26,6 +27,7 @@ def setup_telemetry(app: FastAPI, service_name: str, otel_endpoint: Optional[str
 
     # Instrument FastAPI
     FastAPIInstrumentor.instrument_app(app)
+
 
 def get_tracer(name: str):
     return trace.get_tracer(name)

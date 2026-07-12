@@ -33,10 +33,16 @@ from app.domain.repositories.background_tasks import BackgroundTaskProvider
 from app.domain.repositories.benchmark_repository import BenchmarkRepository
 from app.domain.repositories.context_builder import ContextBuilder as IContextBuilder
 from app.domain.repositories.query_rewriter import QueryRewriter as IQueryRewriter
-from app.infrastructure.background.fastapi_background_tasks import FastAPIBackgroundTaskProvider
+from app.infrastructure.background.fastapi_background_tasks import (
+    FastAPIBackgroundTaskProvider,
+)
 from app.infrastructure.llm.gemini_adapter import GeminiLLMAdapter
-from app.infrastructure.embeddings.huggingface_adapter import HuggingFaceEmbeddingAdapter
-from app.infrastructure.observability.prometheus_metrics import PrometheusMetricsProvider
+from app.infrastructure.embeddings.huggingface_adapter import (
+    HuggingFaceEmbeddingAdapter,
+)
+from app.infrastructure.observability.prometheus_metrics import (
+    PrometheusMetricsProvider,
+)
 from app.infrastructure.observability.storage_health import StorageHealthCheck
 from app.infrastructure.observability.vector_store_health import VectorStoreHealthCheck
 from app.infrastructure.parser.document_parser_adapter import DocumentParserAdapter
@@ -44,18 +50,28 @@ from app.infrastructure.parser.langchain_chunker_adapter import LangChainChunker
 from app.infrastructure.retrieval.bm25_adapter import BM25Adapter
 from app.infrastructure.retrieval.cross_encoder_adapter import CrossEncoderAdapter
 from app.infrastructure.retrieval.hybrid_retriever_adapter import HybridRetrieverAdapter
-from app.infrastructure.storage.filesystem_document_repository import FilesystemDocumentRepository
+from app.infrastructure.storage.filesystem_document_repository import (
+    FilesystemDocumentRepository,
+)
 from app.infrastructure.storage.local_storage_adapter import LocalStorageAdapter
-from app.infrastructure.storage.memory_benchmark_repository import MemoryBenchmarkRepository
+from app.infrastructure.storage.memory_benchmark_repository import (
+    MemoryBenchmarkRepository,
+)
 from app.infrastructure.storage.memory_cache_provider import MemoryCacheProvider
-from app.infrastructure.storage.memory_conversation_repository import MemoryConversationRepository
+from app.infrastructure.storage.memory_conversation_repository import (
+    MemoryConversationRepository,
+)
 from app.infrastructure.storage.memory_user_repository import MemoryUserRepository
 from app.infrastructure.storage.noop_rate_limiter import NoOpRateLimiter
 from app.infrastructure.storage.redis_cache_provider import RedisCacheProvider
 from app.infrastructure.storage.redis_client import RedisClient
-from app.infrastructure.storage.redis_conversation_repository import RedisConversationRepository
+from app.infrastructure.storage.redis_conversation_repository import (
+    RedisConversationRepository,
+)
 from app.infrastructure.storage.redis_rate_limiter import RedisRateLimiter
-from app.infrastructure.storage.redis_revocation_repository import RedisRevocationRepository
+from app.infrastructure.storage.redis_revocation_repository import (
+    RedisRevocationRepository,
+)
 from app.infrastructure.vectorstore.faiss_repository import FAISSVectorRepository
 from app.services.document.document_service import DocumentService
 from app.services.maintenance.cleanup_service import CleanupService
@@ -80,14 +96,15 @@ else:
 _metrics_registry = MetricsRegistry(provider=_metrics_provider)
 
 _health_service = HealthService(
-    version=settings.app_version,
-    environment=settings.environment
+    version=settings.app_version, environment=settings.environment
 )
 
 # --- Persistence: Redis ---
 _redis_client = None
 if settings.redis_url:
-    _redis_client = RedisClient(redis_url=settings.redis_url, timeout=settings.redis_timeout)
+    _redis_client = RedisClient(
+        redis_url=settings.redis_url, timeout=settings.redis_timeout
+    )
     _redis_client.connect()
 
 # --- Repositories & Adapters (Singletons) ---
@@ -101,17 +118,20 @@ if _redis_client and _redis_client.is_available():
     _conversation_repository = RedisConversationRepository(
         redis_client=_redis_client,
         ttl=settings.conversation_ttl,
-        max_messages=settings.max_conversation_messages
+        max_messages=settings.max_conversation_messages,
     )
     _rate_limiter = RedisRateLimiter(redis_client=_redis_client)
     _cache_provider = RedisCacheProvider(
         redis_client=_redis_client,
         metrics=_metrics_registry,
-        default_ttl=settings.cache_ttl
+        default_ttl=settings.cache_ttl,
     )
 else:
     # Fallback to in-memory if Redis is not configured or unavailable
-    from app.infrastructure.storage.memory_revocation_repository import MemoryRevocationRepository
+    from app.infrastructure.storage.memory_revocation_repository import (
+        MemoryRevocationRepository,
+    )
+
     _revocation_repository = MemoryRevocationRepository()
     _conversation_repository = MemoryConversationRepository(
         max_messages=settings.max_conversation_messages
@@ -122,36 +142,37 @@ else:
 _auth_service = AuthService(
     user_repository=_user_repository,
     jwt_manager=_jwt_manager,
-    revocation_repository=_revocation_repository
+    revocation_repository=_revocation_repository,
 )
 
 
 # Initialize with a default admin user for development
 def init_dev_user():
     if not _user_repository.get_by_username("admin"):
-        _user_repository.save(User(
-            user_id="admin-001",
-            username="admin",
-            email="admin@medcr.ai",
-            hashed_password=PasswordHasher.hash("admin-password"),
-            role=UserRole.ADMIN,
-            full_name="System Administrator"
-        ))
+        _user_repository.save(
+            User(
+                user_id="admin-001",
+                username="admin",
+                email="admin@medcr.ai",
+                hashed_password=PasswordHasher.hash("admin-password"),
+                role=UserRole.ADMIN,
+                full_name="System Administrator",
+            )
+        )
 
 
 # AI Infrastructure
 _genai_client = genai.Client(api_key=settings.gemini_api_key)
 
 _embedding_provider = HuggingFaceEmbeddingAdapter(
-    model_name=settings.embedding_model,
-    device=settings.embedding_device
+    model_name=settings.embedding_model, device=settings.embedding_device
 )
 
 _vector_repository = FAISSVectorRepository(
     embedding_provider=_embedding_provider,
     faiss_dir=settings.faiss_dir,
     index_name=settings.faiss_index_name,
-    default_top_k=settings.default_top_k
+    default_top_k=settings.default_top_k,
 )
 
 _llm_provider = GeminiLLMAdapter(
@@ -159,31 +180,22 @@ _llm_provider = GeminiLLMAdapter(
     model_name=settings.gemini_model,
     metrics=_metrics_registry,
     temperature=settings.llm_temperature,
-    max_tokens=settings.llm_max_tokens
+    max_tokens=settings.llm_max_tokens,
 )
 
-_storage_provider = LocalStorageAdapter(
-    upload_dir=settings.upload_dir
-)
+_storage_provider = LocalStorageAdapter(upload_dir=settings.upload_dir)
 
-_document_repository = FilesystemDocumentRepository(
-    storage_dir=settings.metadata_dir
-)
+_document_repository = FilesystemDocumentRepository(storage_dir=settings.metadata_dir)
 
-_parser = DocumentParserAdapter(
-    supported_extensions=settings.supported_extensions
-)
+_parser = DocumentParserAdapter(supported_extensions=settings.supported_extensions)
 
 _chunker = LangChainChunkerAdapter(
-    chunk_size=settings.chunk_size,
-    chunk_overlap=settings.chunk_overlap
+    chunk_size=settings.chunk_size, chunk_overlap=settings.chunk_overlap
 )
 
 _keyword_retriever = BM25Adapter()
 
-_reranker = CrossEncoderAdapter(
-    model_name=settings.reranker_model
-)
+_reranker = CrossEncoderAdapter(model_name=settings.reranker_model)
 
 _grounding_engine = GroundingEngine()
 _reasoning_engine = ReasoningEngine()
@@ -194,7 +206,7 @@ _hybrid_retriever = HybridRetrieverAdapter(
     vector_store=_vector_repository,
     keyword_retriever=_keyword_retriever,
     vector_weight=settings.hybrid_weight_vector,
-    similarity_threshold=settings.similarity_threshold
+    similarity_threshold=settings.similarity_threshold,
 )
 
 # --- Health Check Registrations ---
@@ -202,10 +214,12 @@ _health_service.add_readiness_check(VectorStoreHealthCheck(_vector_repository))
 _health_service.add_readiness_check(StorageHealthCheck(settings.upload_dir))
 if _redis_client:
     from app.infrastructure.observability.redis_health import RedisHealthCheck
+
     _health_service.add_readiness_check(RedisHealthCheck(_redis_client))
 
 
 # --- Dependency Injection Providers ---
+
 
 def get_settings_provider():
     return settings
@@ -249,7 +263,7 @@ def get_rate_limiter() -> RateLimiter:
 
 def get_rate_limiter_service(
     limiter: RateLimiter = Depends(get_rate_limiter),
-    settings = Depends(get_settings_provider),
+    settings=Depends(get_settings_provider),
 ) -> RateLimiterService:
     return RateLimiterService(limiter, settings)
 
@@ -318,11 +332,14 @@ def get_cleanup_service() -> CleanupService:
     return CleanupService(settings, _revocation_repository)
 
 
-def get_background_task_provider(background_tasks: BackgroundTasks) -> BackgroundTaskProvider:
+def get_background_task_provider(
+    background_tasks: BackgroundTasks,
+) -> BackgroundTaskProvider:
     return FastAPIBackgroundTaskProvider(background_tasks)
 
 
 # --- Application Services ---
+
 
 def get_document_service(
     chunker: Chunker = Depends(get_chunker),
@@ -336,7 +353,7 @@ def get_document_service(
         vector_store=vector_store,
         parser=parser,
         document_repository=document_repository,
-        metrics=metrics
+        metrics=metrics,
     )
 
 
@@ -350,7 +367,7 @@ def get_retrieval_service(
         reranker=reranker,
         metrics=metrics,
         candidate_multiplier=settings.retrieval_candidate_multiplier,
-        min_candidates=settings.min_retrieval_candidates
+        min_candidates=settings.min_retrieval_candidates,
     )
 
 
@@ -359,7 +376,7 @@ def get_context_builder() -> IContextBuilder:
 
 
 def get_query_rewriter(
-    llm_provider: LLMProvider = Depends(get_llm_provider)
+    llm_provider: LLMProvider = Depends(get_llm_provider),
 ) -> IQueryRewriter:
     return QueryRewriter(llm_provider=llm_provider)
 
@@ -367,7 +384,9 @@ def get_query_rewriter(
 def get_rag_service(
     retrieval_service: Retriever = Depends(get_retrieval_service),
     llm_provider: LLMProvider = Depends(get_llm_provider),
-    conversation_repository: ConversationRepository = Depends(get_conversation_repository),
+    conversation_repository: ConversationRepository = Depends(
+        get_conversation_repository
+    ),
     query_rewriter: IQueryRewriter = Depends(get_query_rewriter),
     context_builder: IContextBuilder = Depends(get_context_builder),
     grounding_engine: GroundingEngine = Depends(get_grounding_engine),
@@ -386,11 +405,12 @@ def get_rag_service(
         reasoning_engine=reasoning_engine,
         evaluation_engine=evaluation_engine,
         benchmark_repo=benchmark_repo,
-        metrics=metrics
+        metrics=metrics,
     )
 
 
 # --- Lifecycle Management ---
+
 
 def init_vector_store() -> bool:
     init_dev_user()

@@ -6,6 +6,7 @@ from app.core.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 class QueryRewriter(IQueryRewriter):
     """
     Intelligently rewrites and expands legal queries.
@@ -47,11 +48,11 @@ class QueryRewriter(IQueryRewriter):
 
         return QueryUnderstanding(
             original_query=question,
-            rewritten_query=question, # In prod, this would be standalone
+            rewritten_query=question,  # In prod, this would be standalone
             intent=intent,
             entities=entities,
             expanded_terms=expansions,
-            is_multi_doc="compare" in question.lower() or "between" in question.lower()
+            is_multi_doc="compare" in question.lower() or "between" in question.lower(),
         )
 
     def _detect_intent(self, query: str) -> QueryIntent:

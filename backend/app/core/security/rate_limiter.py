@@ -5,6 +5,7 @@ from app.core.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 class RateLimiterService:
     """
     High-level rate limiter service.
@@ -15,12 +16,7 @@ class RateLimiterService:
         self._limiter = limiter
         self._settings = settings
 
-    async def check(
-        self,
-        identifier: str,
-        path: str,
-        method: str = "GET"
-    ) -> bool:
+    async def check(self, identifier: str, path: str, method: str = "GET") -> bool:
         """
         Check rate limit for a request.
         Returns True if allowed, False if limited.
@@ -46,10 +42,22 @@ class RateLimiterService:
         path = path.lower()
 
         if path.startswith("/auth/"):
-            return self._settings.rate_limit_auth_requests, self._settings.rate_limit_window_seconds
+            return (
+                self._settings.rate_limit_auth_requests,
+                self._settings.rate_limit_window_seconds,
+            )
         elif path.startswith("/documents/upload") or path.startswith("/documents/"):
-            return self._settings.rate_limit_upload_requests, self._settings.rate_limit_window_seconds
+            return (
+                self._settings.rate_limit_upload_requests,
+                self._settings.rate_limit_window_seconds,
+            )
         elif path.startswith("/rag/"):
-            return self._settings.rate_limit_rag_requests, self._settings.rate_limit_window_seconds
+            return (
+                self._settings.rate_limit_rag_requests,
+                self._settings.rate_limit_window_seconds,
+            )
         else:
-            return self._settings.rate_limit_general_requests, self._settings.rate_limit_window_seconds
+            return (
+                self._settings.rate_limit_general_requests,
+                self._settings.rate_limit_window_seconds,
+            )

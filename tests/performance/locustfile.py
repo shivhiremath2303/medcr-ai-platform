@@ -1,6 +1,7 @@
 import random
 from locust import HttpUser, task, between
 
+
 class LegalAIUser(HttpUser):
     wait_time = between(1, 5)
 
@@ -10,7 +11,7 @@ class LegalAIUser(HttpUser):
         Currently using a dummy token or assuming public access for load testing
         in a controlled environment.
         """
-        self.token = "dummy-token" # In production, this would be a real JWT
+        self.token = "dummy-token"  # In production, this would be a real JWT
 
     @task(3)
     def query_rag(self):
@@ -19,10 +20,12 @@ class LegalAIUser(HttpUser):
         """
         payload = {
             "question": "What are the conflict resolution rules in the provided evidence?",
-            "k": 3
+            "k": 3,
         }
         headers = {"Authorization": f"Bearer {self.token}"}
-        with self.client.post("/api/v1/rag/query", json=payload, headers=headers, catch_response=True) as response:
+        with self.client.post(
+            "/api/v1/rag/query", json=payload, headers=headers, catch_response=True
+        ) as response:
             if response.status_code == 200:
                 response.success()
             else:

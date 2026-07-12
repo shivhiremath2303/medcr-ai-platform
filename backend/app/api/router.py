@@ -13,5 +13,5 @@ router.include_router(rag_router)
 def home():
     return {
         "message": "Welcome to MedCR AI Platform",
-        "status": "Backend is running successfully!"
+        "status": "Backend is running successfully!",
     }

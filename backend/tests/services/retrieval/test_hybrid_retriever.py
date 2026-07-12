@@ -4,6 +4,7 @@ from tests.fixtures.chunk_factory import make_chunk
 from tests.fixtures.fake_bm25_retriever import FakeBM25Retriever
 from tests.fixtures.fake_vector_store import FakeVectorStore
 
+
 def test_build_bm25_index_indexes_all_chunks():
     chunks = [
         make_chunk(

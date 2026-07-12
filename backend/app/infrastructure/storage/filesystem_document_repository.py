@@ -55,11 +55,8 @@ class FilesystemDocumentRepository(DocumentRepository):
 
     def _map_to_domain(self, data: dict) -> Document:
         pages = [
-            Page(page_number=p["page_number"], text=p["text"])
-            for p in data["pages"]
+            Page(page_number=p["page_number"], text=p["text"]) for p in data["pages"]
         ]
         return Document(
-            document_id=data["document_id"],
-            filename=data["filename"],
-            pages=pages
+            document_id=data["document_id"], filename=data["filename"], pages=pages
         )

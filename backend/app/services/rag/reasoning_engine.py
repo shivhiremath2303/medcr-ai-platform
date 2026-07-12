@@ -1,19 +1,26 @@
 import re
 from typing import List, Dict, Any, Optional
 from app.domain.models import (
-    LegalIssue, TimelineEvent, LegalEntityRelationship,
-    ClauseComparison, ReasoningReport, Evidence
+    LegalIssue,
+    TimelineEvent,
+    LegalEntityRelationship,
+    ClauseComparison,
+    ReasoningReport,
+    Evidence,
 )
 from app.core.observability.logger import get_logger
 
 logger = get_logger(__name__)
+
 
 class ReasoningEngine:
     """
     Service responsible for extracting structured legal reasoning from LLM output.
     """
 
-    def extract_reasoning(self, answer: str, evidence_list: List[Evidence]) -> ReasoningReport:
+    def extract_reasoning(
+        self, answer: str, evidence_list: List[Evidence]
+    ) -> ReasoningReport:
         """
         Parses the structured LLM response into a domain ReasoningReport.
         """
@@ -31,13 +38,17 @@ class ReasoningEngine:
 
     def _extract_facts(self, text: str) -> List[str]:
         match = re.search(r"### Facts(.*?)(###|$)", text, re.DOTALL | re.IGNORECASE)
-        if not match: return []
+        if not match:
+            return []
         facts = re.findall(r"-\s*(.*?)(?:\n|$)", match.group(1))
         return [f.strip() for f in facts if f.strip()]
 
     def _extract_issues(self, text: str) -> List[LegalIssue]:
-        match = re.search(r"### Issues & Risks(.*?)(###|$)", text, re.DOTALL | re.IGNORECASE)
-        if not match: return []
+        match = re.search(
+            r"### Issues & Risks(.*?)(###|$)", text, re.DOTALL | re.IGNORECASE
+        )
+        if not match:
+            return []
 
         issues = []
         # Issue: [Title] | Severity: [Low/Medium/High] | Description: [details] [Evidence Z]
@@ -57,12 +68,14 @@ class ReasoningEngine:
 
                 evidence_ids = re.findall(r"\[Evidence (\d+)\]", line)
 
-                issues.append(LegalIssue(
-                    title=title,
-                    description=description,
-                    severity=severity,
-                    evidence_ids=evidence_ids
-                ))
+                issues.append(
+                    LegalIssue(
+                        title=title,
+                        description=description,
+                        severity=severity,
+                        evidence_ids=evidence_ids,
+                    )
+                )
             except Exception as e:
                 logger.warning(f"Failed to parse issue line: {line}. Error: {str(e)}")
                 continue
@@ -70,7 +83,8 @@ class ReasoningEngine:
 
     def _extract_timeline(self, text: str) -> List[TimelineEvent]:
         match = re.search(r"### Timeline(.*?)(###|$)", text, re.DOTALL | re.IGNORECASE)
-        if not match: return []
+        if not match:
+            return []
 
         events = []
         # - [Date/Time]: [Event Description] [Evidence X]
@@ -85,17 +99,22 @@ class ReasoningEngine:
                 if ev_match:
                     evidence_id = ev_match.group(1)
 
-                events.append(TimelineEvent(
-                    date=date,
-                    event=desc, # In this case event and description are same for now
-                    description=desc,
-                    evidence_id=evidence_id
-                ))
+                events.append(
+                    TimelineEvent(
+                        date=date,
+                        event=desc,  # In this case event and description are same for now
+                        description=desc,
+                        evidence_id=evidence_id,
+                    )
+                )
         return events
 
     def _extract_relationships(self, text: str) -> List[LegalEntityRelationship]:
-        match = re.search(r"### Entity Relationships(.*?)(###|$)", text, re.DOTALL | re.IGNORECASE)
-        if not match: return []
+        match = re.search(
+            r"### Entity Relationships(.*?)(###|$)", text, re.DOTALL | re.IGNORECASE
+        )
+        if not match:
+            return []
 
         rels = []
         # - [Entity A] -> [Relationship] -> [Entity B]: [Description]
@@ -106,14 +125,22 @@ class ReasoningEngine:
                     parts = line.split(":")
                     entities = parts[0].split("->")
                     if len(entities) >= 2:
-                        rels.append(LegalEntityRelationship(
-                            source=entities[0].strip(),
-                            target=entities[-1].strip(),
-                            relationship_type=entities[1].strip() if len(entities) > 2 else "related_to",
-                            description=parts[1].strip()
-                        ))
+                        rels.append(
+                            LegalEntityRelationship(
+                                source=entities[0].strip(),
+                                target=entities[-1].strip(),
+                                relationship_type=(
+                                    entities[1].strip()
+                                    if len(entities) > 2
+                                    else "related_to"
+                                ),
+                                description=parts[1].strip(),
+                            )
+                        )
                 except Exception as e:
-                    logger.warning(f"Failed to parse relationship line: {line}. Error: {str(e)}")
+                    logger.warning(
+                        f"Failed to parse relationship line: {line}. Error: {str(e)}"
+                    )
                     continue
         return rels
 
@@ -124,11 +151,13 @@ class ReasoningEngine:
         comparisons = []
         if "compare" in text.lower() or "difference" in text.lower():
             # Heuristic: extract a single "Legal Comparison" if multi-doc is mentioned
-            comparisons.append(ClauseComparison(
-                clause_type="General Comparison",
-                similarities=["Extracted from Analysis section"],
-                differences=[]
-            ))
+            comparisons.append(
+                ClauseComparison(
+                    clause_type="General Comparison",
+                    similarities=["Extracted from Analysis section"],
+                    differences=[],
+                )
+            )
         return comparisons
 
     def _extract_conflicts(self, text: str) -> List[str]:
@@ -136,7 +165,10 @@ class ReasoningEngine:
         return [c.strip() for c in conflicts if c.strip()]
 
     def _extract_uncertainties(self, text: str) -> List[str]:
-        match = re.search(r"### Remaining Uncertainty(.*?)(###|$)", text, re.DOTALL | re.IGNORECASE)
-        if not match: return []
+        match = re.search(
+            r"### Remaining Uncertainty(.*?)(###|$)", text, re.DOTALL | re.IGNORECASE
+        )
+        if not match:
+            return []
         uncertainties = re.findall(r"-\s*(.*?)(?:\n|$)", match.group(1))
         return [u.strip() for u in uncertainties if u.strip()]

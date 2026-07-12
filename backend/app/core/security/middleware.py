@@ -5,11 +5,13 @@ from starlette.requests import Request
 from starlette.responses import Response
 from app.core.config.base import Settings
 
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
     Middleware for adding security headers to all responses.
     Implements OWASP Secure Headers recommendations for APIs.
     """
+
     def __init__(self, app, settings: Settings):
         super().__init__(app)
         self.settings = settings
@@ -59,15 +61,19 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         # HSTS in production (only if behind HTTPS)
         if self.settings.environment == "production":
-            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains; preload"
+            )
 
         return response
+
 
 class CORSMiddlewareConfig:
     """
     Configuration builder for CORS middleware.
     Supports environment-specific settings.
     """
+
     @staticmethod
     def get_cors_config(settings: Settings) -> dict:
         if settings.environment == "production":
@@ -77,27 +83,53 @@ class CORSMiddlewareConfig:
                 "allow_credentials": True,
                 "allow_methods": settings.cors_allowed_methods,
                 "allow_headers": settings.cors_allowed_headers,
-                "expose_headers": ["X-Request-ID", "X-Correlation-ID", "X-Process-Time"],
+                "expose_headers": [
+                    "X-Request-ID",
+                    "X-Correlation-ID",
+                    "X-Process-Time",
+                ],
                 "max_age": 600,
             }
         elif settings.environment == "testing":
             # Testing: Allow localhost and test origins
             return {
-                "allow_origins": ["http://localhost", "http://localhost:3000", "http://testserver"],
+                "allow_origins": [
+                    "http://localhost",
+                    "http://localhost:3000",
+                    "http://testserver",
+                ],
                 "allow_credentials": True,
                 "allow_methods": ["*"],
                 "allow_headers": ["*"],
-                "expose_headers": ["X-Request-ID", "X-Correlation-ID", "X-Process-Time"],
+                "expose_headers": [
+                    "X-Request-ID",
+                    "X-Correlation-ID",
+                    "X-Process-Time",
+                ],
             }
         else:
             # Development: More permissive but still controlled
             return {
-                "allow_origins": settings.cors_allowed_origins if settings.cors_allowed_origins != ["*"] else ["http://localhost:3000", "http://localhost:8000", "http://127.0.0.1:3000", "http://127.0.0.1:8000"],
+                "allow_origins": (
+                    settings.cors_allowed_origins
+                    if settings.cors_allowed_origins != ["*"]
+                    else [
+                        "http://localhost:3000",
+                        "http://localhost:8000",
+                        "http://127.0.0.1:3000",
+                        "http://127.0.0.1:8000",
+                    ]
+                ),
                 "allow_credentials": True,
                 "allow_methods": settings.cors_allowed_methods,
                 "allow_headers": settings.cors_allowed_headers,
-                "expose_headers": ["X-Request-ID", "X-Correlation-ID", "X-Process-Time"],
+                "expose_headers": [
+                    "X-Request-ID",
+                    "X-Correlation-ID",
+                    "X-Process-Time",
+                ],
             }
+
 
 def setup_security(app: FastAPI, settings: Settings):
     """

@@ -15,6 +15,7 @@ _environments: Dict[str, Type[Settings]] = {
     "production": ProductionSettings,
 }
 
+
 @lru_cache
 def get_settings() -> Settings:
     """
@@ -30,6 +31,9 @@ def get_settings() -> Settings:
         return settings
     except Exception as e:
         # Fail fast with a clear error message to stderr
-        print(f"\nCRITICAL ERROR: Configuration failed for environment '{env}'", file=sys.stderr)
+        print(
+            f"\nCRITICAL ERROR: Configuration failed for environment '{env}'",
+            file=sys.stderr,
+        )
         print(f"Details: {e}\n", file=sys.stderr)
         sys.exit(1)

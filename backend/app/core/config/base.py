@@ -30,7 +30,8 @@ class Settings(BaseSettings):
         "Production-grade Legal AI RAG Platform", description="Application description"
     )
     environment: str = Field(
-        "development", description="Current environment (development, testing, production)"
+        "development",
+        description="Current environment (development, testing, production)",
     )
     debug: bool = Field(False, description="Debug mode flag")
 
@@ -48,16 +49,26 @@ class Settings(BaseSettings):
 
     # --- Rate Limiting ---
     rate_limit_enabled: bool = Field(True, description="Enable rate limiting")
-    rate_limit_auth_requests: int = Field(10, description="Max auth requests per minute")
-    rate_limit_upload_requests: int = Field(5, description="Max upload requests per minute")
+    rate_limit_auth_requests: int = Field(
+        10, description="Max auth requests per minute"
+    )
+    rate_limit_upload_requests: int = Field(
+        5, description="Max upload requests per minute"
+    )
     rate_limit_rag_requests: int = Field(30, description="Max RAG requests per minute")
-    rate_limit_general_requests: int = Field(100, description="Max general requests per minute")
-    rate_limit_window_seconds: int = Field(60, description="Rate limit window in seconds")
+    rate_limit_general_requests: int = Field(
+        100, description="Max general requests per minute"
+    )
+    rate_limit_window_seconds: int = Field(
+        60, description="Rate limit window in seconds"
+    )
 
     # --- File Upload Security ---
     max_upload_size_mb: int = Field(20, description="Maximum upload size in MB")
     max_upload_files: int = Field(5, description="Maximum number of files per request")
-    supported_extensions: Set[str] = Field({".pdf", ".docx"}, description="Supported file extensions")
+    supported_extensions: Set[str] = Field(
+        {".pdf", ".docx"}, description="Supported file extensions"
+    )
     allowed_mime_types: Set[str] = Field(
         {
             "application/pdf",
@@ -70,22 +81,30 @@ class Settings(BaseSettings):
     # --- Storage ---
     # Paths are relative to BASE_DIR (the backend root)
     upload_dir: Path = Field(
-        BASE_DIR / "uploads" / "documents", description="Directory for uploaded documents"
+        BASE_DIR / "uploads" / "documents",
+        description="Directory for uploaded documents",
     )
-    faiss_dir: Path = Field(BASE_DIR / "data" / "faiss", description="Directory for FAISS index")
+    faiss_dir: Path = Field(
+        BASE_DIR / "data" / "faiss", description="Directory for FAISS index"
+    )
     metadata_dir: Path = Field(
         BASE_DIR / "data" / "metadata", description="Directory for document metadata"
     )
-    temp_dir: Path = Field(BASE_DIR / "data" / "temp", description="Directory for temporary files")
+    temp_dir: Path = Field(
+        BASE_DIR / "data" / "temp", description="Directory for temporary files"
+    )
     cache_dir: Path = Field(
         BASE_DIR / "data" / "cache", description="Directory for cached data"
     )
 
     # --- AI - Embeddings ---
     embedding_model: str = Field(
-        "sentence-transformers/all-MiniLM-L6-v2", description="Model for document embeddings"
+        "sentence-transformers/all-MiniLM-L6-v2",
+        description="Model for document embeddings",
     )
-    embedding_device: str = Field("cpu", description="Device for embedding model (cpu, cuda)")
+    embedding_device: str = Field(
+        "cpu", description="Device for embedding model (cpu, cuda)"
+    )
     embedding_batch_size: int = Field(32, description="Batch size for embedding")
 
     # --- AI - LLM ---
@@ -99,7 +118,9 @@ class Settings(BaseSettings):
     reranker_model: str = Field(
         "cross-encoder/ms-marco-MiniLM-L-6-v2", description="Model for reranking"
     )
-    reranker_top_k: int = Field(5, description="Number of results to keep after reranking")
+    reranker_top_k: int = Field(
+        5, description="Number of results to keep after reranking"
+    )
 
     # --- AI - Chunking ---
     chunk_size: int = Field(1000, description="Size of document chunks")
@@ -115,7 +136,9 @@ class Settings(BaseSettings):
     min_retrieval_candidates: int = Field(
         20, description="Minimum number of retrieval candidates"
     )
-    faiss_index_name: str = Field("legal_documents", description="Name of the FAISS index file")
+    faiss_index_name: str = Field(
+        "legal_documents", description="Name of the FAISS index file"
+    )
     hybrid_weight_vector: float = Field(
         0.7, description="Weight for vector search in hybrid retrieval"
     )
@@ -137,7 +160,9 @@ class Settings(BaseSettings):
     )
     cache_ttl: int = Field(3600, description="General cache TTL in seconds")
 
-    cleanup_interval_seconds: int = Field(3600, description="Interval for background cleanup tasks")
+    cleanup_interval_seconds: int = Field(
+        3600, description="Interval for background cleanup tasks"
+    )
 
     # --- Future Infrastructure Models (Not implemented) ---
     database_url: Optional[str] = Field(None, description="Database connection URL")
@@ -155,11 +180,16 @@ class Settings(BaseSettings):
 
     # Authentication
     jwt_secret_key: str = Field(
-        "development-secret-key-change-me-in-production", description="Secret key for JWT"
+        "development-secret-key-change-me-in-production",
+        description="Secret key for JWT",
     )
     jwt_algorithm: str = Field("HS256", description="JWT algorithm")
-    jwt_access_token_minutes: int = Field(30, description="JWT access token expiration in minutes")
-    jwt_refresh_token_days: int = Field(7, description="JWT refresh token expiration in days")
+    jwt_access_token_minutes: int = Field(
+        30, description="JWT access token expiration in minutes"
+    )
+    jwt_refresh_token_days: int = Field(
+        7, description="JWT refresh token expiration in days"
+    )
     cors_allowed_origins: List[str] = Field(["*"], description="Allowed CORS origins")
     cors_allowed_methods: List[str] = Field(["*"], description="Allowed CORS methods")
     cors_allowed_headers: List[str] = Field(["*"], description="Allowed CORS headers")
@@ -168,14 +198,20 @@ class Settings(BaseSettings):
     metrics_enabled: bool = Field(False, description="Enable metrics collection")
     metrics_path: str = Field("/metrics", description="Endpoint for metrics")
     otel_enabled: bool = Field(False, description="Enable OpenTelemetry")
-    otel_service_name: str = Field("medcr-ai-platform", description="Service name for OTEL")
-    otel_exporter_endpoint: Optional[str] = Field(None, description="OTEL exporter endpoint")
+    otel_service_name: str = Field(
+        "medcr-ai-platform", description="Service name for OTEL"
+    )
+    otel_exporter_endpoint: Optional[str] = Field(
+        None, description="OTEL exporter endpoint"
+    )
 
     # Logging
     log_level: str = Field("INFO", description="Global log level")
     log_format: str = Field("text", description="Log format (text, json)")
     log_json: bool = Field(False, description="Enable JSON logging")
-    log_directory: Path = Field(BASE_DIR / "logs", description="Directory for log files")
+    log_directory: Path = Field(
+        BASE_DIR / "logs", description="Directory for log files"
+    )
     log_rotation_size: str = Field("10MB", description="Log file rotation size")
     log_retention_days: int = Field(7, description="Log file retention days")
 

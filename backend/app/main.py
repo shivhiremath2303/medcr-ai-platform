@@ -57,7 +57,9 @@ async def lifespan(app: FastAPI):
     if loaded:
         logger.info("Loaded existing FAISS index on startup.")
     else:
-        logger.info("No FAISS index found; a new one will be created on first ingestion.")
+        logger.info(
+            "No FAISS index found; a new one will be created on first ingestion."
+        )
 
     # Start periodic cleanup task
     cleanup_task = asyncio.create_task(periodic_cleanup())

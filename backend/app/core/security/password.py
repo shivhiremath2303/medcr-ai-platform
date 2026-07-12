@@ -2,10 +2,12 @@ from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
 class PasswordHasher:
     """
     Utility for hashing and verifying passwords.
     """
+
     @staticmethod
     def hash(password: str) -> str:
         return pwd_context.hash(password)

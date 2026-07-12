@@ -45,6 +45,7 @@ class EvaluationReport:
     """
     Comprehensive evaluation report for a single query or a benchmark run.
     """
+
     timestamp: datetime = field(default_factory=datetime.utcnow)
     query: str = ""
     retrieval: Optional[RetrievalMetrics] = None

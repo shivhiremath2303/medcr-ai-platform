@@ -39,6 +39,7 @@ class ReasoningReport:
     """
     Structured report containing the deep legal analysis.
     """
+
     facts: List[str] = field(default_factory=list)
     issues: List[LegalIssue] = field(default_factory=list)
     timeline: List[TimelineEvent] = field(default_factory=list)

@@ -1,5 +1,8 @@
 from typing import List
-from app.domain.repositories.benchmark_repository import BenchmarkRepository, BenchmarkCase
+from app.domain.repositories.benchmark_repository import (
+    BenchmarkRepository,
+    BenchmarkCase,
+)
 
 
 class MemoryBenchmarkRepository(BenchmarkRepository):
@@ -16,7 +19,7 @@ class MemoryBenchmarkRepository(BenchmarkRepository):
                 expected_answer="The notice period is 30 days.",
                 expected_evidence_ids=["chunk-term-01"],
                 category="clause_lookup",
-                metadata={"complexity": "low"}
+                metadata={"complexity": "low"},
             ),
             BenchmarkCase(
                 id="case-002",
@@ -24,7 +27,7 @@ class MemoryBenchmarkRepository(BenchmarkRepository):
                 expected_answer="The limit increased from $1M to $2M.",
                 expected_evidence_ids=["chunk-liab-23", "chunk-liab-24"],
                 category="comparison",
-                metadata={"complexity": "high"}
+                metadata={"complexity": "high"},
             ),
             BenchmarkCase(
                 id="case-003",
@@ -32,8 +35,8 @@ class MemoryBenchmarkRepository(BenchmarkRepository):
                 expected_answer="Yes, Clause 4 prohibits disclosure while Section 9 requires it for regulatory compliance.",
                 expected_evidence_ids=["chunk-conf-01", "chunk-reg-01"],
                 category="conflict_detection",
-                metadata={"complexity": "medium"}
-            )
+                metadata={"complexity": "medium"},
+            ),
         ]
 
     def get_all_cases(self) -> List[BenchmarkCase]:

@@ -17,6 +17,7 @@ from app.core.observability.telemetry import get_tracer
 logger = get_logger(__name__)
 tracer = get_tracer(__name__)
 
+
 class RAGService:
     """
     Coordinates the advanced Retrieval-Augmented Generation workflow with scientific evaluation.
@@ -47,10 +48,7 @@ class RAGService:
         self.metrics = metrics
 
     def answer_question(
-        self,
-        question: str,
-        k: int = 3,
-        enable_evaluation: bool = True
+        self, question: str, k: int = 3, enable_evaluation: bool = True
     ) -> dict:
         """
         Retrieve context, generate an answer, and perform scientific evaluation.
@@ -77,17 +75,19 @@ class RAGService:
                 results = self.retrieval_service.retrieve(
                     query=understanding.original_query,
                     k=k,
-                    params={"understanding": understanding}
+                    params={"understanding": understanding},
                 )
             retrieval_ms = (time.perf_counter() - retrieval_start) * 1000
             self.metrics.track_pipeline_step("retrieval", retrieval_ms / 1000)
 
             # Evidence Sufficiency Analysis
             raw_confidence = sum(r.score for r in results[:1]) if results else 0.0
-            sufficiency = self.grounding_engine.analyze_sufficiency(results, raw_confidence)
+            sufficiency = self.grounding_engine.analyze_sufficiency(
+                results, raw_confidence
+            )
 
             if not results or sufficiency == "insufficient":
-                 return self._generate_insufficient_response()
+                return self._generate_insufficient_response()
 
             # Convert results to structured Evidence objects
             evidence_list = self.context_builder.results_to_evidence(results)
@@ -110,7 +110,9 @@ class RAGService:
 
             # 3. Hallucination Detection & Verification
             with tracer.start_as_current_span("grounding_verification"):
-                validation_errors = self.grounding_engine.validate_answer(answer, evidence_list)
+                validation_errors = self.grounding_engine.validate_answer(
+                    answer, evidence_list
+                )
 
                 summary = self._extract_summary(answer)
                 citations = self._extract_citations(answer)
@@ -118,14 +120,16 @@ class RAGService:
                 missing_docs = self.grounding_engine.detect_missing_evidence(answer)
 
             # 4. Structured Reasoning Extraction
-            reasoning_metadata = self.reasoning_engine.extract_reasoning(answer, evidence_list)
+            reasoning_metadata = self.reasoning_engine.extract_reasoning(
+                answer, evidence_list
+            )
 
             # 5. Grounding Score Calculation
             grounding_score = self.grounding_engine.calculate_grounding_score(
                 evidence_list=evidence_list,
                 citations=citations,
                 sufficiency=sufficiency,
-                contradictions=contradictions
+                contradictions=contradictions,
             )
             self.metrics.track_evaluation("grounding", grounding_score)
 
@@ -134,7 +138,7 @@ class RAGService:
                 answer=answer,
                 sufficiency=sufficiency,
                 grounding_score=grounding_score,
-                contradictions=contradictions
+                contradictions=contradictions,
             )
 
             # 7. Scientific Evaluation (Phase 7.5)
@@ -148,14 +152,20 @@ class RAGService:
                             expected_ids = case.expected_evidence_ids
                             break
 
-                    retrieval_metrics = self.evaluation_engine.evaluate_retrieval(results, expected_ids)
-                    grounding_metrics = self.evaluation_engine.evaluate_grounding(answer, evidence_list, grounding_score)
-                    reasoning_metrics = self.evaluation_engine.evaluate_reasoning(reasoning_metadata)
+                    retrieval_metrics = self.evaluation_engine.evaluate_retrieval(
+                        results, expected_ids
+                    )
+                    grounding_metrics = self.evaluation_engine.evaluate_grounding(
+                        answer, evidence_list, grounding_score
+                    )
+                    reasoning_metrics = self.evaluation_engine.evaluate_reasoning(
+                        reasoning_metadata
+                    )
                     performance_metrics = self.evaluation_engine.evaluate_performance(
                         retrieval_ms=retrieval_ms,
                         total_ms=(time.perf_counter() - overall_start) * 1000,
-                        tokens_in=len(context) // 4, # estimation
-                        tokens_out=len(answer) // 4  # estimation
+                        tokens_in=len(context) // 4,  # estimation
+                        tokens_out=len(answer) // 4,  # estimation
                     )
 
                     eval_report = self.evaluation_engine.generate_report(
@@ -163,7 +173,7 @@ class RAGService:
                         retrieval=retrieval_metrics,
                         grounding=grounding_metrics,
                         reasoning=reasoning_metrics,
-                        performance=performance_metrics
+                        performance=performance_metrics,
                     )
 
             # Get Retrieval Diagnostics
@@ -190,7 +200,11 @@ class RAGService:
                 "answer_status": status.value,
                 "missing_documents": missing_docs,
                 "contradictions": contradictions,
-                "reasoning_notes": f"Validation Errors: {', '.join(validation_errors)}" if validation_errors else None,
+                "reasoning_notes": (
+                    f"Validation Errors: {', '.join(validation_errors)}"
+                    if validation_errors
+                    else None
+                ),
                 "reasoning_metadata": reasoning_metadata.__dict__,
                 "sources": sources,
             }
@@ -202,7 +216,7 @@ class RAGService:
                     "reasoning_consistency": eval_report.reasoning.logical_consistency_score,
                     "hallucination_rate": eval_report.hallucination_rate,
                     "overall_score": eval_report.overall_score,
-                    "estimated_cost_usd": eval_report.performance.estimated_cost_usd
+                    "estimated_cost_usd": eval_report.performance.estimated_cost_usd,
                 }
 
             if diagnostics:

@@ -1,11 +1,13 @@
 from pydantic import Field
 from app.core.config.base import Settings
 
+
 class ProductionSettings(Settings):
     """
     Production settings with strict validation.
     Environment variables are automatically mapped (e.g., GEMINI_API_KEY).
     """
+
     environment: str = "production"
     debug: bool = False
     log_level: str = "WARNING"
@@ -17,7 +19,9 @@ class ProductionSettings(Settings):
 
     # Must be a valid JSON list when set via environment variable.
     # e.g., CORS_ALLOWED_ORIGINS=["https://app.medcr.ai"]
-    cors_allowed_origins: list[str] = Field(..., min_length=1, description="Allowed CORS origins")
+    cors_allowed_origins: list[str] = Field(
+        ..., min_length=1, description="Allowed CORS origins"
+    )
 
     cors_allowed_methods: list[str] = ["GET", "POST"]
     cors_allowed_headers: list[str] = [

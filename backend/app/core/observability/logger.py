@@ -7,10 +7,12 @@ from typing import Any, Dict
 
 from app.core.observability.context import get_request_id, get_correlation_id
 
+
 class StructuredFormatter(logging.Formatter):
     """
     Base formatter for structured logging.
     """
+
     def __init__(self, app_name: str, app_version: str, environment: str):
         super().__init__()
         self.app_name = app_name
@@ -31,10 +33,12 @@ class StructuredFormatter(logging.Formatter):
             "component": record.module,
         }
 
+
 class JsonFormatter(StructuredFormatter):
     """
     Formats log records as JSON strings.
     """
+
     def format(self, record: logging.LogRecord) -> str:
         log_data = self._get_common_fields(record)
 
@@ -46,10 +50,12 @@ class JsonFormatter(StructuredFormatter):
 
         return json.dumps(log_data)
 
+
 class ConsoleFormatter(StructuredFormatter):
     """
     Formats log records for human readability in console.
     """
+
     def format(self, record: logging.LogRecord) -> str:
         timestamp = datetime.fromtimestamp(record.created).strftime("%Y-%m-%d %H:%M:%S")
         request_id = get_request_id() or "no-request-id"
@@ -61,12 +67,13 @@ class ConsoleFormatter(StructuredFormatter):
 
         return log_msg
 
+
 def setup_logging(
     app_name: str,
     app_version: str,
     environment: str,
     log_level: str = "INFO",
-    json_format: bool = False
+    json_format: bool = False,
 ) -> None:
     """
     Configures the root logger for the application.
@@ -87,6 +94,7 @@ def setup_logging(
 
     handler.setFormatter(formatter)
     root_logger.addHandler(handler)
+
 
 def get_logger(name: str) -> logging.Logger:
     """

@@ -10,10 +10,12 @@ from app.core.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 class ObservabilityMiddleware(BaseHTTPMiddleware):
     """
     Middleware for handling Request ID, Correlation ID, and logging requests.
     """
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         start_time = time.perf_counter()
 
@@ -46,6 +48,6 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             logger.error(
                 f"Request failed: {request.method} {request.url.path} - "
                 f"Error: {str(e)} - Duration: {process_time:.4f}s",
-                exc_info=True
+                exc_info=True,
             )
             raise

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Dict, Any
 from app.core.observability.health import HealthCheck
 
+
 class StorageHealthCheck(HealthCheck):
     def __init__(self, upload_dir: Path):
         self.upload_dir = upload_dir
@@ -21,12 +22,6 @@ class StorageHealthCheck(HealthCheck):
             test_file.touch()
             test_file.unlink()
 
-            return {
-                "status": "up",
-                "path": str(self.upload_dir)
-            }
+            return {"status": "up", "path": str(self.upload_dir)}
         except Exception as e:
-            return {
-                "status": "down",
-                "error": str(e)
-            }
+            return {"status": "down", "error": str(e)}

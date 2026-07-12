@@ -26,7 +26,7 @@ async def login(
     if not await limiter.check(identifier, request.url.path, request.method):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many login attempts. Please try again later."
+            detail="Too many login attempts. Please try again later.",
         )
 
     user = auth_service.authenticate_user(form_data.username, form_data.password)

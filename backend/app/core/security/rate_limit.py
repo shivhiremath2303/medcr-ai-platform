@@ -2,10 +2,12 @@ from fastapi import HTTPException, Request, status, Depends
 from app.domain.repositories.rate_limiter import RateLimiter
 from app.di import get_rate_limiter, get_settings_provider
 
+
 class RateLimit:
     """
     Dependency for applying rate limits to routes.
     """
+
     def __init__(self, limit: int = None, window: int = None, key_prefix: str = "gen"):
         self.limit = limit
         self.window = window
@@ -15,7 +17,7 @@ class RateLimit:
         self,
         request: Request,
         rate_limiter: RateLimiter = Depends(get_rate_limiter),
-        settings = Depends(get_settings_provider)
+        settings=Depends(get_settings_provider),
     ):
         if not settings.rate_limit_enabled:
             return
@@ -31,5 +33,5 @@ class RateLimit:
         if await rate_limiter.is_rate_limited(key, limit, window):
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many requests. Please try again later."
+                detail="Too many requests. Please try again later.",
             )

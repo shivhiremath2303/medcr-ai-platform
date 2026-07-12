@@ -4,10 +4,12 @@ from app.core.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 class RedisClient:
     """
     Wrapper for Redis connection management.
     """
+
     def __init__(self, redis_url: str, timeout: int = 5):
         self.redis_url = redis_url
         self.timeout = timeout
@@ -19,7 +21,7 @@ class RedisClient:
             self._client = redis.from_url(
                 self.redis_url,
                 decode_responses=True,
-                socket_connect_timeout=self.timeout
+                socket_connect_timeout=self.timeout,
             )
             self._client.ping()
             logger.info("Connected to Redis successfully.")
@@ -33,7 +35,7 @@ class RedisClient:
         if self._client is None:
             self.connect()
         if self._client is None:
-             raise ConnectionError("Redis client is not connected.")
+            raise ConnectionError("Redis client is not connected.")
         return self._client
 
     def is_available(self) -> bool:

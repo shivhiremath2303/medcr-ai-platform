@@ -51,7 +51,7 @@ class GeminiLLMAdapter(LLMProvider):
                     config={
                         "temperature": self.temperature,
                         "max_output_tokens": self.max_tokens,
-                    }
+                    },
                 )
 
                 duration = time.perf_counter() - start_time
@@ -97,8 +97,8 @@ Latest Question:
                     model=self.model_name,
                     contents=prompt,
                     config={
-                        "temperature": 0.0, # Usually better for rewriting
-                    }
+                        "temperature": 0.0,  # Usually better for rewriting
+                    },
                 )
 
                 duration = time.perf_counter() - start_time

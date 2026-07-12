@@ -1,9 +1,11 @@
 from app.core.config.base import Settings, BASE_DIR
 
+
 class TestingSettings(Settings):
     """
     Settings for automated testing.
     """
+
     environment: str = "testing"
     debug: bool = True
     log_level: str = "DEBUG"

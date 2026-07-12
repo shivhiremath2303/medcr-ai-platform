@@ -21,7 +21,7 @@ router = APIRouter(
     response_model=AnswerResponse,
 )
 async def ask_question(
-    request: Request, # for router path
+    request: Request,  # for router path
     question_request: QuestionRequest,
     rag_service: RAGService = Depends(get_rag_service),
     current_user: CurrentUser = Depends(get_current_active_user),
