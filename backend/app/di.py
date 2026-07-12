@@ -5,7 +5,8 @@ from app.domain.repositories import (
     DocumentParser, VectorStoreRepository, EmbeddingRepository,
     LLMProvider, StorageProvider, KeywordRetriever, Reranker,
     Chunker, Retriever, DocumentRepository, ConversationRepository,
-    UserRepository, RevocationRepository, RateLimiter, CacheProvider
+    UserRepository, RevocationRepository, RateLimiter, CacheProvider,
+    MetricsProvider
 )
 from app.domain.repositories.query_rewriter import QueryRewriter as IQueryRewriter
 from app.domain.repositories.context_builder import ContextBuilder as IContextBuilder
@@ -60,6 +61,7 @@ from app.core.security.password import PasswordHasher
 settings = get_settings()
 
 # --- Observability ---
+_metrics_provider: MetricsProvider
 if settings.metrics_enabled:
     _metrics_provider = PrometheusMetricsProvider()
 else:
@@ -265,7 +267,7 @@ def get_health_service() -> HealthService:
 def get_metrics_registry() -> MetricsRegistry:
     return _metrics_registry
 
-def get_metrics_provider() -> "app.domain.repositories.metrics_provider.MetricsProvider":
+def get_metrics_provider() -> MetricsProvider:
     return _metrics_provider
 
 def get_jwt_manager() -> JWTManager:

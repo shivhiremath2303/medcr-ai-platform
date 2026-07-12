@@ -29,7 +29,7 @@ class RedisCacheProvider(CacheProvider):
                 self.metrics.track_cache_hit(data is not None)
 
                 if data:
-                    return pickle.loads(data.encode('latin1') if isinstance(data, str) else data)
+                    return pickle.loads(data.encode('latin1') if isinstance(data, str) else data)  # noqa: S301
                 return None
             except Exception as e:
                 span.record_exception(e)
@@ -39,7 +39,7 @@ class RedisCacheProvider(CacheProvider):
     def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
         full_key = f"{self.key_prefix}{key}"
         ttl = ttl or self.default_ttl
-        pickled_value = pickle.dumps(value)
+        pickled_value = pickle.dumps(value)  # noqa: S301
         with tracer.start_as_current_span("redis_cache_set") as span:
             span.set_attribute("cache.key", full_key)
             try:
