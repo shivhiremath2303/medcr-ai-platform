@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     debug: bool = Field(False, description="Debug mode flag")
 
     # --- Networking & API ---
-    host: str = Field("0.0.0.0", description="API host")
+    host: str = Field("0.0.0.0", description="API host")  # noqa: S104
     port: int = Field(8000, description="API port")
     worker_count: int = Field(1, description="Number of worker processes")
     http_timeout: float = Field(30.0, description="General HTTP timeout")

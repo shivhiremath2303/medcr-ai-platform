@@ -15,7 +15,7 @@ _environments: Dict[str, Type[Settings]] = {
     "production": ProductionSettings,
 }
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     """
     Returns the appropriate settings object based on the ENVIRONMENT variable.

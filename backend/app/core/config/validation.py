@@ -12,7 +12,7 @@ def validate_config(settings: Settings) -> None:
         if not settings.gemini_api_key:
             errors.append("GEMINI_API_KEY must be set in production environment.")
 
-        if not settings.jwt_secret_key or settings.jwt_secret_key == "development-secret-key-change-me-in-production":
+        if not settings.jwt_secret_key or settings.jwt_secret_key == "development-secret-key-change-me-in-production":  # noqa: S105
             errors.append("JWT_SECRET_KEY must be changed in production environment.")
 
         if not settings.cors_allowed_origins or settings.cors_allowed_origins == ["*"]:

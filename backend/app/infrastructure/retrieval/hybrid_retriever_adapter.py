@@ -42,11 +42,6 @@ class HybridRetrieverAdapter(Retriever):
         Retrieve using both vector search and BM25.
         """
 
-        # Override weights if provided in params
-        vector_weight = self.vector_weight
-        if params and "vector_weight" in params:
-            vector_weight = params["vector_weight"]
-
         vector_results = self.vector_store.similarity_search(
             query=query,
             k=k,

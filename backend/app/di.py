@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from google import genai
 from fastapi import Depends, BackgroundTasks
 from app.core.config import get_settings
@@ -227,7 +229,7 @@ def get_rate_limiter() -> RateLimiter:
 def get_rate_limiter_service(
     limiter: RateLimiter = Depends(get_rate_limiter),
     settings = Depends(get_settings_provider),
-) -> "app.core.security.rate_limiter.RateLimiterService":
+) -> RateLimiterService:
     from app.core.security.rate_limiter import RateLimiterService
     return RateLimiterService(limiter, settings)
 
@@ -276,7 +278,7 @@ def get_jwt_manager() -> JWTManager:
 def get_auth_service() -> AuthService:
     return _auth_service
 
-def get_cleanup_service() -> "app.services.maintenance.cleanup_service.CleanupService":
+def get_cleanup_service() -> CleanupService:
     from app.services.maintenance.cleanup_service import CleanupService
     return CleanupService(settings, _revocation_repository)
 

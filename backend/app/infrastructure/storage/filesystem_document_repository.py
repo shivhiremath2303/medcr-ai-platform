@@ -37,7 +37,7 @@ class FilesystemDocumentRepository(DocumentRepository):
         if not file_path.exists():
             return None
 
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
 
         return self._map_to_domain(data)
@@ -48,7 +48,7 @@ class FilesystemDocumentRepository(DocumentRepository):
         """
         documents = []
         for file_path in self.storage_dir.glob("*.json"):
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = json.load(f)
                 documents.append(self._map_to_domain(data))
         return documents

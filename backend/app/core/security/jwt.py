@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any, Dict, Optional, Tuple
 
 import jwt
@@ -26,9 +26,9 @@ class JWTManager:
     ) -> str:
         to_encode = data.copy()
         if expires_delta:
-            expire = datetime.now(timezone.utc) + expires_delta
+            expire = datetime.now(UTC) + expires_delta
         else:
-            expire = datetime.now(timezone.utc) + timedelta(minutes=self.access_token_expire_minutes)
+            expire = datetime.now(UTC) + timedelta(minutes=self.access_token_expire_minutes)
 
         to_encode.update({"exp": expire, "type": TokenType.ACCESS})
         encoded_jwt = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
@@ -41,9 +41,9 @@ class JWTManager:
     ) -> str:
         to_encode = data.copy()
         if expires_delta:
-            expire = datetime.now(timezone.utc) + expires_delta
+            expire = datetime.now(UTC) + expires_delta
         else:
-            expire = datetime.now(timezone.utc) + timedelta(days=self.refresh_token_expire_days)
+            expire = datetime.now(UTC) + timedelta(days=self.refresh_token_expire_days)
 
         to_encode.update({"exp": expire, "type": TokenType.REFRESH})
         encoded_jwt = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
@@ -78,14 +78,14 @@ class JWTManager:
             return payload
         return None
 
-    def get_token_expiry(self, token: str) -> Optional[datetime]:
+    def get_token_expiry(self, token: str) -> Optional[Dict[str, Any]]:
         payload = self.decode_token(token)
         if payload and "exp" in payload:
-            return datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+            return datetime.fromtimestamp(payload["exp"], tz=UTC)
         return None
 
     def is_token_expired(self, token: str) -> bool:
         expiry = self.get_token_expiry(token)
         if expiry:
-            return datetime.now(timezone.utc) >= expiry
+            return datetime.now(UTC) >= expiry
         return True

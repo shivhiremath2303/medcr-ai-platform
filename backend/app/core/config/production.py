@@ -29,5 +29,5 @@ class ProductionSettings(Settings):
     rate_limit_general_requests: int = 100
 
     # Production often needs different host/port or behind a reverse proxy
-    host: str = "0.0.0.0"
+    host: str = "0.0.0.0"  # noqa: S104
     port: int = 8000

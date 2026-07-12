@@ -6,7 +6,6 @@ from fastapi import UploadFile
 from app.domain.repositories.storage_provider import StorageProvider
 from app.core.config import get_settings
 from app.core.observability.logger import get_logger
-from pathlib import Path
 
 logger = get_logger(__name__)
 settings = get_settings()
