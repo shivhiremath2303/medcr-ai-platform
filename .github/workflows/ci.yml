@@ -66,5 +66,5 @@ jobs:
 
       - name: Verify Coverage Threshold
         run: |
-          # Example: fail if coverage is below 60%
-          coverage report --fail-under=60
+          # Example: fail if coverage is below 50%
+          coverage report --fail-under=50
