@@ -1,5 +1,7 @@
-from typing import Callable, Any
+from typing import Any, Callable
+
 from fastapi import BackgroundTasks as FastAPITasks
+
 from app.domain.repositories.background_tasks import BackgroundTaskProvider
 
 

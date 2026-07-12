@@ -7,6 +7,7 @@ class Evidence:
     """
     Represents a specific piece of legal evidence retrieved from documents.
     """
+
     document_id: str
     document_name: str
     page_number: int

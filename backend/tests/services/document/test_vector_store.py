@@ -14,7 +14,7 @@ def test_create_builds_faiss_index(tmp_path: Path):
         embedding_provider=embedding_service,
         faiss_dir=tmp_path,
         index_name="test_index",
-        default_top_k=3
+        default_top_k=3,
     )
 
     chunks = [
@@ -44,7 +44,7 @@ def test_similarity_search_returns_ranked_results(tmp_path: Path):
         embedding_provider=embedding_service,
         faiss_dir=tmp_path,
         index_name="test_index",
-        default_top_k=3
+        default_top_k=3,
     )
 
     chunks = [
@@ -92,7 +92,7 @@ def test_save_and_load_restores_vector_store(tmp_path: Path):
         embedding_provider=embedding_service,
         faiss_dir=tmp_path,
         index_name="test_index",
-        default_top_k=3
+        default_top_k=3,
     )
 
     chunks = [
@@ -113,7 +113,7 @@ def test_save_and_load_restores_vector_store(tmp_path: Path):
         embedding_provider=embedding_service,
         faiss_dir=tmp_path,
         index_name="test_index",
-        default_top_k=3
+        default_top_k=3,
     )
 
     assert restored_store.load() is True
@@ -138,7 +138,7 @@ def test_load_returns_false_when_index_does_not_exist(tmp_path: Path):
         embedding_provider=FakeEmbeddingService(),
         faiss_dir=tmp_path,
         index_name="test_index",
-        default_top_k=3
+        default_top_k=3,
     )
 
     assert vector_store.load() is False
@@ -150,7 +150,7 @@ def test_save_raises_when_vector_store_not_created(tmp_path: Path):
         embedding_provider=FakeEmbeddingService(),
         faiss_dir=tmp_path,
         index_name="test_index",
-        default_top_k=3
+        default_top_k=3,
     )
 
     with pytest.raises(
@@ -165,7 +165,7 @@ def test_similarity_search_raises_when_vector_store_not_created(tmp_path: Path):
         embedding_provider=FakeEmbeddingService(),
         faiss_dir=tmp_path,
         index_name="test_index",
-        default_top_k=3
+        default_top_k=3,
     )
 
     with pytest.raises(
@@ -180,7 +180,7 @@ def test_get_all_chunks_raises_when_vector_store_not_created(tmp_path: Path):
         embedding_provider=FakeEmbeddingService(),
         faiss_dir=tmp_path,
         index_name="test_index",
-        default_top_k=3
+        default_top_k=3,
     )
 
     with pytest.raises(
@@ -195,7 +195,7 @@ def test_get_all_chunks_returns_all_indexed_chunks(tmp_path: Path):
         embedding_provider=FakeEmbeddingService(),
         faiss_dir=tmp_path,
         index_name="test_index",
-        default_top_k=3
+        default_top_k=3,
     )
 
     chunks = [

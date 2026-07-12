@@ -1,18 +1,21 @@
 from dataclasses import dataclass
-from typing import Optional, List
-from fastapi import Depends, HTTPException, status, Request
+from typing import List, Optional
+
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
+
+from app.core.observability.context import set_user_id
+from app.core.observability.logger import get_logger
+from app.core.security.auth_service import AuthService
+from app.core.security.jwt import JWTManager
+from app.di import get_auth_service, get_jwt_manager, get_user_repository
 from app.domain.models.user import User, UserRole
 from app.domain.repositories.user_repository import UserRepository
-from app.core.security.jwt import JWTManager
-from app.core.security.auth_service import AuthService
-from app.di import get_user_repository, get_jwt_manager, get_auth_service
-from app.core.observability.logger import get_logger
-from app.core.observability.context import set_user_id
 
 logger = get_logger(__name__)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
+
 
 @dataclass
 class CurrentUser:
@@ -20,6 +23,7 @@ class CurrentUser:
     CurrentUser abstraction for dependency injection.
     Application services receive this instead of raw JWT details.
     """
+
     user_id: str
     username: str
     email: str
@@ -43,6 +47,7 @@ class CurrentUser:
 
     def has_any_role(self, roles: List[UserRole]) -> bool:
         return self.role in roles
+
 
 async def get_current_user(
     request: Request,
@@ -89,6 +94,7 @@ async def get_current_user(
 
     return CurrentUser.from_user(user)
 
+
 async def get_current_active_user(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> CurrentUser:
@@ -96,14 +102,18 @@ async def get_current_active_user(
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
+
 class RoleChecker:
     """
     Dependency for checking user roles.
     """
+
     def __init__(self, allowed_roles: List[UserRole]):
         self.allowed_roles = allowed_roles
 
-    def __call__(self, current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+    def __call__(
+        self, current_user: CurrentUser = Depends(get_current_user)
+    ) -> CurrentUser:
         if current_user.role not in self.allowed_roles:
             logger.warning(
                 f"Authorization failed: User {current_user.username} with role "
@@ -116,12 +126,16 @@ class RoleChecker:
             )
         return current_user
 
+
 def require_admin(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
 
-def require_lawyer_or_admin(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+
+def require_lawyer_or_admin(
+    current_user: CurrentUser = Depends(get_current_user),
+) -> CurrentUser:
     if current_user.role not in [UserRole.ADMIN, UserRole.LAWYER]:
         raise HTTPException(status_code=403, detail="Lawyer or admin access required")
     return current_user

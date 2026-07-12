@@ -46,7 +46,9 @@ class FAISSVectorRepository(VectorStoreRepository):
             metadatas=metadatas,
         )
 
-    def similarity_search(self, query: str, k: Optional[int] = None) -> List[SearchResult]:
+    def similarity_search(
+        self, query: str, k: Optional[int] = None
+    ) -> List[SearchResult]:
         if self.vector_store is None:
             raise ValueError("Vector store has not been created.")
 
@@ -62,7 +64,9 @@ class FAISSVectorRepository(VectorStoreRepository):
 
         return results
 
-    def _document_to_search_result(self, document: LangChainDocument, score: float, rank: int) -> SearchResult:
+    def _document_to_search_result(
+        self, document: LangChainDocument, score: float, rank: int
+    ) -> SearchResult:
         return SearchResult(
             chunk=Chunk(
                 chunk_id=document.metadata["chunk_id"],

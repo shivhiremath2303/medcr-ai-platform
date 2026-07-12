@@ -1,4 +1,5 @@
 from typing import Dict, List, Optional
+
 from app.domain.models.user import User
 from app.domain.repositories.user_repository import UserRepository
 

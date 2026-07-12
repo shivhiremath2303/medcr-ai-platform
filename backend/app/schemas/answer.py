@@ -1,11 +1,13 @@
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
 
 
 class EvidenceSchema(BaseModel):
     """
     Detailed evidence object.
     """
+
     document_id: str
     document_name: str
     page_number: int
@@ -51,6 +53,7 @@ class SourceResponse(BaseModel):
     """
     Source supporting the generated answer.
     """
+
     filename: str
     page_number: int
 
@@ -68,6 +71,7 @@ class AnswerResponse(BaseModel):
     """
     Response returned by the RAG endpoint.
     """
+
     answer: str
     summary: Optional[str] = None
     citations: List[str] = []

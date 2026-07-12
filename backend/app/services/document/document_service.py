@@ -1,11 +1,12 @@
 from pathlib import Path
+
 from app.core.observability.logger import get_logger
 from app.core.observability.metrics import MetricsRegistry
 from app.core.observability.telemetry import get_tracer
 from app.domain.models import Document
-from app.domain.repositories.document_repository import DocumentRepository
 from app.domain.repositories.chunker import Chunker
 from app.domain.repositories.document_parser import DocumentParser
+from app.domain.repositories.document_repository import DocumentRepository
 from app.domain.repositories.vector_store_repository import VectorStoreRepository
 from app.services.document.cleaner import TextCleaner
 
@@ -54,56 +55,57 @@ class DocumentService:
                 # Parse into the domain model.
                 document: Document = self.parser.parse_document(file_path)
 
-            logger.info(
-                "Parsed document '%s' (%d pages).",
-                document.filename,
-                document.page_count,
-            )
+                logger.info(
+                    "Parsed document '%s' (%d pages).",
+                    document.filename,
+                    document.page_count,
+                )
 
-            # Clean every page independently.
-            for page in document.pages:
-                page.text = TextCleaner.clean(page.text)
+                # Clean every page independently.
+                for page in document.pages:
+                    page.text = TextCleaner.clean(page.text)
 
-            logger.info("Document cleaned successfully.")
+                logger.info("Document cleaned successfully.")
 
-            # Produce metadata-aware domain chunks.
-            chunks = self.chunker.split_document(document)
+                # Produce metadata-aware domain chunks.
+                chunks = self.chunker.split_document(document)
 
-            logger.info(
-                "Created %d chunks from document.",
-                len(chunks),
-            )
+                logger.info(
+                    "Created %d chunks from document.",
+                    len(chunks),
+                )
 
-            # Create / update the vector index.
-            self.vector_store.create(chunks)
+                # Create / update the vector index.
+                self.vector_store.create(chunks)
 
-            logger.info("Vector index created.")
+                logger.info("Vector index created.")
 
-            # Persist the index.
-            self.vector_store.save()
+                # Persist the index.
+                self.vector_store.save()
 
-            logger.info("Vector index saved successfully.")
+                logger.info("Vector index saved successfully.")
 
-            # Persist document metadata.
-            self.document_repository.save(document)
+                # Persist document metadata.
+                self.document_repository.save(document)
 
-            logger.info(
-                "Completed ingestion of '%s'.",
-                document.filename,
-            )
+                logger.info(
+                    "Completed ingestion of '%s'.",
+                    document.filename,
+                )
 
-            self.metrics.track_document_upload(extension, "success")
+                self.metrics.track_document_upload(extension, "success")
 
-            return {
-                "document_id": document.document_id,
-                "filename": document.filename,
-                "page_count": document.page_count,
-                "chunk_count": len(chunks),
-            }
-        except Exception as e:
-            self.metrics.track_document_upload(extension, "error")
-            logger.error(f"Failed to ingest document {file_path}: {str(e)}")
-            raise
+                return {
+                    "document_id": document.document_id,
+                    "filename": document.filename,
+                    "page_count": document.page_count,
+                    "chunk_count": len(chunks),
+                }
+            except Exception as e:
+                self.metrics.track_document_upload(extension, "error")
+                logger.error(f"Failed to ingest document {file_path}: {str(e)}")
+                span.record_exception(e)
+                raise
 
     def search(
         self,

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 
 class QueryIntent(str, Enum):
@@ -17,6 +17,7 @@ class QueryUnderstanding:
     """
     Structured understanding of a legal query.
     """
+
     original_query: str
     rewritten_query: str
     intent: QueryIntent
@@ -30,6 +31,7 @@ class RetrievalDiagnostics:
     """
     Diagnostics report for a retrieval operation.
     """
+
     query_type: str
     retrieval_strategy: str
     expanded_terms: List[str]

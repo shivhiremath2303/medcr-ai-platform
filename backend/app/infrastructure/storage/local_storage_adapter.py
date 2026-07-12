@@ -3,10 +3,10 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import UploadFile
-from app.domain.repositories.storage_provider import StorageProvider
+
 from app.core.config import get_settings
 from app.core.observability.logger import get_logger
-from pathlib import Path
+from app.domain.repositories.storage_provider import StorageProvider
 
 logger = get_logger(__name__)
 settings = get_settings()

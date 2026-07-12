@@ -1,16 +1,23 @@
 import pytest
-from app.services.rag.rag_service import RAGService
-from app.services.retrieval.context_builder import ContextBuilder
-from app.services.rag.query_rewriter import QueryRewriter
-from app.services.rag.grounding_engine import GroundingEngine
-from app.services.rag.reasoning_engine import ReasoningEngine
+
+from app.core.observability.metrics import MetricsRegistry, NoOpMetricsProvider
+from app.domain.models.search_result import SearchResult
+from app.infrastructure.storage.memory_benchmark_repository import (
+    MemoryBenchmarkRepository,
+)
+from app.infrastructure.storage.memory_conversation_repository import (
+    MemoryConversationRepository,
+)
 from app.services.rag.evaluation_engine import EvaluationEngine
-from app.infrastructure.storage.memory_conversation_repository import MemoryConversationRepository
-from app.infrastructure.storage.memory_benchmark_repository import MemoryBenchmarkRepository
+from app.services.rag.grounding_engine import GroundingEngine
+from app.services.rag.query_rewriter import QueryRewriter
+from app.services.rag.rag_service import RAGService
+from app.services.rag.reasoning_engine import ReasoningEngine
+from app.services.retrieval.context_builder import ContextBuilder
+from tests.fixtures.chunk_factory import make_chunk
 from tests.fixtures.fake_hybrid_retriever import FakeHybridRetriever
 from tests.fixtures.fake_llm_provider import FakeLLMProvider
-from tests.fixtures.chunk_factory import make_chunk
-from app.domain.models.search_result import SearchResult
+
 
 def test_rag_service_returns_structured_evidence():
     # Setup
@@ -38,6 +45,7 @@ liable.
     reasoning_engine = ReasoningEngine()
     evaluation_engine = EvaluationEngine()
     benchmark_repo = MemoryBenchmarkRepository()
+    metrics = MetricsRegistry(NoOpMetricsProvider())
 
     service = RAGService(
         retrieval_service=retriever,
@@ -48,7 +56,8 @@ liable.
         grounding_engine=grounding_engine,
         reasoning_engine=reasoning_engine,
         evaluation_engine=evaluation_engine,
-        benchmark_repo=benchmark_repo
+        benchmark_repo=benchmark_repo,
+        metrics=metrics,
     )
 
     # Execute
@@ -65,6 +74,7 @@ liable.
     assert response["confidence"] > 0.6
     assert response["sources"][0]["filename"] == "contract.pdf"
 
+
 def test_rag_service_handles_missing_evidence():
     # Setup
     retriever = FakeHybridRetriever(results=[])
@@ -76,6 +86,7 @@ def test_rag_service_handles_missing_evidence():
     reasoning_engine = ReasoningEngine()
     evaluation_engine = EvaluationEngine()
     benchmark_repo = MemoryBenchmarkRepository()
+    metrics = MetricsRegistry(NoOpMetricsProvider())
 
     service = RAGService(
         retrieval_service=retriever,
@@ -86,7 +97,8 @@ def test_rag_service_handles_missing_evidence():
         grounding_engine=grounding_engine,
         reasoning_engine=reasoning_engine,
         evaluation_engine=evaluation_engine,
-        benchmark_repo=benchmark_repo
+        benchmark_repo=benchmark_repo,
+        metrics=metrics,
     )
 
     # Execute
@@ -98,6 +110,7 @@ def test_rag_service_handles_missing_evidence():
     assert response["grounding_score"] == 0.0
     assert len(response["evidence"]) == 0
     assert response["citations"] == []
+
 
 def test_confidence_calculation_with_reranker():
     # Setup

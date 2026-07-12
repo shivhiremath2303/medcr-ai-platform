@@ -1,4 +1,5 @@
 from sentence_transformers import CrossEncoder
+
 from app.domain.models import SearchResult
 from app.domain.repositories.reranker import Reranker
 
@@ -26,7 +27,7 @@ class CrossEncoderAdapter(Reranker):
         pairs = [(query, result.chunk.text) for result in results]
         scores = self.model.predict(pairs)
 
-        for result, score in zip(results, scores):
+        for result, score in zip(results, scores, strict=True):
             result.reranker_score = float(score)
             result.score = float(score)
 

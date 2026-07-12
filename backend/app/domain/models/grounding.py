@@ -22,6 +22,7 @@ class GroundingReport:
     """
     Detailed report on the grounding and hallucination checks for a generated answer.
     """
+
     status: AnswerStatus
     grounding_score: float
     sufficiency_level: SufficiencyLevel

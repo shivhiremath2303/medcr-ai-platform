@@ -1,8 +1,10 @@
 import time
+
 from google import genai
-from app.domain.repositories.llm_provider import LLMProvider
+
 from app.core.observability.metrics import MetricsRegistry
 from app.core.observability.telemetry import get_tracer
+from app.domain.repositories.llm_provider import LLMProvider
 
 tracer = get_tracer(__name__)
 
@@ -51,7 +53,7 @@ class GeminiLLMAdapter(LLMProvider):
                     config={
                         "temperature": self.temperature,
                         "max_output_tokens": self.max_tokens,
-                    }
+                    },
                 )
 
                 duration = time.perf_counter() - start_time
@@ -62,7 +64,7 @@ class GeminiLLMAdapter(LLMProvider):
 
             except Exception as e:
                 span.record_exception(e)
-                raise RuntimeError(f"LLM request failed: {e}")
+                raise RuntimeError(f"LLM request failed: {e}") from e
 
     def rewrite_question(
         self,
@@ -97,8 +99,8 @@ Latest Question:
                     model=self.model_name,
                     contents=prompt,
                     config={
-                        "temperature": 0.0, # Usually better for rewriting
-                    }
+                        "temperature": 0.0,  # Usually better for rewriting
+                    },
                 )
 
                 duration = time.perf_counter() - start_time

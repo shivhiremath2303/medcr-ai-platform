@@ -1,8 +1,9 @@
 import json
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
+from app.core.observability.context import get_user_id
 from app.domain.repositories.conversation_repository import ConversationRepository
 from app.infrastructure.storage.redis_client import RedisClient
-from app.core.observability.context import get_user_id
 
 
 class RedisConversationRepository(ConversationRepository):
@@ -11,7 +12,9 @@ class RedisConversationRepository(ConversationRepository):
     Each user has their own message list in Redis.
     """
 
-    def __init__(self, redis_client: RedisClient, ttl: int = 3600 * 24, max_messages: int = 10):
+    def __init__(
+        self, redis_client: RedisClient, ttl: int = 3600 * 24, max_messages: int = 10
+    ):
         self.redis_wrapper = redis_client
         self.ttl = ttl
         self.max_messages = max_messages

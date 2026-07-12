@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -39,6 +39,7 @@ class ReasoningReport:
     """
     Structured report containing the deep legal analysis.
     """
+
     facts: List[str] = field(default_factory=list)
     issues: List[LegalIssue] = field(default_factory=list)
     timeline: List[TimelineEvent] = field(default_factory=list)

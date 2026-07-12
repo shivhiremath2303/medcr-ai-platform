@@ -1,18 +1,29 @@
-from app.core.config.base import Settings
 from pydantic import Field
 
+from app.core.config.base import Settings
+
+
 class ProductionSettings(Settings):
+    """
+    Production settings with strict validation.
+    Environment variables are automatically mapped (e.g., GEMINI_API_KEY).
+    """
+
     environment: str = "production"
     debug: bool = False
     log_level: str = "WARNING"
 
-    # In production, we require these to be set via environment variables
-    # Pydantic will raise an error if they are missing and no default is provided
-    gemini_api_key: str = Field(..., env="GEMINI_API_KEY")
-    jwt_secret_key: str = Field(..., env="JWT_SECRET_KEY")
+    # In production, we require these to be set.
+    # Field(..., min_length=1) ensures they are provided and not empty.
+    gemini_api_key: str = Field(..., min_length=1, description="Google Gemini API Key")
+    jwt_secret_key: str = Field(..., min_length=1, description="JWT Secret Key")
 
-    # Production CORS - strict origins required
-    cors_allowed_origins: list[str] = Field(..., env="CORS_ALLOWED_ORIGINS")
+    # Must be a valid JSON list when set via environment variable.
+    # e.g., CORS_ALLOWED_ORIGINS=["https://app.medcr.ai"]
+    cors_allowed_origins: list[str] = Field(
+        ..., min_length=1, description="Allowed CORS origins"
+    )
+
     cors_allowed_methods: list[str] = ["GET", "POST"]
     cors_allowed_headers: list[str] = [
         "Authorization",
@@ -28,6 +39,5 @@ class ProductionSettings(Settings):
     rate_limit_rag_requests: int = 30
     rate_limit_general_requests: int = 100
 
-    # Production often needs different host/port or behind a reverse proxy
-    host: str = "0.0.0.0"
+    host: str = "0.0.0.0"  # noqa: S104
     port: int = 8000

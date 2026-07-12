@@ -1,4 +1,5 @@
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 from app.domain.models.search_result import SearchResult
 
 
@@ -18,10 +19,7 @@ class FakeHybridRetriever:
         self.params_received: list[Optional[Dict[str, Any]]] = []
 
     def retrieve(
-        self,
-        query: str,
-        k: int,
-        params: Optional[Dict[str, Any]] = None
+        self, query: str, k: int, params: Optional[Dict[str, Any]] = None
     ) -> list[SearchResult]:
         self.queries.append(query)
         self.k_values.append(k)

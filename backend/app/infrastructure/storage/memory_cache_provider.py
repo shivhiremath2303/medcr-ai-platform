@@ -1,5 +1,6 @@
 import time
-from typing import Any, Optional, Dict
+from typing import Any, Dict, Optional
+
 from app.domain.repositories.cache_provider import CacheProvider
 
 
@@ -24,10 +25,7 @@ class MemoryCacheProvider(CacheProvider):
 
     def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
         expiry = time.time() + ttl if ttl else None
-        self._cache[key] = {
-            "value": value,
-            "expiry": expiry
-        }
+        self._cache[key] = {"value": value, "expiry": expiry}
 
     def delete(self, key: str) -> None:
         if key in self._cache:

@@ -1,7 +1,7 @@
 import json
-from pathlib import Path
-from typing import List, Optional, Any
 from dataclasses import asdict
+from pathlib import Path
+from typing import Any, List, Optional
 
 from app.domain.models import Document, Page
 from app.domain.repositories.document_repository import DocumentRepository
@@ -37,7 +37,7 @@ class FilesystemDocumentRepository(DocumentRepository):
         if not file_path.exists():
             return None
 
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
 
         return self._map_to_domain(data)
@@ -48,18 +48,15 @@ class FilesystemDocumentRepository(DocumentRepository):
         """
         documents = []
         for file_path in self.storage_dir.glob("*.json"):
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = json.load(f)
                 documents.append(self._map_to_domain(data))
         return documents
 
     def _map_to_domain(self, data: dict) -> Document:
         pages = [
-            Page(page_number=p["page_number"], text=p["text"])
-            for p in data["pages"]
+            Page(page_number=p["page_number"], text=p["text"]) for p in data["pages"]
         ]
         return Document(
-            document_id=data["document_id"],
-            filename=data["filename"],
-            pages=pages
+            document_id=data["document_id"], filename=data["filename"], pages=pages
         )

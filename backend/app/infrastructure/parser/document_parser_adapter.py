@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Set
 
-from pypdf import PdfReader
 from docx import Document as DocxDocument
+from pypdf import PdfReader
 
 from app.domain.models import Document, Page
 from app.domain.repositories.document_parser import DocumentParser

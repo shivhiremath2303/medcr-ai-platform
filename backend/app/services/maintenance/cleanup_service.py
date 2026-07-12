@@ -1,13 +1,15 @@
+from app.core.config.base import Settings
 from app.core.observability.logger import get_logger
 from app.domain.repositories import RevocationRepository
-from app.core.config.base import Settings
 
 logger = get_logger(__name__)
+
 
 class CleanupService:
     """
     Service for periodic maintenance tasks.
     """
+
     def __init__(self, settings: Settings, revocation_repository: RevocationRepository):
         self.settings = settings
         self.revocation_repository = revocation_repository

@@ -1,9 +1,17 @@
 import re
-from typing import List, Dict, Any
-from app.domain.models import Evidence, SearchResult, AnswerStatus, SufficiencyLevel, GroundingReport
+from typing import Any, Dict, List
+
 from app.core.observability.logger import get_logger
+from app.domain.models import (
+    AnswerStatus,
+    Evidence,
+    GroundingReport,
+    SearchResult,
+    SufficiencyLevel,
+)
 
 logger = get_logger(__name__)
+
 
 class GroundingEngine:
     """
@@ -11,7 +19,9 @@ class GroundingEngine:
     and evidence sufficiency analysis.
     """
 
-    def analyze_sufficiency(self, results: List[SearchResult], confidence: float) -> SufficiencyLevel:
+    def analyze_sufficiency(
+        self, results: List[SearchResult], confidence: float
+    ) -> SufficiencyLevel:
         """
         Evaluate if retrieved evidence is sufficient to answer a question.
         """
@@ -31,7 +41,7 @@ class GroundingEngine:
         evidence_list: List[Evidence],
         citations: List[str],
         sufficiency: SufficiencyLevel,
-        contradictions: List[str]
+        contradictions: List[str],
     ) -> float:
         """
         Computes a grounding score [0, 1] based on multiple factors.
@@ -52,13 +62,15 @@ class GroundingEngine:
             # Penalty for not using citations when evidence is available
             base_score = sum(e.confidence for e in evidence_list[:1]) * 0.5
         else:
-            base_score = sum(evidence_list[i].confidence for i in cited_indices) / len(cited_indices)
+            base_score = sum(evidence_list[i].confidence for i in cited_indices) / len(
+                cited_indices
+            )
 
         # 2. Sufficiency Multiplier
         sufficiency_map = {
             SufficiencyLevel.SUFFICIENT: 1.0,
             SufficiencyLevel.PARTIAL: 0.7,
-            SufficiencyLevel.INSUFFICIENT: 0.3
+            SufficiencyLevel.INSUFFICIENT: 0.3,
         }
         score = base_score * sufficiency_map.get(sufficiency, 1.0)
 
@@ -68,7 +80,7 @@ class GroundingEngine:
 
         # 4. Coverage Score (how many of the top 3 results were used)
         top_3_cited = [i for i in cited_indices if i < 3]
-        coverage_bonus = len(top_3_cited) * 0.05 # max 0.15 bonus
+        coverage_bonus = len(top_3_cited) * 0.05  # max 0.15 bonus
 
         score = min(1.0, score + coverage_bonus)
 
@@ -80,14 +92,20 @@ class GroundingEngine:
         LLM is prompted to mention conflicts explicitly.
         """
         # Simple regex to find "Conflict:" or "Contradiction:" lines
-        conflicts = re.findall(r"(?:Conflict|Contradiction): (.*?)(?:\n|$)", answer, re.IGNORECASE)
+        conflicts = re.findall(
+            r"(?:Conflict|Contradiction): (.*?)(?:\n|$)", answer, re.IGNORECASE
+        )
         return [c.strip() for r in conflicts if (c := r.strip())]
 
     def detect_missing_evidence(self, answer: str) -> List[str]:
         """
         Extract missing document/clause notes from LLM output.
         """
-        missing = re.findall(r"Missing (?:Evidence|Document|Clause): (.*?)(?:\n|$)", answer, re.IGNORECASE)
+        missing = re.findall(
+            r"Missing (?:Evidence|Document|Clause): (.*?)(?:\n|$)",
+            answer,
+            re.IGNORECASE,
+        )
         return [m.strip() for r in missing if (m := r.strip())]
 
     def determine_status(
@@ -95,12 +113,15 @@ class GroundingEngine:
         answer: str,
         sufficiency: SufficiencyLevel,
         grounding_score: float,
-        contradictions: List[str]
+        contradictions: List[str],
     ) -> AnswerStatus:
         """
         Categorizes the answer based on grounding analysis.
         """
-        if "The available documents do not contain sufficient evidence" in answer or sufficiency == SufficiencyLevel.INSUFFICIENT:
+        if (
+            "The available documents do not contain sufficient evidence" in answer
+            or sufficiency == SufficiencyLevel.INSUFFICIENT
+        ):
             return AnswerStatus.INSUFFICIENT_EVIDENCE
 
         if "outside the scope" in answer.lower():
@@ -125,6 +146,8 @@ class GroundingEngine:
         for num in cited_numbers:
             idx = int(num) - 1
             if idx < 0 or idx >= len(evidence_list):
-                errors.append(f"Answer cited [Evidence {num}] which does not exist in retrieval results.")
+                errors.append(
+                    f"Answer cited [Evidence {num}] which does not exist in retrieval results."
+                )
 
         return errors

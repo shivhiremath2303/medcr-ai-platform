@@ -1,12 +1,12 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.core.observability.logger import get_logger
+from app.core.security.dependencies import CurrentUser, get_current_active_user
+from app.core.security.rate_limiter import RateLimiterService
+from app.di import get_rag_service, get_rate_limiter_service
 from app.schemas.answer import AnswerResponse
 from app.schemas.question import QuestionRequest
 from app.services.rag.rag_service import RAGService
-from app.di import get_rag_service, get_rate_limiter_service
-from app.core.security.dependencies import get_current_active_user, CurrentUser
-from app.core.security.rate_limiter import RateLimiterService
-from app.core.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -21,7 +21,7 @@ router = APIRouter(
     response_model=AnswerResponse,
 )
 async def ask_question(
-    request: Request, # for router path
+    request: Request,  # for router path
     question_request: QuestionRequest,
     rag_service: RAGService = Depends(get_rag_service),
     current_user: CurrentUser = Depends(get_current_active_user),
@@ -56,4 +56,4 @@ async def ask_question(
         raise HTTPException(
             status_code=500,
             detail="Internal Server Error",
-        )
+        ) from e

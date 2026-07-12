@@ -1,10 +1,12 @@
 import json
+
+from app.core.observability.logger import get_logger
+from app.domain.models.retrieval import QueryIntent, QueryUnderstanding
 from app.domain.repositories.llm_provider import LLMProvider
 from app.domain.repositories.query_rewriter import QueryRewriter as IQueryRewriter
-from app.domain.models.retrieval import QueryUnderstanding, QueryIntent
-from app.core.observability.logger import get_logger
 
 logger = get_logger(__name__)
+
 
 class QueryRewriter(IQueryRewriter):
     """
@@ -47,11 +49,11 @@ class QueryRewriter(IQueryRewriter):
 
         return QueryUnderstanding(
             original_query=question,
-            rewritten_query=question, # In prod, this would be standalone
+            rewritten_query=question,  # In prod, this would be standalone
             intent=intent,
             entities=entities,
             expanded_terms=expansions,
-            is_multi_doc="compare" in question.lower() or "between" in question.lower()
+            is_multi_doc="compare" in question.lower() or "between" in question.lower(),
         )
 
     def _detect_intent(self, query: str) -> QueryIntent:

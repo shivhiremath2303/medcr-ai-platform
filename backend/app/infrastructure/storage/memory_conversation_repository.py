@@ -1,4 +1,5 @@
 from collections import deque
+
 from app.domain.repositories.conversation_repository import ConversationRepository
 
 

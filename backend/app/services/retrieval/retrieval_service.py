@@ -1,11 +1,16 @@
 import time
-from typing import List, Dict, Any, Tuple, Optional
-from app.domain.models import SearchResult, Chunk
-from app.domain.models.retrieval import QueryUnderstanding, QueryIntent, RetrievalDiagnostics
-from app.domain.repositories.retriever import Retriever
-from app.domain.repositories.reranker import Reranker
+from typing import Any, Dict, List, Optional, Tuple
+
 from app.core.observability.metrics import MetricsRegistry
 from app.core.observability.telemetry import get_tracer
+from app.domain.models import Chunk, SearchResult
+from app.domain.models.retrieval import (
+    QueryIntent,
+    QueryUnderstanding,
+    RetrievalDiagnostics,
+)
+from app.domain.repositories.reranker import Reranker
+from app.domain.repositories.retriever import Retriever
 
 tracer = get_tracer(__name__)
 
@@ -31,10 +36,7 @@ class RetrievalService(Retriever):
         self.last_diagnostics: Optional[RetrievalDiagnostics] = None
 
     def retrieve(
-        self,
-        query: str,
-        k: int = 5,
-        params: Optional[Dict[str, Any]] = None
+        self, query: str, k: int = 5, params: Optional[Dict[str, Any]] = None
     ) -> List[SearchResult]:
         """
         Implementation for general Retriever interface.
@@ -47,9 +49,7 @@ class RetrievalService(Retriever):
         return self._retrieve_standard(query, k)
 
     def retrieve_intelligent(
-        self,
-        understanding: QueryUnderstanding,
-        k: int = 5
+        self, understanding: QueryUnderstanding, k: int = 5
     ) -> List[SearchResult]:
         """
         Perform retrieval based on query understanding.
@@ -80,7 +80,7 @@ class RetrievalService(Retriever):
             candidates = self.retriever.retrieve(
                 query=expanded_query,
                 k=candidate_count,
-                params={"vector_weight": weights.get("vector", 0.7)}
+                params={"vector_weight": weights.get("vector", 0.7)},
             )
 
             # 5. Reranking
@@ -107,10 +107,10 @@ class RetrievalService(Retriever):
                 documents_considered=len(candidates),
                 documents_selected=len(final_results),
                 duplicate_chunks_removed=len(reranked_results) - len(filtered_results),
-                context_compression_ratio=0.0, # To be filled by context builder if needed
+                context_compression_ratio=0.0,  # To be filled by context builder if needed
                 retrieval_latency_ms=latency,
                 evidence_diversity_score=self._calculate_diversity(final_results),
-                hybrid_weights=weights
+                hybrid_weights=weights,
             )
 
             self.metrics.track_retrieval(strategy, latency / 1000)
@@ -119,18 +119,24 @@ class RetrievalService(Retriever):
             return final_results
 
     def _retrieve_standard(self, query: str, k: int) -> List[SearchResult]:
-        candidates = self.retriever.retrieve(query=query, k=k*self.candidate_multiplier)
+        candidates = self.retriever.retrieve(
+            query=query, k=k * self.candidate_multiplier
+        )
         return self.reranker.rerank(query=query, results=candidates, k=k)
 
-    def _calculate_dynamic_top_k(self, understanding: QueryUnderstanding, k: int) -> int:
+    def _calculate_dynamic_top_k(
+        self, understanding: QueryUnderstanding, k: int
+    ) -> int:
         dynamic_k = k
         if understanding.is_multi_doc or understanding.intent == QueryIntent.COMPARISON:
             dynamic_k = int(k * 1.5)
         if understanding.intent == QueryIntent.SUMMARY:
             dynamic_k = k * 2
-        return min(dynamic_k, 15) # Cap it
+        return min(dynamic_k, 15)  # Cap it
 
-    def _determine_strategy(self, understanding: QueryUnderstanding) -> Tuple[str, Dict[str, float]]:
+    def _determine_strategy(
+        self, understanding: QueryUnderstanding
+    ) -> Tuple[str, Dict[str, float]]:
         weights = {"vector": 0.7, "bm25": 0.3}
         strategy = "hybrid_standard"
 
@@ -155,6 +161,7 @@ class RetrievalService(Retriever):
         return unique_results
 
     def _calculate_diversity(self, results: List[SearchResult]) -> float:
-        if not results: return 0.0
+        if not results:
+            return 0.0
         doc_ids = {r.chunk.document_id for r in results}
         return len(doc_ids) / len(results)

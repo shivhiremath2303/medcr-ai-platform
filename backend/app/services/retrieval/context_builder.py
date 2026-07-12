@@ -1,7 +1,9 @@
-import re
 import math
-from app.domain.models import SearchResult, Evidence
+import re
+
+from app.domain.models import Evidence, SearchResult
 from app.domain.repositories.context_builder import ContextBuilder as IContextBuilder
+
 
 class ContextBuilder(IContextBuilder):
     """
@@ -32,12 +34,10 @@ class ContextBuilder(IContextBuilder):
             compressed_text = self._compress_text(result.chunk.text)
 
             context_parts.append(
-                (
-                    f"--- [Evidence {i}] ---\n"
-                    f"Source Document: {metadata.filename}\n"
-                    f"Page: {metadata.page_number}\n"
-                    f"Excerpt:\n{compressed_text}\n"
-                )
+                f"--- [Evidence {i}] ---\n"
+                f"Source Document: {metadata.filename}\n"
+                f"Page: {metadata.page_number}\n"
+                f"Excerpt:\n{compressed_text}\n"
             )
 
         return "\n".join(context_parts)
@@ -56,23 +56,24 @@ class ContextBuilder(IContextBuilder):
                     retrieval_score=result.retrieval_score or 0.0,
                     reranker_score=result.reranker_score,
                     confidence=confidence,
-                    rank=i
+                    rank=i,
                 )
             )
         return evidence_list
 
     def _ensure_diversity(self, results: list[SearchResult]) -> list[SearchResult]:
         """Ensures that many results from the same document don't crowd out others."""
-        if len(results) <= 3: return results
+        if len(results) <= 3:
+            return results
 
         diversified = []
-        seen_docs = {} # doc_id -> count
 
         # Round-robin like selection from doc groups
         doc_groups = {}
         for r in results:
             doc_id = r.chunk.document_id
-            if doc_id not in doc_groups: doc_groups[doc_id] = []
+            if doc_id not in doc_groups:
+                doc_groups[doc_id] = []
             doc_groups[doc_id].append(r)
 
         # Limit to max 2 chunks per doc initially

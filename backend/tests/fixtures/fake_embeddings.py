@@ -1,4 +1,5 @@
 from langchain_core.embeddings import Embeddings
+
 from app.domain.repositories.embedding_repository import EmbeddingRepository
 
 

@@ -1,11 +1,18 @@
-import time
 import math
-from typing import List, Dict, Any, Optional
-from app.domain.models import (
-    SearchResult, Evidence, ReasoningReport, EvaluationReport,
-    RetrievalMetrics, GroundingMetrics, ReasoningMetrics, PerformanceMetrics
-)
+import time
+from typing import Any, Dict, List, Optional
+
 from app.core.observability.logger import get_logger
+from app.domain.models import (
+    EvaluationReport,
+    Evidence,
+    GroundingMetrics,
+    PerformanceMetrics,
+    ReasoningMetrics,
+    ReasoningReport,
+    RetrievalMetrics,
+    SearchResult,
+)
 
 logger = get_logger(__name__)
 
@@ -16,9 +23,7 @@ class EvaluationEngine:
     """
 
     def evaluate_retrieval(
-        self,
-        results: List[SearchResult],
-        expected_ids: List[str]
+        self, results: List[SearchResult], expected_ids: List[str]
     ) -> RetrievalMetrics:
         """
         Phase 7.5.1: Retrieval Evaluation
@@ -43,7 +48,12 @@ class EvaluationEngine:
 
         # nDCG (simplified for binary relevance)
         dcg = sum([hit / math.log2(i + 2) for i, hit in enumerate(hits)])
-        idcg = sum([1.0 / math.log2(i + 2) for i in range(min(len(expected_ids), len(results)))])
+        idcg = sum(
+            [
+                1.0 / math.log2(i + 2)
+                for i in range(min(len(expected_ids), len(results)))
+            ]
+        )
         ndcg = dcg / idcg if idcg > 0 else 0.0
 
         # Diversity (ratio of unique documents)
@@ -52,7 +62,7 @@ class EvaluationEngine:
 
         # Context utilization (simple heuristic)
         total_chars = sum(len(r.chunk.text) for r in results)
-        utilization = min(1.0, total_chars / 10000) # Assuming 10k is 'full'
+        utilization = min(1.0, total_chars / 10000)  # Assuming 10k is 'full'
 
         return RetrievalMetrics(
             precision_at_k=round(precision, 4),
@@ -60,14 +70,11 @@ class EvaluationEngine:
             mrr=round(mrr, 4),
             ndcg=round(ndcg, 4),
             evidence_diversity=round(diversity, 4),
-            context_utilization=round(utilization, 4)
+            context_utilization=round(utilization, 4),
         )
 
     def evaluate_grounding(
-        self,
-        answer: str,
-        evidence_list: List[Evidence],
-        grounding_score: float
+        self, answer: str, evidence_list: List[Evidence], grounding_score: float
     ) -> GroundingMetrics:
         """
         Phase 7.5.2: Grounding Evaluation
@@ -90,7 +97,7 @@ class EvaluationEngine:
             grounding_score=grounding_score,
             citation_accuracy=round(citation_accuracy, 4),
             unsupported_claims_count=len(citations) - len(valid_citations),
-            evidence_coverage=round(coverage, 4)
+            evidence_coverage=round(coverage, 4),
         )
 
     def evaluate_reasoning(self, report: ReasoningReport) -> ReasoningMetrics:
@@ -109,15 +116,11 @@ class EvaluationEngine:
             conflict_handling_score=1.0 if report.conflicts else 0.0,
             issue_identification_rate=round(min(1.0, issue_rate), 4),
             timeline_accuracy=1.0 if report.timeline else 0.0,
-            analysis_quality_score=0.8 # Placeholder for heuristic
+            analysis_quality_score=0.8,  # Placeholder for heuristic
         )
 
     def evaluate_performance(
-        self,
-        retrieval_ms: float,
-        total_ms: float,
-        tokens_in: int,
-        tokens_out: int
+        self, retrieval_ms: float, total_ms: float, tokens_in: int, tokens_out: int
     ) -> PerformanceMetrics:
         """
         Phase 7.5.5: Performance Evaluation
@@ -132,7 +135,7 @@ class EvaluationEngine:
             total_latency_ms=total_ms,
             token_usage_input=tokens_in,
             token_usage_output=tokens_out,
-            estimated_cost_usd=round(cost, 6)
+            estimated_cost_usd=round(cost, 6),
         )
 
     def generate_report(
@@ -141,22 +144,22 @@ class EvaluationEngine:
         retrieval: RetrievalMetrics,
         grounding: GroundingMetrics,
         reasoning: ReasoningMetrics,
-        performance: PerformanceMetrics
+        performance: PerformanceMetrics,
     ) -> EvaluationReport:
         """
         Phase 7.5.7: Evaluation Reports
         """
         # Overall score: Weighted average
         overall = (
-            retrieval.ndcg * 0.3 +
-            grounding.grounding_score * 0.4 +
-            reasoning.logical_consistency_score * 0.3
+            retrieval.ndcg * 0.3
+            + grounding.grounding_score * 0.4
+            + reasoning.logical_consistency_score * 0.3
         )
 
         # Hallucination rate (proxy): unsupported claims / total claims
         hallucination_rate = 0.0
         if grounding.unsupported_claims_count > 0:
-            hallucination_rate = grounding.unsupported_claims_count / 10 # heuristic
+            hallucination_rate = grounding.unsupported_claims_count / 10  # heuristic
 
         return EvaluationReport(
             query=query,
@@ -165,5 +168,5 @@ class EvaluationEngine:
             reasoning=reasoning,
             performance=performance,
             hallucination_rate=round(hallucination_rate, 4),
-            overall_score=round(overall, 4)
+            overall_score=round(overall, 4),
         )

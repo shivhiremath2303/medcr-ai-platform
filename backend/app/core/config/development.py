@@ -1,5 +1,6 @@
 from app.core.config.base import Settings
 
+
 class DevelopmentSettings(Settings):
     environment: str = "development"
     debug: bool = True
@@ -14,7 +15,14 @@ class DevelopmentSettings(Settings):
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
-    cors_allowed_methods: list[str] = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
+    cors_allowed_methods: list[str] = [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "OPTIONS",
+        "PATCH",
+    ]
     cors_allowed_headers: list[str] = [
         "Authorization",
         "Content-Type",

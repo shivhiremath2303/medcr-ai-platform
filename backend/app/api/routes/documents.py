@@ -1,16 +1,16 @@
-from fastapi import APIRouter, File, HTTPException, UploadFile, Depends, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 
-from app.services.document.document_service import DocumentService
-from app.domain.repositories.storage_provider import StorageProvider
-from app.di import get_document_service, get_storage_provider, get_rate_limiter_service
-from app.core.security.dependencies import (
-    get_current_active_user,
-    RoleChecker,
-    CurrentUser,
-)
-from app.domain.models.user import UserRole
-from app.core.security.rate_limiter import RateLimiterService
 from app.core.observability.logger import get_logger
+from app.core.security.dependencies import (
+    CurrentUser,
+    RoleChecker,
+    get_current_active_user,
+)
+from app.core.security.rate_limiter import RateLimiterService
+from app.di import get_document_service, get_rate_limiter_service, get_storage_provider
+from app.domain.models.user import UserRole
+from app.domain.repositories.storage_provider import StorageProvider
+from app.services.document.document_service import DocumentService
 
 logger = get_logger(__name__)
 
@@ -63,15 +63,15 @@ async def upload_document(
         raise HTTPException(
             status_code=400,
             detail=str(e),
-        )
+        ) from e
 
     except Exception as e:
         logger.error(
             "Upload processing error",
             extra_data={"user_id": current_user.user_id, "error": str(e)},
-            exc_info=True
+            exc_info=True,
         )
         raise HTTPException(
             status_code=500,
             detail="Internal Server Error",
-        )
+        ) from e
