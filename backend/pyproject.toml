@@ -68,12 +68,17 @@ ignore = [
     "E501", # line too long (handled by formatter)
     "B008", # do not perform function calls in argument defaults
     "S101", # use of assert detected (ok for tests)
-    "UP006", # deprecated-type-alias (ignore for now)
-    "UP035", # deprecated-import (ignore for now)
-    "UP007", # non-pep604-annotation (ignore for now)
-    "I001",  # unsorted-imports (ignore for now)
+    "UP006", # deprecated-type-alias
+    "UP035", # deprecated-import
+    "UP007", # non-pep604-annotation
+    "I001",  # unsorted-imports
     "W292",  # no-newline-at-end-of-file
     "E701",  # multiple-statements-on-one-line
+    "F401",  # unused-import
+    "B904",  # raise-from-within-except-clause
+    "S110",  # try-except-pass
+    "S112",  # try-except-continue
+    "ARG001", # unused-function-argument
 ]
 
 [tool.black]
