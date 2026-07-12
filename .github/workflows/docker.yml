@@ -1,74 +1,73 @@
-name: Docker Validation
 
-on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'backend/**'
-      - 'docker-compose.yml'
-      - '.github/workflows/docker.yml'
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'backend/**'
-      - 'docker-compose.yml'
-      - '.github/workflows/docker.yml'
+  name: Docker Validation
 
-jobs:
-  docker-build:
-    name: Build & Verify Container
-    runs-on: ubuntu-latest
+  on:
+    push:
+      branches: [main, develop]
+    pull_request:
+      branches: [main, develop]
 
-    steps:
-      - uses: actions/checkout@v4
+  jobs:
+    docker-build:
+      name: Build & Verify Container
+      runs-on: ubuntu-latest
 
-      - name: Create temporary .env.production for CI
-        run: |
-          echo "ENVIRONMENT=production" > .env.production
-          echo "GEMINI_API_KEY=dummy-key-for-ci" >> .env.production
-          echo "JWT_SECRET_KEY=ci-secret-key-123456789" >> .env.production
-          echo "CORS_ALLOWED_ORIGINS=[\"http://localhost\"]" >> .env.production
-          echo "REDIS_URL=redis://redis:6379/0" >> .env.production
-          echo "METRICS_ENABLED=false" >> .env.production
-          echo "OTEL_ENABLED=false" >> .env.production
+      steps:
+        - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        - name: Create CI production environment
+          run: |
+            cat > .env.production <<EOF
+            ENVIRONMENT=production
+            GEMINI_API_KEY=dummy
+            JWT_SECRET_KEY=ci-secret-key-123456789
+            CORS_ALLOWED_ORIGINS=["http://localhost"]
+            REDIS_URL=redis://redis:6379/0
+            EOF
 
-      - name: Build Backend Image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          push: false
-          tags: legal-ai-backend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v3
 
-      - name: Docker Compose Validation
-        run: |
-          docker compose config
+        - name: Build Backend Image
+          uses: docker/build-push-action@v5
+          with:
+            context: ./backend
+            push: false
+            tags: legal-ai-backend:latest
+            cache-from: type=gha
+            cache-to: type=gha,mode=max
 
-      - name: Verify Startup
-        run: |
-          docker compose up -d backend redis
-          echo "Waiting for services to initialize..."
-          # Models are pre-downloaded in Dockerfile, but FAISS/Redis need a moment
-          sleep 30
-          docker compose ps
-          docker compose logs redis
-          docker compose logs backend
-          # Thorough readiness check (checks Redis connectivity)
-          curl -v --retry 10 --retry-delay 5 --retry-all-errors http://localhost:8000/health/ready || (docker compose logs backend && exit 1)
+        - name: Docker Compose Validation
+          run: docker compose config
 
-      - name: Container Security Scan (Trivy)
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'legal-ai-backend:latest'
-          format: 'table'
-          exit-code: '0'
-          ignore-unfixed: true
-          severity: 'CRITICAL,HIGH'
+        - name: Verify Startup
+          run: |
+            docker compose up -d backend redis
+            
+            echo "Waiting for backend..."
+            for i in {1..12}; do
+              if curl -fs http://localhost:8000/health/ready; then
+                echo "Backend is healthy."
+                exit 0
+              fi
+              sleep 5
+            done
+            
+            echo "Backend failed to start."
+            docker compose ps
+            docker compose logs backend
+            exit 1
 
-      - name: Cleanup
-        if: always()
-        run: docker compose down
+        - name: Container Security Scan (Trivy)
+          uses: aquasecurity/trivy-action@master
+          with:
+            image-ref: legal-ai-backend:latest
+            format: table
+            exit-code: 1
+            ignore-unfixed: true
+            severity: CRITICAL,HIGH
+
+        - name: Cleanup
+          if: always()
+          run: docker compose down -v
+    ```
