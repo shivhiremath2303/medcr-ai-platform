@@ -16,8 +16,8 @@ def validate_config(settings: Settings) -> None:
         if (
             not settings.jwt_secret_key
             or settings.jwt_secret_key
-            == "development-secret-key-change-me-in-production"
-        ):  # noqa: S105
+            == "development-secret-key-change-me-in-production"  # noqa: S105
+        ):
             errors.append("JWT_SECRET_KEY must be changed in production environment.")
 
         if not settings.cors_allowed_origins or settings.cors_allowed_origins == ["*"]:
