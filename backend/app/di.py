@@ -4,15 +4,15 @@ from fastapi import BackgroundTasks, Depends
 from google import genai
 
 from app.core.config import get_settings
+from app.core.observability.concurrency import ConcurrencyLimiter
 from app.core.observability.health import HealthService
 from app.core.observability.metrics import MetricsRegistry, NoOpMetricsProvider
+from app.core.observability.resource_guard import ResourceGuard
 from app.core.security.auth_service import AuthService
 from app.core.security.authorization import AuthorizationService
 from app.core.security.jwt import JWTManager
 from app.core.security.password import PasswordHasher
 from app.core.security.rate_limiter import RateLimiterService
-from app.domain.repositories.security.secret_provider import SecretProvider
-from app.infrastructure.security.secret_providers import MultiSourceSecretProvider
 from app.domain.models.user import User, UserRole
 from app.domain.repositories import (
     CacheProvider,
@@ -36,17 +36,17 @@ from app.domain.repositories.background_tasks import BackgroundTaskProvider
 from app.domain.repositories.benchmark_repository import BenchmarkRepository
 from app.domain.repositories.context_builder import ContextBuilder as IContextBuilder
 from app.domain.repositories.query_rewriter import QueryRewriter as IQueryRewriter
-from app.core.observability.resource_guard import ResourceGuard
-from app.core.observability.concurrency import ConcurrencyLimiter
+from app.domain.repositories.security.secret_provider import SecretProvider
 from app.infrastructure.background.redis_job_queue import RedisJobQueueProvider
-from app.services.background.worker_service import WorkerService
 from app.infrastructure.embeddings.huggingface_adapter import (
     HuggingFaceEmbeddingAdapter,
 )
 from app.infrastructure.llm.gemini_adapter import GeminiLLMAdapter
+from app.infrastructure.observability.ai_provider_health import AIProviderHealthCheck
 from app.infrastructure.observability.prometheus_metrics import (
     PrometheusMetricsProvider,
 )
+from app.infrastructure.observability.redis_health import RedisHealthCheck
 from app.infrastructure.observability.storage_health import StorageHealthCheck
 from app.infrastructure.observability.vector_store_health import VectorStoreHealthCheck
 from app.infrastructure.parser.document_parser_adapter import DocumentParserAdapter
@@ -54,6 +54,7 @@ from app.infrastructure.parser.langchain_chunker_adapter import LangChainChunker
 from app.infrastructure.retrieval.bm25_adapter import BM25Adapter
 from app.infrastructure.retrieval.cross_encoder_adapter import CrossEncoderAdapter
 from app.infrastructure.retrieval.hybrid_retriever_adapter import HybridRetrieverAdapter
+from app.infrastructure.security.secret_providers import MultiSourceSecretProvider
 from app.infrastructure.storage.filesystem_document_repository import (
     FilesystemDocumentRepository,
 )
@@ -66,10 +67,11 @@ from app.infrastructure.storage.memory_conversation_repository import (
     MemoryConversationRepository,
 )
 from app.infrastructure.storage.memory_user_repository import MemoryUserRepository
+from app.infrastructure.storage.multi_level_cache_provider import (
+    MultiLevelCacheProvider,
+)
 from app.infrastructure.storage.noop_rate_limiter import NoOpRateLimiter
 from app.infrastructure.storage.redis_cache_provider import RedisCacheProvider
-from app.infrastructure.storage.multi_level_cache_provider import MultiLevelCacheProvider
-from app.infrastructure.storage.redis_user_repository import RedisUserRepository
 from app.infrastructure.storage.redis_client import RedisClient
 from app.infrastructure.storage.redis_conversation_repository import (
     RedisConversationRepository,
@@ -78,8 +80,11 @@ from app.infrastructure.storage.redis_rate_limiter import RedisRateLimiter
 from app.infrastructure.storage.redis_revocation_repository import (
     RedisRevocationRepository,
 )
+from app.infrastructure.storage.redis_user_repository import RedisUserRepository
 from app.infrastructure.vectorstore.faiss_repository import FAISSVectorRepository
 from app.services.audit.audit_service import AuditService
+from app.services.background.worker_service import WorkerService
+from app.services.cache.cache_warming_service import CacheWarmingService
 from app.services.document.document_service import DocumentService
 from app.services.maintenance.cleanup_service import CleanupService
 from app.services.rag.evaluation_engine import EvaluationEngine
@@ -89,7 +94,6 @@ from app.services.rag.rag_service import RAGService
 from app.services.rag.reasoning_engine import ReasoningEngine
 from app.services.retrieval.context_builder import ContextBuilder
 from app.services.retrieval.retrieval_service import RetrievalService
-from app.services.cache.cache_warming_service import CacheWarmingService
 
 # Load settings - validation happens inside get_settings()
 settings = get_settings()
@@ -113,13 +117,13 @@ _health_service = HealthService(
 # Resource Management & Concurrency (10.3.9)
 _resource_guard = ResourceGuard(
     metrics=_metrics_registry,
-    memory_limit_mb=2048.0 # In production this would come from pod limits
+    memory_limit_mb=2048.0,  # In production this would come from pod limits
 )
 
 _concurrency_limiter = ConcurrencyLimiter(
     resource_guard=_resource_guard,
     max_concurrent_tasks=20,
-    max_workers=settings.worker_count * 2
+    max_workers=settings.worker_count * 2,
 )
 
 # --- Persistence: Redis ---
@@ -152,9 +156,7 @@ if _redis_client and _redis_client.is_available():
         default_ttl=settings.cache_ttl,
     )
     _cache_provider = MultiLevelCacheProvider(
-        l2_provider=_l2_cache,
-        metrics=_metrics_registry,
-        l1_max_size=2000
+        l2_provider=_l2_cache, metrics=_metrics_registry, l1_max_size=2000
     )
 else:
     from app.infrastructure.storage.memory_revocation_repository import (
@@ -188,7 +190,7 @@ _genai_client = genai.Client(api_key=settings.gemini_api_key.get_secret_value())
 _embedding_provider = HuggingFaceEmbeddingAdapter(
     model_name=settings.embedding_model,
     limiter=_concurrency_limiter,
-    device=settings.embedding_device
+    device=settings.embedding_device,
 )
 
 _vector_repository = FAISSVectorRepository(
@@ -196,7 +198,7 @@ _vector_repository = FAISSVectorRepository(
     faiss_dir=settings.faiss_dir,
     index_name=settings.faiss_index_name,
     default_top_k=settings.default_top_k,
-    limiter=_concurrency_limiter
+    limiter=_concurrency_limiter,
 )
 
 _llm_provider = GeminiLLMAdapter(
@@ -217,7 +219,7 @@ _keyword_retriever = BM25Adapter()
 _reranker = CrossEncoderAdapter(
     model_name=settings.reranker_model,
     metrics=_metrics_registry,
-    limiter=_concurrency_limiter
+    limiter=_concurrency_limiter,
 )
 
 _grounding_engine = GroundingEngine()
@@ -236,33 +238,40 @@ _hybrid_retriever = HybridRetrieverAdapter(
 _health_service.add_readiness_check(VectorStoreHealthCheck(_vector_repository))
 _health_service.add_readiness_check(StorageHealthCheck(settings.upload_dir))
 
-from app.infrastructure.observability.ai_provider_health import AIProviderHealthCheck
-_health_service.add_readiness_check(AIProviderHealthCheck(_genai_client, settings.gemini_model))
+_health_service.add_readiness_check(
+    AIProviderHealthCheck(_genai_client, settings.gemini_model)
+)
 
 if _redis_client:
-    from app.infrastructure.observability.redis_health import RedisHealthCheck
     _health_service.add_readiness_check(RedisHealthCheck(_redis_client))
 
 
 # --- Dependency Injection Providers ---
 
+
 def get_settings_provider():
     return settings
+
 
 def get_secret_provider() -> SecretProvider:
     return _secret_provider
 
+
 def get_genai_client() -> genai.Client:
     return _genai_client
+
 
 def get_llm_provider() -> LLMProvider:
     return _llm_provider
 
+
 def get_vector_repository() -> VectorStoreRepository:
     return _vector_repository
 
+
 def get_storage_provider() -> StorageProvider:
     return _storage_provider
+
 
 def get_document_repository() -> DocumentRepository:
     return _document_repository
@@ -270,19 +279,97 @@ def get_document_repository() -> DocumentRepository:
 
 def get_db_session_provider():
     from app.infrastructure.storage.database_foundation import get_db_session
+
     return get_db_session
+
 
 def get_conversation_repository() -> ConversationRepository:
     return _conversation_repository
 
+
 def get_user_repository() -> UserRepository:
     return _user_repository
+
 
 def get_revocation_repository() -> RevocationRepository:
     return _revocation_repository
 
+
 def get_rate_limiter() -> RateLimiter:
     return _rate_limiter
+
+
+def get_cache_provider() -> CacheProvider:
+    return _cache_provider
+
+
+def get_cache_warming_service() -> CacheWarmingService:
+    return _cache_warming_service
+
+
+def get_document_parser() -> DocumentParser:
+    return _parser
+
+
+def get_chunker() -> Chunker:
+    return _chunker
+
+
+def get_keyword_retriever() -> KeywordRetriever:
+    return _keyword_retriever
+
+
+def get_reranker() -> Reranker:
+    return _reranker
+
+
+def get_retriever() -> Retriever:
+    return _hybrid_retriever
+
+
+def get_grounding_engine() -> GroundingEngine:
+    return _grounding_engine
+
+
+def get_reasoning_engine() -> ReasoningEngine:
+    return _reasoning_engine
+
+
+def get_evaluation_engine() -> EvaluationEngine:
+    return _evaluation_engine
+
+
+def get_benchmark_repository() -> BenchmarkRepository:
+    return _benchmark_repo
+
+
+def get_health_service() -> HealthService:
+    return _health_service
+
+
+def get_metrics_registry() -> MetricsRegistry:
+    return _metrics_registry
+
+
+def get_metrics_provider() -> MetricsProvider:
+    return _metrics_provider
+
+
+def get_jwt_manager() -> JWTManager:
+    return _jwt_manager
+
+
+def get_auth_service() -> AuthService:
+    return _auth_service
+
+
+def get_authorization_service() -> AuthorizationService:
+    return _authorization_service
+
+
+def get_audit_service() -> AuditService:
+    return _audit_service
+
 
 def get_rate_limiter_service(
     limiter: RateLimiter = Depends(get_rate_limiter),
@@ -291,89 +378,47 @@ def get_rate_limiter_service(
 ) -> RateLimiterService:
     return RateLimiterService(limiter, settings, audit_service)
 
-def get_cache_provider() -> CacheProvider:
-    return _cache_provider
-
-def get_cache_warming_service() -> CacheWarmingService:
-    return _cache_warming_service
-
-def get_document_parser() -> DocumentParser:
-    return _parser
-
-def get_chunker() -> Chunker:
-    return _chunker
-
-def get_keyword_retriever() -> KeywordRetriever:
-    return _keyword_retriever
-
-def get_reranker() -> Reranker:
-    return _reranker
-
-def get_retriever() -> Retriever:
-    return _hybrid_retriever
-
-def get_grounding_engine() -> GroundingEngine:
-    return _grounding_engine
-
-def get_reasoning_engine() -> ReasoningEngine:
-    return _reasoning_engine
-
-def get_evaluation_engine() -> EvaluationEngine:
-    return _evaluation_engine
-
-def get_benchmark_repository() -> BenchmarkRepository:
-    return _benchmark_repo
-
-def get_health_service() -> HealthService:
-    return _health_service
-
-def get_metrics_registry() -> MetricsRegistry:
-    return _metrics_registry
-
-def get_metrics_provider() -> MetricsProvider:
-    return _metrics_provider
-
-def get_jwt_manager() -> JWTManager:
-    return _jwt_manager
-
-def get_auth_service() -> AuthService:
-    return _auth_service
-
-def get_authorization_service() -> AuthorizationService:
-    return _authorization_service
-
-def get_audit_service() -> AuditService:
-    return _audit_service
 
 def get_cleanup_service() -> CleanupService:
     return CleanupService(settings, _revocation_repository)
 
+
 # Distributed Background Processing (10.3.2)
 if _redis_client:
     _background_task_provider = RedisJobQueueProvider(
-        redis_client=_redis_client,
-        metrics=_metrics_registry
+        redis_client=_redis_client, metrics=_metrics_registry
     )
 else:
     # Fallback to local (dummy in 10.3.2 context but preserves stability)
-    from app.infrastructure.background.fastapi_background_tasks import FastAPIBackgroundTaskProvider
+    from app.infrastructure.background.fastapi_background_tasks import (
+        FastAPIBackgroundTaskProvider,
+    )
+
     # This requires a dummy BackgroundTasks object which is only available in requests.
     # In production, Redis is mandatory for 10.3.2.
     _background_task_provider = None
 
-_worker_service = WorkerService(
-    task_provider=_background_task_provider,
-    metrics=_metrics_registry,
-    resource_guard=_resource_guard
-) if _background_task_provider else None
+_worker_service = (
+    WorkerService(
+        task_provider=_background_task_provider,
+        metrics=_metrics_registry,
+        resource_guard=_resource_guard,
+    )
+    if _background_task_provider
+    else None
+)
+
 
 def get_background_task_provider() -> BackgroundTaskProvider:
     return _background_task_provider
 
+
 def get_worker_service() -> WorkerService:
     return _worker_service
 
+
 # --- Application Services ---
+
 
 def get_document_service(
     chunker: Chunker = Depends(get_chunker),
@@ -390,6 +435,7 @@ def get_document_service(
         metrics=metrics,
     )
 
+
 def get_retrieval_service(
     retriever: Retriever = Depends(get_retriever),
     reranker: Reranker = Depends(get_reranker),
@@ -403,13 +449,16 @@ def get_retrieval_service(
         min_candidates=settings.min_retrieval_candidates,
     )
 
+
 def get_context_builder() -> IContextBuilder:
     return ContextBuilder()
+
 
 def get_query_rewriter(
     llm_provider: LLMProvider = Depends(get_llm_provider),
 ) -> IQueryRewriter:
     return QueryRewriter(llm_provider=llm_provider)
+
 
 def get_rag_service(
     retrieval_service: Retriever = Depends(get_retrieval_service),
@@ -438,14 +487,16 @@ def get_rag_service(
         benchmark_repo=benchmark_repo,
         metrics=metrics,
         cache=cache,
-        limiter=_concurrency_limiter
+        limiter=_concurrency_limiter,
     )
+
 
 # --- Lifecycle Management ---
 
+
 async def init_vector_store() -> bool:
-    init_dev_user()
     return await _vector_repository.load()
+
 
 async def shutdown_vector_store_save() -> None:
     await _vector_repository.save()

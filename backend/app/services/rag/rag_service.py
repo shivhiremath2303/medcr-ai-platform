@@ -1,18 +1,18 @@
-import re
-import time
+import asyncio
 import hashlib
 import json
-import asyncio
-from typing import Any, Dict, List, Optional, AsyncGenerator
+import re
+import time
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from app.core.observability.logger import get_logger
-from app.core.observability.metrics import MetricsRegistry
-from app.core.observability.telemetry import get_tracer
-from app.core.observability.profiler import PerformanceProfiler
 from app.core.observability.cache_policy import CacheTTL
 from app.core.observability.concurrency import ConcurrencyLimiter
-from app.domain.repositories.cache_provider import CacheProvider
+from app.core.observability.logger import get_logger
+from app.core.observability.metrics import MetricsRegistry
+from app.core.observability.profiler import PerformanceProfiler
+from app.core.observability.telemetry import get_tracer
 from app.domain.repositories.benchmark_repository import BenchmarkRepository
+from app.domain.repositories.cache_provider import CacheProvider
 from app.domain.repositories.context_builder import ContextBuilder
 from app.domain.repositories.conversation_repository import ConversationRepository
 from app.domain.repositories.llm_provider import LLMProvider
@@ -60,7 +60,9 @@ class RAGService:
         self.cache = cache
         self.limiter = limiter
 
-    @PerformanceProfiler.profile_function(name="rag_answer_question", slow_threshold_ms=8000)
+    @PerformanceProfiler.profile_function(
+        name="rag_answer_question", slow_threshold_ms=8000
+    )
     async def answer_question(
         self, question: str, k: int = 3, enable_evaluation: bool = True
     ) -> dict:
@@ -73,7 +75,9 @@ class RAGService:
 
             # 1. Distributed Caching Check
             memory_context = self.memory.get_context()
-            context_hash = self._generate_cache_key("answer", question, memory_context, k)
+            context_hash = self._generate_cache_key(
+                "answer", question, memory_context, k
+            )
 
             cached_answer = self.cache.get(context_hash)
             if cached_answer:
@@ -90,7 +94,9 @@ class RAGService:
                     conversation_context=memory_context,
                 )
 
-            retrieval_cache_key = self._generate_cache_key("retrieval", understanding.original_query, k)
+            retrieval_cache_key = self._generate_cache_key(
+                "retrieval", understanding.original_query, k
+            )
             results = self.cache.get(retrieval_cache_key)
 
             retrieval_ms = 0
@@ -109,7 +115,9 @@ class RAGService:
                 self.cache.set(retrieval_cache_key, results, ttl=CacheTTL.MEDIUM)
 
             raw_confidence = sum(r.score for r in results[:1]) if results else 0.0
-            sufficiency = self.grounding_engine.analyze_sufficiency(results, raw_confidence)
+            sufficiency = self.grounding_engine.analyze_sufficiency(
+                results, raw_confidence
+            )
 
             if not results or sufficiency == "insufficient":
                 return self._generate_insufficient_response()
@@ -126,7 +134,9 @@ class RAGService:
                 )
             except Exception as e:
                 # 10.3.8: Graceful Degradation / Fallback
-                logger.error(f"AI Generation failed. Serving fallback response. Error: {e}")
+                logger.error(
+                    f"AI Generation failed. Serving fallback response. Error: {e}"
+                )
                 span.set_status(tracer.Status(tracer.StatusCode.ERROR, str(e)))
                 return self._generate_fallback_response(e)
 
@@ -136,24 +146,40 @@ class RAGService:
 
             # 4. Parallel Analytics Phase
             with tracer.start_as_current_span("parallel_analytics"):
-                grounding_task = self.limiter.run_async(self._process_grounding, answer, evidence_list, sufficiency)
-                reasoning_task = self.limiter.run_async(self._process_reasoning, answer, evidence_list)
-                grounding_data, reasoning_metadata = await asyncio.gather(grounding_task, reasoning_task)
+                grounding_task = self.limiter.run_async(
+                    self._process_grounding, answer, evidence_list, sufficiency
+                )
+                reasoning_task = self.limiter.run_async(
+                    self._process_reasoning, answer, evidence_list
+                )
+                grounding_data, reasoning_metadata = await asyncio.gather(
+                    grounding_task, reasoning_task
+                )
 
             # 5. Scientific Evaluation
             eval_report = None
             if enable_evaluation:
                 eval_report = await self._process_scientific_evaluation(
-                    question, results, answer, evidence_list,
-                    grounding_data["score"], reasoning_metadata,
-                    retrieval_ms, overall_start, context
+                    question,
+                    results,
+                    answer,
+                    evidence_list,
+                    grounding_data["score"],
+                    reasoning_metadata,
+                    retrieval_ms,
+                    overall_start,
+                    context,
                 )
 
             # 6. Build Response
             response_data = self._build_response(
-                answer, grounding_data, reasoning_metadata,
-                evidence_list, raw_confidence, eval_report,
-                getattr(self.retrieval_service, "last_diagnostics", None)
+                answer,
+                grounding_data,
+                reasoning_metadata,
+                evidence_list,
+                raw_confidence,
+                eval_report,
+                getattr(self.retrieval_service, "last_diagnostics", None),
             )
 
             # Cache the result
@@ -193,12 +219,16 @@ class RAGService:
         self.memory.add_user_message(question)
         self.memory.add_assistant_message(full_answer)
 
-    async def _process_grounding(self, answer: str, evidence_list: List, sufficiency: Any) -> Dict:
+    async def _process_grounding(
+        self, answer: str, evidence_list: List, sufficiency: Any
+    ) -> Dict:
         validation_errors = self.grounding_engine.validate_answer(answer, evidence_list)
         contradictions = self.grounding_engine.detect_contradictions(answer)
         missing_docs = self.grounding_engine.detect_missing_evidence(answer)
 
-        self.metrics.track_hallucination(detected=bool(contradictions or validation_errors))
+        self.metrics.track_hallucination(
+            detected=bool(contradictions or validation_errors)
+        )
 
         score = self.grounding_engine.calculate_grounding_score(
             evidence_list=evidence_list,
@@ -221,15 +251,23 @@ class RAGService:
             "errors": validation_errors,
             "contradictions": contradictions,
             "missing": missing_docs,
-            "summary": self._extract_summary(answer)
+            "summary": self._extract_summary(answer),
         }
 
     async def _process_reasoning(self, answer: str, evidence_list: List) -> Any:
         return self.reasoning_engine.extract_reasoning(answer, evidence_list)
 
     async def _process_scientific_evaluation(
-        self, query, results, answer, evidence_list, grounding_score,
-        reasoning_metadata, retrieval_ms, overall_start, context
+        self,
+        query,
+        results,
+        answer,
+        evidence_list,
+        grounding_score,
+        reasoning_metadata,
+        retrieval_ms,
+        overall_start,
+        context,
     ) -> Any:
         expected_ids = []
         for case in self.benchmark_repo.get_all_cases():
@@ -237,9 +275,15 @@ class RAGService:
                 expected_ids = case.expected_evidence_ids
                 break
 
-        retrieval_metrics = self.evaluation_engine.evaluate_retrieval(results, expected_ids)
-        grounding_metrics = self.evaluation_engine.evaluate_grounding(answer, evidence_list, grounding_score)
-        reasoning_metrics = self.evaluation_engine.evaluate_reasoning(reasoning_metadata)
+        retrieval_metrics = self.evaluation_engine.evaluate_retrieval(
+            results, expected_ids
+        )
+        grounding_metrics = self.evaluation_engine.evaluate_grounding(
+            answer, evidence_list, grounding_score
+        )
+        reasoning_metrics = self.evaluation_engine.evaluate_reasoning(
+            reasoning_metadata
+        )
 
         performance_metrics = self.evaluation_engine.evaluate_performance(
             retrieval_ms=retrieval_ms,
@@ -249,12 +293,27 @@ class RAGService:
         )
 
         return self.evaluation_engine.generate_report(
-            query=query, retrieval=retrieval_metrics, grounding=grounding_metrics,
-            reasoning=reasoning_metrics, performance=performance_metrics
+            query=query,
+            retrieval=retrieval_metrics,
+            grounding=grounding_metrics,
+            reasoning=reasoning_metrics,
+            performance=performance_metrics,
         )
 
-    def _build_response(self, answer, grounding, reasoning, evidence_list, confidence, eval_report, diagnostics) -> Dict:
-        sources = [{"filename": ev.document_name, "page_number": ev.page_number} for ev in evidence_list]
+    def _build_response(
+        self,
+        answer,
+        grounding,
+        reasoning,
+        evidence_list,
+        confidence,
+        eval_report,
+        diagnostics,
+    ) -> Dict:
+        sources = [
+            {"filename": ev.document_name, "page_number": ev.page_number}
+            for ev in evidence_list
+        ]
 
         response = {
             "answer": answer,
@@ -266,7 +325,11 @@ class RAGService:
             "answer_status": grounding["status"].value,
             "missing_documents": grounding["missing"],
             "contradictions": grounding["contradictions"],
-            "reasoning_notes": (f"Errors: {', '.join(grounding['errors'])}" if grounding["errors"] else None),
+            "reasoning_notes": (
+                f"Errors: {', '.join(grounding['errors'])}"
+                if grounding["errors"]
+                else None
+            ),
             "reasoning_metadata": reasoning.__dict__,
             "sources": sources,
         }
@@ -288,7 +351,7 @@ class RAGService:
 
     def _generate_cache_key(self, prefix: str, *args) -> str:
         data = "".join(str(arg) for arg in args)
-        return f"{prefix}:{hashlib.md5(data.encode()).hexdigest()}"
+        return f"{prefix}:{hashlib.sha256(data.encode()).hexdigest()}"
 
     def _generate_fallback_response(self, error: Exception) -> dict:
         """Standard fallback when AI pipeline is unavailable (10.3.8)."""

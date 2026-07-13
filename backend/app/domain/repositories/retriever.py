@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
+
 from app.domain.models import SearchResult
+
 
 class Retriever(ABC):
     """

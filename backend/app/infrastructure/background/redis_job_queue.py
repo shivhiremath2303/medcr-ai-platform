@@ -1,13 +1,14 @@
 import json
-import uuid
 import time
+import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from app.core.observability.metrics import MetricsRegistry
 from app.domain.models.background_task import BackgroundTask, TaskPriority, TaskStatus
 from app.domain.repositories.background_tasks import BackgroundTaskProvider
 from app.infrastructure.storage.redis_client import RedisClient
-from app.core.observability.metrics import MetricsRegistry
+
 
 class RedisJobQueueProvider(BackgroundTaskProvider):
     """
@@ -33,7 +34,7 @@ class RedisJobQueueProvider(BackgroundTaskProvider):
         name: str,
         payload: Dict[str, Any],
         priority: TaskPriority = TaskPriority.DEFAULT,
-        max_retries: int = 3
+        max_retries: int = 3,
     ) -> str:
         task_id = str(uuid.uuid4())
         task = BackgroundTask(
@@ -41,7 +42,7 @@ class RedisJobQueueProvider(BackgroundTaskProvider):
             name=name,
             payload=payload,
             priority=priority,
-            max_retries=max_retries
+            max_retries=max_retries,
         )
 
         client = self.redis.client
@@ -51,7 +52,9 @@ class RedisJobQueueProvider(BackgroundTaskProvider):
         # 2. Push to priority queue (LPUSH for FIFO when using RPOP)
         client.lpush(self._queue_key(priority), task_id)
 
-        self.metrics.increment_counter("jobs_enqueued_total", {"name": name, "priority": priority.value})
+        self.metrics.increment_counter(
+            "jobs_enqueued_total", {"name": name, "priority": priority.value}
+        )
         return task_id
 
     async def get_task(self, task_id: str) -> Optional[BackgroundTask]:
@@ -65,7 +68,7 @@ class RedisJobQueueProvider(BackgroundTaskProvider):
         task_id: str,
         status: TaskStatus,
         result: Optional[Any] = None,
-        error: Optional[str] = None
+        error: Optional[str] = None,
     ) -> None:
         client = self.redis.client
         data = client.get(self._job_key(task_id))

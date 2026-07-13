@@ -1,13 +1,19 @@
-import time
 import asyncio
-from typing import Optional, AsyncGenerator
-from google import genai
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import time
+from typing import AsyncGenerator, Optional
 
-from app.core.observability.metrics import MetricsRegistry
-from app.core.observability.telemetry import get_tracer
+from google import genai
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
 from app.core.observability.concurrency import ConcurrencyLimiter
+from app.core.observability.metrics import MetricsRegistry
 from app.core.observability.resilience import CircuitBreaker
+from app.core.observability.telemetry import get_tracer
 from app.domain.repositories.llm_provider import LLMProvider
 
 tracer = get_tracer(__name__)
@@ -40,7 +46,7 @@ class GeminiLLMAdapter(LLMProvider):
             name=f"llm_gemini_{model_name}",
             failure_threshold=5,
             recovery_timeout=60,
-            metrics=metrics
+            metrics=metrics,
         )
 
     # 1. Retry with Exponential Backoff (10.3.8)
@@ -48,7 +54,7 @@ class GeminiLLMAdapter(LLMProvider):
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
         retry=retry_if_exception_type((TimeoutError, ConnectionError, RuntimeError)),
-        reraise=True
+        reraise=True,
     )
     async def generate_answer(
         self,
@@ -56,7 +62,9 @@ class GeminiLLMAdapter(LLMProvider):
         context: str,
     ) -> str:
         # 2. Circuit Breaker protection (10.3.8)
-        return await self.circuit_breaker.call(self._generate_answer_internal, question, context)
+        return await self.circuit_breaker.call(
+            self._generate_answer_internal, question, context
+        )
 
     async def _generate_answer_internal(self, question: str, context: str) -> str:
         from app.prompts.legal_prompt import LEGAL_RAG_PROMPT
@@ -79,7 +87,7 @@ class GeminiLLMAdapter(LLMProvider):
                     config={
                         "temperature": self.temperature,
                         "max_output_tokens": self.max_tokens,
-                    }
+                    },
                 )
 
                 duration = time.perf_counter() - start_time
@@ -87,7 +95,11 @@ class GeminiLLMAdapter(LLMProvider):
 
                 if hasattr(response, "usage_metadata") and response.usage_metadata:
                     usage = response.usage_metadata
-                    self.metrics.track_tokens(self.model_name, usage.prompt_token_count, usage.candidates_token_count)
+                    self.metrics.track_tokens(
+                        self.model_name,
+                        usage.prompt_token_count,
+                        usage.candidates_token_count,
+                    )
 
                 return response.text
 
@@ -105,6 +117,7 @@ class GeminiLLMAdapter(LLMProvider):
         Streamed RAG response with basic resilience.
         """
         from app.prompts.legal_prompt import LEGAL_RAG_PROMPT
+
         prompt = LEGAL_RAG_PROMPT.format(context=context, question=question)
 
         with tracer.start_as_current_span("gemini_stream_answer") as span:
@@ -116,7 +129,7 @@ class GeminiLLMAdapter(LLMProvider):
                     config={
                         "temperature": self.temperature,
                         "max_output_tokens": self.max_tokens,
-                    }
+                    },
                 ):
                     if chunk.text:
                         yield chunk.text
@@ -131,7 +144,9 @@ class GeminiLLMAdapter(LLMProvider):
         conversation_context: str,
     ) -> str:
         # Rewriting is less critical, so we just use the circuit breaker without aggressive retries
-        return await self.circuit_breaker.call(self._rewrite_internal, question, conversation_context)
+        return await self.circuit_breaker.call(
+            self._rewrite_internal, question, conversation_context
+        )
 
     async def _rewrite_internal(self, question: str, conversation_context: str) -> str:
         prompt = f"Rewrite this legal question to be standalone: {question}\nContext: {conversation_context}"
@@ -140,7 +155,7 @@ class GeminiLLMAdapter(LLMProvider):
                 self.client.models.generate_content,
                 model=self.model_name,
                 contents=prompt,
-                config={"temperature": 0.0}
+                config={"temperature": 0.0},
             )
             return response.text.strip()
         except Exception:

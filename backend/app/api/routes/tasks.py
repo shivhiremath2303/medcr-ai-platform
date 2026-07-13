@@ -1,15 +1,22 @@
-from typing import List, Dict
+from typing import Dict, List
+
 from fastapi import APIRouter, Depends, HTTPException, Query
-from app.core.security.dependencies import get_current_active_user, CurrentUser, rate_limit
+
+from app.core.security.dependencies import (
+    CurrentUser,
+    get_current_active_user,
+    rate_limit,
+)
 from app.di import get_background_task_provider
-from app.domain.repositories.background_tasks import BackgroundTaskProvider
 from app.domain.models.background_task import BackgroundTask
+from app.domain.repositories.background_tasks import BackgroundTaskProvider
 
 router = APIRouter(
     prefix="/tasks",
     tags=["Tasks"],
     dependencies=[Depends(rate_limit)],
 )
+
 
 @router.get("/status", response_model=Dict[str, BackgroundTask])
 async def get_batch_task_status(
@@ -26,6 +33,7 @@ async def get_batch_task_status(
         if task:
             results[tid] = task
     return results
+
 
 @router.get("/{task_id}", response_model=BackgroundTask)
 async def get_task_status(

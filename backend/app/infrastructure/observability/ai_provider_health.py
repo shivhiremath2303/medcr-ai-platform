@@ -2,6 +2,7 @@ import time
 from typing import Any, Dict
 
 from google import genai
+
 from app.core.observability.health import HealthCheck
 
 
@@ -34,11 +35,11 @@ class AIProviderHealthCheck(HealthCheck):
             return {
                 "status": "up",
                 "model": self.model_name,
-                "latency_ms": round(latency, 2)
+                "latency_ms": round(latency, 2),
             }
         except Exception as e:
             return {
                 "status": "down",
                 "error": str(e),
-                "latency_ms": round((time.perf_counter() - start_time) * 1000, 2)
+                "latency_ms": round((time.perf_counter() - start_time) * 1000, 2),
             }

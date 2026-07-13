@@ -50,7 +50,8 @@ class SamplingFilter(logging.Filter):
 
         if self.sample_rate >= 1.0:
             return True
-        return random.random() < self.sample_rate
+        # This is volume sampling, not a security decision.
+        return random.random() < self.sample_rate  # noqa: S311
 
 
 class EnterpriseLoggingFormatter(logging.Formatter):
@@ -83,7 +84,8 @@ class EnterpriseLoggingFormatter(logging.Formatter):
             return {
                 k: (
                     "***MASKED***"
-                    if k.lower() in SENSITIVE_KEYS or any(s in k.lower() for s in ["key", "secret", "token"])
+                    if k.lower() in SENSITIVE_KEYS
+                    or any(s in k.lower() for s in ["key", "secret", "token"])
                     else self._mask_sensitive_data(v)
                 )
                 for k, v in data.items()
@@ -107,7 +109,6 @@ class EnterpriseLoggingFormatter(logging.Formatter):
             "service.version": self.app_version,
             "service.environment": self.environment,
             "event.module": record.module,
-
             # Correlation IDs
             "trace.id": trace_ctx.get("trace_id"),
             "span.id": trace_ctx.get("span_id"),
@@ -139,15 +140,33 @@ class EnterpriseJsonFormatter(EnterpriseLoggingFormatter):
 
         # Also check for standard 'extra' passed to logger.info(..., extra={})
         reserved = {
-            'args', 'asctime', 'created', 'exc_info', 'filename', 'funcName',
-            'levelname', 'levelno', 'lineno', 'module', 'msecs', 'msg',
-            'name', 'pathname', 'process', 'processName', 'relativeCreated',
-            'stack_info', 'thread', 'threadName', 'extra_data'
+            "args",
+            "asctime",
+            "created",
+            "exc_info",
+            "filename",
+            "funcName",
+            "levelname",
+            "levelno",
+            "lineno",
+            "module",
+            "msecs",
+            "msg",
+            "name",
+            "pathname",
+            "process",
+            "processName",
+            "relativeCreated",
+            "stack_info",
+            "thread",
+            "threadName",
+            "extra_data",
         }
 
         custom_extra = {
-            k: v for k, v in record.__dict__.items()
-            if k not in reserved and not k.startswith('_')
+            k: v
+            for k, v in record.__dict__.items()
+            if k not in reserved and not k.startswith("_")
         }
         if custom_extra:
             log_data.update(self._mask_sensitive_data(custom_extra))
@@ -187,7 +206,7 @@ class EnterpriseConsoleFormatter(EnterpriseLoggingFormatter):
             return "\033[1;33m"  # Bold Yellow
         if levelno >= logging.INFO:
             return "\033[1;32m"  # Bold Green
-        return "\033[1;34m"      # Bold Blue
+        return "\033[1;34m"  # Bold Blue
 
 
 def setup_logging(

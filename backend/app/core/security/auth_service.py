@@ -56,7 +56,9 @@ class AuthService:
             return None
 
         if not PasswordHasher.verify(password, user.hashed_password):
-            self._handle_failed_login(username, reason="invalid_password", user_id=user.user_id)
+            self._handle_failed_login(
+                username, reason="invalid_password", user_id=user.user_id
+            )
             return None
 
         if not user.is_active:
@@ -88,9 +90,7 @@ class AuthService:
         # Check concurrent session limit
         active_sessions = self.revocation_repository.get_user_sessions(user.user_id)
         if len(active_sessions) >= settings.auth_max_sessions:
-            logger.warning(
-                f"Session limit reached for user {user.user_id}."
-            )
+            logger.warning(f"Session limit reached for user {user.user_id}.")
 
         access_token, refresh_token = self.jwt_manager.create_token_pair(
             data={
@@ -101,7 +101,9 @@ class AuthService:
         )
 
         payload = self.jwt_manager.decode_token(access_token)
-        sid = payload.get("sid")
+        sid = payload.get("sid") if payload else None
+        if not isinstance(sid, str):
+            raise RuntimeError("Newly issued access token is missing a session ID")
 
         ttl_seconds = settings.jwt_refresh_token_days * 24 * 3600
         self.revocation_repository.add_session(user.user_id, sid, ttl_seconds)
@@ -121,6 +123,12 @@ class AuthService:
         jti = payload.get("jti")
         sid = payload.get("sid")
         user_id = payload.get("sub")
+        if not isinstance(jti, str):
+            return None
+        if not isinstance(sid, str):
+            return None
+        if not isinstance(user_id, str):
+            return None
 
         if self.revocation_repository.is_revoked(jti):
             self.audit_service.log(
@@ -130,11 +138,10 @@ class AuthService:
                 user_id=user_id,
                 details={"reason": "token_reuse_detected", "jti": jti},
             )
-            if sid:
-                self.revoke_session(sid)
+            self.revoke_session(sid)
             return None
 
-        if sid and self.revocation_repository.is_revoked(sid):
+        if self.revocation_repository.is_revoked(sid):
             return None
 
         user = self.user_repository.get_by_id(user_id)
@@ -181,7 +188,7 @@ class AuthService:
         jti = payload.get("jti")
         user_id = payload.get("sub")
         expiry = self.jwt_manager.get_token_expiry(token)
-        if not jti or not expiry:
+        if not isinstance(jti, str) or not isinstance(user_id, str) or not expiry:
             return False
 
         ttl = int((expiry - datetime.now(UTC)).total_seconds())
@@ -227,9 +234,15 @@ class AuthService:
             return None
 
         user_id = payload.get("sub")
-        return self.user_repository.get_by_id(user_id)
+        return (
+            self.user_repository.get_by_id(user_id)
+            if isinstance(user_id, str)
+            else None
+        )
 
-    def _handle_failed_login(self, username: str, reason: str, user_id: Optional[str] = None):
+    def _handle_failed_login(
+        self, username: str, reason: str, user_id: Optional[str] = None
+    ):
         """Track failures and enforce lockout."""
         count = self.revocation_repository.increment_failed_login(
             username, settings.rate_limit_window_seconds

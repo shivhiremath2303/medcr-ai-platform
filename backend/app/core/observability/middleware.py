@@ -1,9 +1,9 @@
-import time
-import uuid
 import cProfile
-import pstats
 import io
 import logging
+import pstats
+import time
+import uuid
 from typing import Callable
 
 from fastapi import Request, Response
@@ -12,15 +12,13 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app import di
 from app.core.config import get_settings
-from app.core.observability.context import (
-    set_correlation_id,
-    set_request_id,
-)
+from app.core.observability.context import set_correlation_id, set_request_id
 from app.core.observability.logger import get_logger
 from app.core.observability.profiler import PerformanceProfiler
 
 logger = get_logger(__name__)
 settings = get_settings()
+
 
 class ObservabilityMiddleware(BaseHTTPMiddleware):
     """
@@ -85,7 +83,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 method=request.method,
                 path=request.url.path,
                 status_code=response.status_code,
-                duration=process_time
+                duration=process_time,
             )
 
             # 8. Handle Profiling result
@@ -93,7 +91,9 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             if profiler:
                 profiler.disable()
                 s = io.StringIO()
-                ps = pstats.Stats(profiler, stream=s).sort_stats(pstats.SortKey.CUMULATIVE)
+                ps = pstats.Stats(profiler, stream=s).sort_stats(
+                    pstats.SortKey.CUMULATIVE
+                )
                 ps.print_stats(30)
                 profile_dump = s.getvalue()
 
@@ -114,9 +114,9 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                         "correlation_id": correlation_id,
                         "trace_id": trace_id,
                         "memory_delta_mb": mem_delta,
-                        "performance_profile": profile_dump if should_profile else None
+                        "performance_profile": profile_dump if should_profile else None,
                     }
-                }
+                },
             )
 
             return response
@@ -128,7 +128,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 method=request.method,
                 path=request.url.path,
                 status_code=500,
-                duration=process_time
+                duration=process_time,
             )
 
             logger.error(

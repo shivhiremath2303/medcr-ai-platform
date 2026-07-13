@@ -59,7 +59,6 @@ COPY --from=builder /install/cache/torch/sentence_transformers /app/data/cache/m
 # 5. Copy Application Source
 # We copy this as root first to ensure immutability
 COPY app /app/app
-COPY main.py /app/
 
 # 6. Create structure for writable directories (to be used as volumes or tmpfs)
 # We place these under /app but they must be owned by the app user
@@ -71,8 +70,7 @@ RUN mkdir -p /app/uploads/documents /app/data/faiss /app/data/metadata /app/data
 # - This prevents "In-container code modification" if the process is compromised
 RUN chown -R root:root /app && \
     chown -R legalai:legalai /app/uploads /app/data /app/logs && \
-    chmod -R 555 /app/app && \
-    chmod 555 /app/main.py
+    chmod -R 555 /app/app
 
 # 8. Install runtime essentials only
 RUN apt-get update && apt-get install -y --no-install-recommends \

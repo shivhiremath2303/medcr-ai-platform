@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 
 from app.core.observability.logger import get_logger
 from app.core.security.authorization import AuthorizationService
 from app.core.security.dependencies import (
     CurrentUser,
     check_payload_size,
-    get_authorization_service,
     get_current_active_user,
     rate_limit,
     require_permission,
@@ -13,13 +12,14 @@ from app.core.security.dependencies import (
 from app.di import (
     get_audit_service,
     get_authorization_service,
+    get_background_task_provider,
     get_document_service,
     get_storage_provider,
-    get_background_task_provider,
 )
-from app.domain.models.background_task import TaskPriority
 from app.domain.models.audit import AuditEventType
 from app.domain.models.authorization import Permission
+from app.domain.models.background_task import TaskPriority
+from app.domain.repositories.background_tasks import BackgroundTaskProvider
 from app.domain.repositories.storage_provider import StorageProvider
 from app.services.audit.audit_service import AuditService
 from app.services.document.document_service import DocumentService
@@ -56,11 +56,8 @@ async def upload_document(
         # 2. Enqueue Ingestion for background processing (10.3.2)
         task_id = await background_tasks.enqueue(
             name="ingest_document",
-            payload={
-                "file_path": str(saved_path),
-                "owner_id": current_user.user_id
-            },
-            priority=TaskPriority.DEFAULT
+            payload={"file_path": str(saved_path), "owner_id": current_user.user_id},
+            priority=TaskPriority.DEFAULT,
         )
 
         audit_service.log(
@@ -122,12 +119,14 @@ async def get_document(
     Retrieve document metadata.
     Validates granular permissions and resource ownership.
     """
-    document = document_service.get_document(document_id)
+    document = await document_service.get_document(document_id)
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
     # Policy Check: Ownership or Admin
-    if not authz_service.is_resource_owner(current_user.to_user(), document.owner_id):
+    if not document.owner_id or not authz_service.is_resource_owner(
+        current_user.to_user(), document.owner_id
+    ):
         # Service already logs ownership failure
         raise HTTPException(
             status_code=403, detail="Access denied to this specific resource"
@@ -163,7 +162,7 @@ async def list_documents(
 
     # In a full implementation, we would filter by owner_id here or in the repo
     return {
-        "total": len(documents), # Simplified for 10.3.7
+        "total": len(documents),  # Simplified for 10.3.7
         "limit": limit,
         "offset": offset,
         "items": [
@@ -171,8 +170,8 @@ async def list_documents(
                 "document_id": doc.document_id,
                 "filename": doc.filename,
                 "page_count": doc.page_count,
-                "owner_id": getattr(doc, "owner_id", None)
+                "owner_id": getattr(doc, "owner_id", None),
             }
             for doc in documents
-        ]
+        ],
     }

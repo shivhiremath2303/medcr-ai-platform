@@ -15,13 +15,13 @@ class FakeBM25Retriever(KeywordRetriever):
         self.search_queries: list[str] = []
         self._search_results = search_results if search_results is not None else []
 
-    def index(
+    async def index(
         self,
         chunks: list[Chunk],
     ) -> None:
         self.chunks = list(chunks)
 
-    def search(
+    async def search(
         self,
         query: str,
         k: int = 5,

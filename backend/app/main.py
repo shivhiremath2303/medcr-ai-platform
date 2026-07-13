@@ -3,9 +3,9 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
-from fastapi.middleware.gzip import GZipMiddleware
 from app import di
 from app.api.router import router
 from app.api.routes.auth import router as auth_router
@@ -18,8 +18,8 @@ from app.core.config import get_settings
 from app.core.observability.context import get_request_id
 from app.core.observability.logger import get_logger, setup_logging
 from app.core.observability.middleware import ObservabilityMiddleware
-from app.core.observability.telemetry import setup_telemetry
 from app.core.observability.profiler import PerformanceProfiler
+from app.core.observability.telemetry import setup_telemetry
 from app.core.security.middleware import setup_security
 
 settings = get_settings()
@@ -60,6 +60,7 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing infrastructure and repositories...")
     # Initialize Scalable DB Foundation (10.3.6)
     from app.infrastructure.storage.database_foundation import init_database
+
     await init_database()
 
     loaded = await di.init_vector_store()

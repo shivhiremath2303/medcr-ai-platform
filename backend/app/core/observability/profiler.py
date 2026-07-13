@@ -1,16 +1,18 @@
 import cProfile
-import pstats
-import io
-import time
-import os
-import psutil
 import functools
+import io
 import logging
+import os
+import pstats
+import time
 from typing import Any, Callable, Dict, Optional
+
+import psutil
 from opentelemetry import trace
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
+
 
 class PerformanceProfiler:
     """
@@ -45,7 +47,9 @@ class PerformanceProfiler:
 
         if duration_ms > self.threshold:
             s = io.StringIO()
-            ps = pstats.Stats(self.profiler, stream=s).sort_stats(pstats.SortKey.CUMULATIVE)
+            ps = pstats.Stats(self.profiler, stream=s).sort_stats(
+                pstats.SortKey.CUMULATIVE
+            )
             ps.print_stats(20)
 
             logger.warning(
@@ -56,9 +60,9 @@ class PerformanceProfiler:
                         "performance_profile": s.getvalue(),
                         "duration_ms": duration_ms,
                         "mem_delta_mb": mem_delta,
-                        "is_slow": True
+                        "is_slow": True,
                     }
-                }
+                },
             )
 
     @staticmethod
@@ -75,6 +79,7 @@ class PerformanceProfiler:
         """
         Decorator to profile a function.
         """
+
         def decorator(func: Callable):
             @functools.wraps(func)
             async def async_wrapper(*args, **kwargs):
@@ -86,5 +91,8 @@ class PerformanceProfiler:
                 with PerformanceProfiler(name or func.__name__, slow_threshold_ms):
                     return func(*args, **kwargs)
 
-            return async_wrapper if functools.iscoroutinefunction(func) else sync_wrapper
+            return (
+                async_wrapper if functools.iscoroutinefunction(func) else sync_wrapper
+            )
+
         return decorator

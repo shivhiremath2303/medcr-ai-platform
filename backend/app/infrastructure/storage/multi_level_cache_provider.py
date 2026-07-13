@@ -1,17 +1,19 @@
-import time
 import logging
+import time
 from collections import OrderedDict
-from typing import Any, Optional, Dict
+from typing import Any, Dict, Optional
 
-from app.domain.repositories.cache_provider import CacheProvider
 from app.core.observability.metrics import MetricsRegistry
 from app.core.observability.telemetry import get_tracer
+from app.domain.repositories.cache_provider import CacheProvider
 
 logger = logging.getLogger(__name__)
 tracer = get_tracer(__name__)
 
+
 class MemoryL1Cache:
     """Simple LRU Memory Cache for L1 layer."""
+
     def __init__(self, max_size: int = 1000):
         self.max_size = max_size
         self.cache: Dict[str, tuple[Any, float]] = OrderedDict()
@@ -42,6 +44,7 @@ class MemoryL1Cache:
     def clear(self):
         self.cache.clear()
 
+
 class MultiLevelCacheProvider(CacheProvider):
     """
     Enterprise Multi-Level Cache Provider.
@@ -54,7 +57,7 @@ class MultiLevelCacheProvider(CacheProvider):
         self,
         l2_provider: CacheProvider,
         metrics: MetricsRegistry,
-        l1_max_size: int = 1000
+        l1_max_size: int = 1000,
     ):
         self.l2 = l2_provider
         self.l1 = MemoryL1Cache(max_size=l1_max_size)
@@ -75,7 +78,7 @@ class MultiLevelCacheProvider(CacheProvider):
             val = self.l2.get(key)
             if val is not None:
                 # Populate back to L1 for faster subsequent access
-                self.l1.set(key, val, ttl=300) # Short default for L1 backfill
+                self.l1.set(key, val, ttl=300)  # Short default for L1 backfill
                 self.metrics.track_cache_hit(True)
                 span.set_attribute("cache.layer", "L2")
                 return val

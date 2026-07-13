@@ -6,8 +6,8 @@ from typing import List, Optional
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document as LangChainDocument
 
-from app.core.observability.telemetry import get_tracer
 from app.core.observability.concurrency import ConcurrencyLimiter
+from app.core.observability.telemetry import get_tracer
 from app.domain.models import Chunk, Metadata, SearchResult
 from app.domain.repositories.embedding_repository import EmbeddingRepository
 from app.domain.repositories.vector_store_repository import VectorStoreRepository
@@ -29,7 +29,7 @@ class FAISSVectorRepository(VectorStoreRepository):
         faiss_dir: Path,
         index_name: str,
         default_top_k: int,
-        limiter: ConcurrencyLimiter
+        limiter: ConcurrencyLimiter,
     ):
         self.embedding_provider = embedding_provider
         self.faiss_dir = faiss_dir
@@ -126,7 +126,7 @@ class FAISSVectorRepository(VectorStoreRepository):
                 await self.limiter.run_in_thread(
                     self.vector_store.save_local,
                     folder_path=str(self.faiss_dir),
-                    index_name=self.index_name
+                    index_name=self.index_name,
                 )
 
     async def load(self) -> bool:
@@ -190,7 +190,7 @@ class FAISSVectorRepository(VectorStoreRepository):
                 folder_path=str(other_path),
                 embeddings=self.embedding_provider,
                 index_name=self.index_name,
-                allow_dangerous_deserialization=True
+                allow_dangerous_deserialization=True,
             )
             self.vector_store.merge_from(other_index)
             await self.save()

@@ -77,6 +77,7 @@ async def ask_question(
             detail="Internal Server Error",
         ) from e
 
+
 @router.post("/stream", summary="Streamed RAG response (10.3.7)")
 async def stream_question(
     question_request: QuestionRequest,
@@ -92,8 +93,7 @@ async def stream_question(
     async def event_generator():
         try:
             async for chunk in rag_service.stream_answer(
-                question=question_request.question,
-                k=question_request.k
+                question=question_request.question, k=question_request.k
             ):
                 # Standard SSE format
                 yield f"data: {chunk}\n\n"

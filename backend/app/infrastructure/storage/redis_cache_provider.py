@@ -1,5 +1,5 @@
-import pickle
 import logging
+import pickle
 from typing import Any, Optional
 
 from app.core.observability.metrics import MetricsRegistry
@@ -9,6 +9,7 @@ from app.infrastructure.storage.redis_client import RedisClient
 
 tracer = get_tracer(__name__)
 logger = logging.getLogger(__name__)
+
 
 class RedisCacheProvider(CacheProvider):
     """
@@ -41,7 +42,9 @@ class RedisCacheProvider(CacheProvider):
                 self.metrics.track_cache_hit(data is not None)
 
                 if data:
-                    return pickle.loads(
+                    # Redis is an internal, authenticated cache; never use this
+                    # provider with untrusted data or an untrusted Redis instance.
+                    return pickle.loads(  # noqa: S301
                         data.encode("latin1") if isinstance(data, str) else data
                     )
                 return None

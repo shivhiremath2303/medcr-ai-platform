@@ -1,11 +1,14 @@
-import os
-import psutil
-import logging
 import gc
+import logging
+import os
 from typing import Optional
+
+import psutil
+
 from app.core.observability.metrics import MetricsRegistry
 
 logger = logging.getLogger(__name__)
+
 
 class ResourceGuard:
     """
@@ -16,8 +19,8 @@ class ResourceGuard:
     def __init__(
         self,
         metrics: MetricsRegistry,
-        memory_limit_mb: float = 2048.0, # Target limit for the pod
-        pressure_threshold: float = 0.85 # 85% usage triggers pressure mode
+        memory_limit_mb: float = 2048.0,  # Target limit for the pod
+        pressure_threshold: float = 0.85,  # 85% usage triggers pressure mode
     ):
         self.metrics = metrics
         self.memory_limit_mb = memory_limit_mb
@@ -41,7 +44,9 @@ class ResourceGuard:
     def perform_emergency_cleanup(self):
         """Triggers GC and logs warning when under pressure."""
         usage_before = self.get_current_usage_mb()
-        logger.warning(f"Resource pressure detected ({usage_before:.2f}MB). Triggering emergency cleanup.")
+        logger.warning(
+            f"Resource pressure detected ({usage_before:.2f}MB). Triggering emergency cleanup."
+        )
 
         # 1. Manual Garbage Collection
         collected = gc.collect()
@@ -50,7 +55,9 @@ class ResourceGuard:
         usage_after = self.get_current_usage_mb()
         freed = usage_before - usage_after
 
-        logger.info(f"Cleanup complete. Freed {freed:.2f}MB. Collected {collected} objects.")
+        logger.info(
+            f"Cleanup complete. Freed {freed:.2f}MB. Collected {collected} objects."
+        )
         self.metrics.increment_counter("resource_cleanup_total", {"status": "success"})
 
     def should_reject_task(self, priority: str = "default") -> bool:

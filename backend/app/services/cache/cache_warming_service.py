@@ -1,8 +1,10 @@
 import logging
-from typing import List, Callable, Any
+from typing import Any, Callable, List
+
 from app.domain.repositories.cache_provider import CacheProvider
 
 logger = logging.getLogger(__name__)
+
 
 class CacheWarmingService:
     """
@@ -13,7 +15,9 @@ class CacheWarmingService:
     def __init__(self, cache_provider: CacheProvider):
         self.cache = cache_provider
 
-    async def warm_keys(self, keys_and_loaders: List[tuple[str, Callable[[], Any], int]]):
+    async def warm_keys(
+        self, keys_and_loaders: List[tuple[str, Callable[[], Any], int]]
+    ):
         """
         Warms a list of keys by running their loaders if they are missing.
         """

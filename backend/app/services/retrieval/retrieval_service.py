@@ -67,7 +67,9 @@ class RetrievalService(Retriever):
             if understanding.expanded_terms:
                 expanded_query += " " + " ".join(understanding.expanded_terms)
 
-            candidate_count = max(dynamic_k * self.candidate_multiplier, self.min_candidates)
+            candidate_count = max(
+                dynamic_k * self.candidate_multiplier, self.min_candidates
+            )
 
             # Parallelize or at least await retriever
             candidates = await self.retriever.retrieve(
@@ -113,7 +115,9 @@ class RetrievalService(Retriever):
         )
         return await self.reranker.rerank(query=query, results=candidates, k=k)
 
-    def _calculate_dynamic_top_k(self, understanding: QueryUnderstanding, k: int) -> int:
+    def _calculate_dynamic_top_k(
+        self, understanding: QueryUnderstanding, k: int
+    ) -> int:
         dynamic_k = k
         if understanding.is_multi_doc or understanding.intent == QueryIntent.COMPARISON:
             dynamic_k = int(k * 1.5)
@@ -121,7 +125,9 @@ class RetrievalService(Retriever):
             dynamic_k = k * 2
         return min(dynamic_k, 15)
 
-    def _determine_strategy(self, understanding: QueryUnderstanding) -> Tuple[str, Dict[str, float]]:
+    def _determine_strategy(
+        self, understanding: QueryUnderstanding
+    ) -> Tuple[str, Dict[str, float]]:
         weights = {"vector": 0.7, "bm25": 0.3}
         strategy = "hybrid_standard"
         if understanding.intent == QueryIntent.DEFINITION:
@@ -143,6 +149,7 @@ class RetrievalService(Retriever):
         return unique_results
 
     def _calculate_diversity(self, results: List[SearchResult]) -> float:
-        if not results: return 0.0
+        if not results:
+            return 0.0
         doc_ids = {r.chunk.document_id for r in results}
         return len(doc_ids) / len(results)

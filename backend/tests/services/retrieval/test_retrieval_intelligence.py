@@ -50,7 +50,8 @@ def test_remove_duplicates(service):
     assert len(unique) == 1
 
 
-def test_intelligent_retrieval_diagnostics(service):
+@pytest.mark.asyncio
+async def test_intelligent_retrieval_diagnostics(service):
     # Setup
     chunk = make_chunk("c1", "test")
     results = [SearchResult(chunk=chunk, score=0.9, rank=1)]
@@ -64,7 +65,7 @@ def test_intelligent_retrieval_diagnostics(service):
         expanded_terms=["dismissal"],
     )
 
-    final = service.retrieve_intelligent(understanding, k=5)
+    final = await service.retrieve_intelligent(understanding, k=5)
 
     assert len(final) == 1
     assert service.last_diagnostics is not None

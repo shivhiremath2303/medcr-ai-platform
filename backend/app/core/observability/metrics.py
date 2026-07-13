@@ -62,10 +62,14 @@ class MetricsRegistry:
 
     def track_tokens(self, model: str, input_tokens: int, output_tokens: int):
         self.provider.increment_counter(
-            "ai_tokens_consumed_total", {"model": model, "type": "input"}, amount=float(input_tokens)
+            "ai_tokens_consumed_total",
+            {"model": model, "type": "input"},
+            amount=float(input_tokens),
         )
         self.provider.increment_counter(
-            "ai_tokens_consumed_total", {"model": model, "type": "output"}, amount=float(output_tokens)
+            "ai_tokens_consumed_total",
+            {"model": model, "type": "output"},
+            amount=float(output_tokens),
         )
 
     def track_ai_cost(self, model: str, cost_usd: float):
@@ -106,7 +110,9 @@ class MetricsRegistry:
 
     def track_cache_hit(self, hit: bool):
         status = "hit" if hit else "miss"
-        self.provider.increment_counter("infra_cache_requests_total", {"status": status})
+        self.provider.increment_counter(
+            "infra_cache_requests_total", {"status": status}
+        )
 
     def track_vector_store_size(self, index_name: str, count: int):
         self.provider.set_gauge(
@@ -125,12 +131,18 @@ class MetricsRegistry:
             "business_documents_processed_total", {"extension": extension}
         )
         self.provider.increment_counter(
-            "business_pages_processed_total", {"extension": extension}, amount=float(pages)
+            "business_pages_processed_total",
+            {"extension": extension},
+            amount=float(pages),
         )
 
     def track_conversation_turn(self, model: str, message_len: int):
-        self.provider.increment_counter("business_conversation_turns_total", {"model": model})
-        self.provider.observe_histogram("business_message_length_chars", float(message_len), {"model": model})
+        self.provider.increment_counter(
+            "business_conversation_turns_total", {"model": model}
+        )
+        self.provider.observe_histogram(
+            "business_message_length_chars", float(message_len), {"model": model}
+        )
 
     def track_pipeline_step(self, step: str, duration: float, status: str = "success"):
         self.provider.increment_counter(

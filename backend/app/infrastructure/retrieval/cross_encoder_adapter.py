@@ -1,10 +1,11 @@
-import time
 import asyncio
+import time
+
 from sentence_transformers import CrossEncoder
 
+from app.core.observability.concurrency import ConcurrencyLimiter
 from app.core.observability.metrics import MetricsRegistry
 from app.core.observability.telemetry import get_tracer
-from app.core.observability.concurrency import ConcurrencyLimiter
 from app.domain.models import SearchResult
 from app.domain.repositories.reranker import Reranker
 
@@ -19,10 +20,7 @@ class CrossEncoderAdapter(Reranker):
     """
 
     def __init__(
-        self,
-        model_name: str,
-        metrics: MetricsRegistry,
-        limiter: ConcurrencyLimiter
+        self, model_name: str, metrics: MetricsRegistry, limiter: ConcurrencyLimiter
     ):
         """
         Initialize with a model name, metrics registry, and concurrency limiter.

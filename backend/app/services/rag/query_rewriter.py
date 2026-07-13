@@ -1,4 +1,5 @@
 import json
+
 from app.core.observability.logger import get_logger
 from app.domain.models.retrieval import QueryIntent, QueryUnderstanding
 from app.domain.repositories.llm_provider import LLMProvider
@@ -51,7 +52,8 @@ class QueryRewriter(IQueryRewriter):
             intent=intent,
             entities=entities,
             expanded_terms=expansions,
-            is_multi_doc="compare" in rewritten.lower() or "between" in rewritten.lower(),
+            is_multi_doc="compare" in rewritten.lower()
+            or "between" in rewritten.lower(),
         )
 
     def _detect_intent(self, query: str) -> QueryIntent:

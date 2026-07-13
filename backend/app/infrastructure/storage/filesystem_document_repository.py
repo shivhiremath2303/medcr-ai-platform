@@ -1,5 +1,5 @@
-import json
 import asyncio
+import json
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, List, Optional
@@ -56,7 +56,7 @@ class FilesystemDocumentRepository(DocumentRepository):
         """
         List all stored documents with basic pagination support.
         """
-        all_files = sorted(list(self.storage_dir.glob("*.json")))
+        all_files = sorted(self.storage_dir.glob("*.json"))
         paged_files = all_files[offset : offset + limit]
 
         documents = []
@@ -79,9 +79,7 @@ class FilesystemDocumentRepository(DocumentRepository):
             Page(page_number=p["page_number"], text=p["text"]) for p in data["pages"]
         ]
         doc = Document(
-            document_id=data["document_id"],
-            filename=data["filename"],
-            pages=pages
+            document_id=data["document_id"], filename=data["filename"], pages=pages
         )
         # Handle optional owner_id from newer schema
         if "owner_id" in data:

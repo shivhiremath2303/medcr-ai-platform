@@ -19,7 +19,7 @@ class LLMProvider(ABC):
         """
 
     @abstractmethod
-    async def stream_answer(
+    def stream_answer(
         self,
         question: str,
         context: str,

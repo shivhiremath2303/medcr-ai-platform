@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
+
 from app.domain.models.retrieval import QueryUnderstanding
+
 
 class QueryRewriter(ABC):
     """

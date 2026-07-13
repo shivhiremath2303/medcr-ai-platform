@@ -1,5 +1,6 @@
 import asyncio
 from typing import List
+
 from rank_bm25 import BM25Okapi
 
 from app.domain.models.chunk import Chunk

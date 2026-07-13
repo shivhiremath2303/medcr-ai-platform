@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, List, Optional
+
 from app.domain.models.background_task import BackgroundTask, TaskPriority, TaskStatus
+
 
 class BackgroundTaskProvider(ABC):
     """
@@ -13,7 +15,7 @@ class BackgroundTaskProvider(ABC):
         name: str,
         payload: Dict[str, Any],
         priority: TaskPriority = TaskPriority.DEFAULT,
-        max_retries: int = 3
+        max_retries: int = 3,
     ) -> str:
         """Enqueue a task for distributed execution."""
 
@@ -27,7 +29,7 @@ class BackgroundTaskProvider(ABC):
         task_id: str,
         status: TaskStatus,
         result: Optional[Any] = None,
-        error: Optional[str] = None
+        error: Optional[str] = None,
     ) -> None:
         """Update the state of a running task."""
 

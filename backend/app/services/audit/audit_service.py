@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, Optional
 
 from app.core.observability.logger import get_logger
@@ -38,12 +39,12 @@ class AuditService:
 
         # In this phase, we use the structured JSON logger.
         # Future phases can add an AuditRepository for DB persistence.
-        log_level = "INFO"
+        log_level = logging.INFO
         if status == "failure" or event_type in [
             AuditEventType.ACCESS_DENIED,
             AuditEventType.ACCOUNT_LOCKOUT,
         ]:
-            log_level = "WARNING"
+            log_level = logging.WARNING
 
         logger.log(
             level=log_level,

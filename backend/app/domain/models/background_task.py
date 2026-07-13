@@ -1,7 +1,9 @@
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Optional
+
 from pydantic import BaseModel, Field
+
 
 class TaskStatus(str, Enum):
     PENDING = "pending"
@@ -10,15 +12,18 @@ class TaskStatus(str, Enum):
     FAILED = "failed"
     RETRYING = "retrying"
 
+
 class TaskPriority(str, Enum):
-    HIGH = "high"       # Real-time user interactions
-    DEFAULT = "default" # Document ingestion
-    LOW = "low"         # Periodic cleanup, optimization
+    HIGH = "high"  # Real-time user interactions
+    DEFAULT = "default"  # Document ingestion
+    LOW = "low"  # Periodic cleanup, optimization
+
 
 class BackgroundTask(BaseModel):
     """
     Enterprise Background Task Model (Milestone 10.3.2).
     """
+
     task_id: str
     name: str
     status: TaskStatus = TaskStatus.PENDING

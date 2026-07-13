@@ -1,10 +1,11 @@
 import logging
+import os
 import shutil
 from pathlib import Path
-from typing import Set, Optional
-import os
+from typing import Optional, Set
 
 from fastapi import UploadFile
+
 from app.domain.repositories.storage_provider import StorageProvider
 
 logger = logging.getLogger(__name__)
@@ -61,7 +62,7 @@ class LocalStorageAdapter(StorageProvider):
             logger.error(f"Failed to save file {filename}: {e}")
             if target_path.exists():
                 target_path.unlink()
-            raise IOError(f"Could not persist file to storage: {e}") from e
+            raise OSError(f"Could not persist file to storage: {e}") from e
 
     def delete(self, file_path: Path) -> bool:
         if file_path.exists():

@@ -70,19 +70,17 @@ class DocumentService:
                 await self.vector_store.save()
 
                 # 5. Metadata persistence
-                self.document_repository.save(document)
+                await self.document_repository.save(document)
 
                 # Operational Analytics
                 self.metrics.track_document_processed(
-                    extension=extension,
-                    pages=document.page_count
+                    extension=extension, pages=document.page_count
                 )
 
                 # Infrastructure Analytics (Async)
                 all_chunks = await self.vector_store.get_all_chunks()
                 self.metrics.track_vector_store_size(
-                    index_name="legal_documents",
-                    count=len(all_chunks)
+                    index_name="legal_documents", count=len(all_chunks)
                 )
 
                 return {
@@ -107,8 +105,8 @@ class DocumentService:
             k=k,
         )
 
-    def get_document(self, document_id: str) -> Document | None:
-        return self.document_repository.get_by_id(document_id)
+    async def get_document(self, document_id: str) -> Document | None:
+        return await self.document_repository.get_by_id(document_id)
 
     async def list_documents(self, limit: int = 100, offset: int = 0) -> list[Document]:
         """Return documents with pagination support (10.3.7)."""

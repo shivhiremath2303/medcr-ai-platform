@@ -23,6 +23,7 @@ from app.domain.models.audit import AuditEventType
 from app.domain.models.authorization import Permission
 from app.domain.models.user import User, UserRole
 from app.domain.repositories.user_repository import UserRepository
+from app.services.audit.audit_service import AuditService
 
 logger = get_logger(__name__)
 

@@ -1,8 +1,10 @@
 import json
 from typing import List, Optional
+
 from app.domain.models.user import User
 from app.domain.repositories.user_repository import UserRepository
 from app.infrastructure.storage.redis_client import RedisClient
+
 
 class RedisUserRepository(UserRepository):
     """
@@ -33,7 +35,13 @@ class RedisUserRepository(UserRepository):
             return self.get_by_id(user_id)
         return None
 
-    def save(self, user: User) -> None:
+    def get_by_email(self, email: str) -> Optional[User]:
+        for user in self.list_all():
+            if user.email == email:
+                return user
+        return None
+
+    def save(self, user: User) -> User:
         client = self.redis.client
         pipeline = client.pipeline()
         # 1. Save user object
@@ -41,6 +49,7 @@ class RedisUserRepository(UserRepository):
         # 2. Update username index
         pipeline.hset(self.username_index, user.username, user.user_id)
         pipeline.execute()
+        return user
 
     def list_all(self) -> List[User]:
         # Note: In production, scanning keys is expensive.

@@ -3,11 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.core.observability.logger import get_logger
 from app.core.security.auth_service import AuthService
-from app.core.security.dependencies import (
-    CurrentUser,
-    get_current_user,
-    rate_limit,
-)
+from app.core.security.dependencies import CurrentUser, get_current_user, rate_limit
 from app.di import get_audit_service, get_auth_service
 from app.domain.models.audit import AuditEventType
 from app.services.audit.audit_service import AuditService

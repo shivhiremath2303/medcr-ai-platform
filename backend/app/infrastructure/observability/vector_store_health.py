@@ -25,9 +25,9 @@ class VectorStoreHealthCheck(HealthCheck):
         try:
             # 1. Check readiness (10.3.4)
             if not self.vector_store.is_ready:
-                 # Attempt background load if not yet ready
-                 # In a real system, this might be handled by a background task
-                 return {
+                # Attempt background load if not yet ready
+                # In a real system, this might be handled by a background task
+                return {
                     "status": "up",
                     "chunk_count": 0,
                     "info": "Vector store warming up / loading",
@@ -37,10 +37,6 @@ class VectorStoreHealthCheck(HealthCheck):
             chunks = await self.vector_store.get_all_chunks()
             chunks_count = len(chunks)
 
-            return {
-                "status": "up",
-                "chunk_count": chunks_count,
-                "ready": True
-            }
+            return {"status": "up", "chunk_count": chunks_count, "ready": True}
         except Exception as e:
             return {"status": "down", "error": str(e)}

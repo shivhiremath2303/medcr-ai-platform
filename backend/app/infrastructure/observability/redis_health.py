@@ -28,11 +28,7 @@ class RedisHealthCheck(HealthCheck):
             return {
                 "status": "down",
                 "error": "Redis is unreachable",
-                "critical": self.critical
+                "critical": self.critical,
             }
         except Exception as e:
-            return {
-                "status": "down",
-                "error": str(e),
-                "critical": self.critical
-            }
+            return {"status": "down", "error": str(e), "critical": self.critical}

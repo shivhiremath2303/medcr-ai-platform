@@ -1,10 +1,11 @@
 import asyncio
 from typing import List
+
 from langchain_core.embeddings import Embeddings
 from langchain_huggingface import HuggingFaceEmbeddings
 
-from app.domain.repositories.embedding_repository import EmbeddingRepository
 from app.core.observability.concurrency import ConcurrencyLimiter
+from app.domain.repositories.embedding_repository import EmbeddingRepository
 
 
 class HuggingFaceEmbeddingAdapter(EmbeddingRepository, Embeddings):
@@ -14,7 +15,9 @@ class HuggingFaceEmbeddingAdapter(EmbeddingRepository, Embeddings):
     Implements Milestone 10.3.3.
     """
 
-    def __init__(self, model_name: str, limiter: ConcurrencyLimiter, device: str = "cpu"):
+    def __init__(
+        self, model_name: str, limiter: ConcurrencyLimiter, device: str = "cpu"
+    ):
         self.model = HuggingFaceEmbeddings(
             model_name=model_name, model_kwargs={"device": device}
         )

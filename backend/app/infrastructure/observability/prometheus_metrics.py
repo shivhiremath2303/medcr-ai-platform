@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 
-from prometheus_client import CollectorRegistry, Counter, Histogram, Gauge, REGISTRY
+from prometheus_client import REGISTRY, CollectorRegistry, Counter, Gauge, Histogram
 
 from app.domain.repositories.metrics_provider import MetricsProvider
 
