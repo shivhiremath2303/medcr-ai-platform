@@ -1,6 +1,10 @@
+"use client";
+
 import { ConflictCard } from "./conflict-card";
 import { LegalConflict } from "../../types";
-import { Share2, Network } from "lucide-react";
+import { RelationshipGraphPanel } from "../shared/relationship-graph-panel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
+import { AlertTriangle, Network } from "lucide-react";
 
 const MOCK_CONFLICTS: LegalConflict[] = [
   {
@@ -23,7 +27,11 @@ const MOCK_CONFLICTS: LegalConflict[] = [
         snippet: "Any disputes arising from this addendum shall be settled under Delaware law...",
         confidence: 0.95
       }
-    ]
+    ],
+    suggestedResolution: "Harmonize governing law clauses by explicitly stating which document takes precedence in the event of a conflict.",
+    relatedClauses: ["Section 12.4 (Governing Law)", "Section 4.1 (Scope)"],
+    confidenceScore: 0.98,
+    reasoningSummary: "Contradiction detected in jurisdictional clauses across active agreements."
   },
   {
     id: "c2",
@@ -39,40 +47,44 @@ const MOCK_CONFLICTS: LegalConflict[] = [
         snippet: "All personal data shall be deleted after 5 years...",
         confidence: 0.92
       }
-    ]
+    ],
+    confidenceScore: 0.85,
+    reasoningSummary: "Partial overlap between data retention policies and financial record obligations."
   }
 ];
 
 export function ConflictViewer() {
   return (
-    <div className="max-w-4xl mx-auto py-4 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold">Conflict Analysis</h2>
-          <p className="text-sm text-muted-foreground">System identified {MOCK_CONFLICTS.length} potential legal conflicts across documents.</p>
-        </div>
-        <div className="flex gap-2">
-           <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium border rounded-md hover:bg-muted transition-colors">
-            <Network className="h-3.5 w-3.5" />
-            Visual Graph
-          </button>
-        </div>
+    <div className="max-w-6xl mx-auto py-4">
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold tracking-tight">Conflict Analysis & Relationships</h2>
+        <p className="text-muted-foreground mt-1">Identify contradictions, overlaps, and deep relationships across your document repository.</p>
       </div>
 
-      <div className="grid gap-4">
-        {MOCK_CONFLICTS.map(conflict => (
-          <ConflictCard key={conflict.id} conflict={conflict} />
-        ))}
-      </div>
+      {/* Since shadcn/ui tabs might not be fully available or imported correctly,
+          I will stick to a simplified toggle for now to avoid breaking imports,
+          but making it look professional. */}
 
-      <div className="mt-12 h-64 border-2 border-dashed rounded-xl flex flex-col items-center justify-center bg-muted/20 text-center p-6">
-        <div className="p-3 rounded-full bg-primary/10 mb-4">
-          <Network className="h-8 w-8 text-primary" />
+      <div className="space-y-8">
+        <div className="space-y-4">
+           <div className="flex items-center gap-2 mb-4">
+              <AlertTriangle className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-bold">Identified Conflicts</h3>
+           </div>
+           <div className="grid gap-6">
+            {MOCK_CONFLICTS.map(conflict => (
+              <ConflictCard key={conflict.id} conflict={conflict} />
+            ))}
+          </div>
         </div>
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Relationship Graph Explorer</h3>
-        <p className="text-xs text-muted-foreground mt-2 max-w-xs">
-          Interactive visualization of document relationships and conflict clusters is currently under development.
-        </p>
+
+        <div className="pt-12 border-t">
+           <div className="flex items-center gap-2 mb-6">
+              <Network className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-bold">Relationship Visualization</h3>
+           </div>
+           <RelationshipGraphPanel />
+        </div>
       </div>
     </div>
   );

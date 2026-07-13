@@ -3,7 +3,7 @@ import {
   FileText,
   MessageSquare,
   Search,
-  Clock,
+  Scale,
   Settings,
   ShieldCheck,
   FileSearch,
@@ -23,7 +23,7 @@ export const navItems = [
     title: "Analysis",
     items: [
       { name: "Evidence Explorer", href: "/evidence", icon: Search },
-      { name: "Legal Analysis", href: "/analysis", icon: Clock },
+      { name: "Legal Analysis", href: "/analysis", icon: Scale },
       { name: "Citation Engine", href: "/citations", icon: BookOpen, comingSoon: true },
     ]
   },

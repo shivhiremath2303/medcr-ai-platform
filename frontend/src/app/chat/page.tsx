@@ -1,11 +1,17 @@
-import { AppLayout } from "@/shared/layouts/app-layout";
-import { LegalChat } from "@/features/chat/components/legal-chat";
-import { PageHeader } from "@/shared/components/dashboard/page-header";
+"use client"
 
-export const metadata = {
-  title: "Legal AI Chat | Legal AI Platform",
-  description: "Advanced RAG investigation and document querying.",
-};
+import dynamic from "next/dynamic";
+import { AppLayout } from "@/shared/layouts/app-layout";
+import { PageHeader } from "@/shared/components/dashboard/page-header";
+import { PageSkeleton } from "@/shared/components/loading/page-skeleton";
+
+const LegalChat = dynamic(
+  () => import("@/features/chat/components/legal-chat").then(mod => mod.LegalChat),
+  {
+    loading: () => <PageSkeleton />,
+    ssr: false
+  }
+);
 
 export default function ChatPage() {
   return (
