@@ -23,7 +23,7 @@ export const navItems = [
     title: "Analysis",
     items: [
       { name: "Evidence Explorer", href: "/evidence", icon: Search },
-      { name: "Case Timeline", href: "/timeline", icon: Clock, comingSoon: true },
+      { name: "Legal Analysis", href: "/analysis", icon: Clock },
       { name: "Citation Engine", href: "/citations", icon: BookOpen, comingSoon: true },
     ]
   },
