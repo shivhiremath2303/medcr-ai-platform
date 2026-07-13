@@ -1,0 +1,23 @@
+{
+  "title": "Security & Authentication",
+  "uid": "security-audit",
+  "tags": ["Security", "Auth"],
+  "panels": [
+    {
+      "title": "Login Success vs Failure",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(rate(business_user_actions_total{action='user_login'}[5m]))", "legendFormat": "Attempts" },
+        { "expr": "sum(rate(api_requests_total{path='/auth/login', status='401'}[5m]))", "legendFormat": "Failures" }
+      ]
+    },
+    {
+      "title": "Account Lockouts",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "sum(rate(business_user_actions_total{action='account_lockout'}[1h]))" }],
+      "options": { "colorMode": "background", "graphMode": "none" }
+    }
+  ]
+}

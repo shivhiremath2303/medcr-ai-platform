@@ -1,17 +1,18 @@
 from abc import ABC, abstractmethod
-
+from typing import List
 from app.domain.models import Chunk
 
 
 class KeywordRetriever(ABC):
     """
-    Interface for keyword-based retrieval.
+    Enterprise Interface for keyword-based retrieval.
+    Updated for horizontal scaling (10.3.3).
     """
 
     @abstractmethod
-    def index(self, chunks: list[Chunk]) -> None:
+    async def index(self, chunks: List[Chunk]) -> None:
         """Index the provided chunks."""
 
     @abstractmethod
-    def search(self, query: str, k: int = 5) -> list[Chunk]:
+    async def search(self, query: str, k: int = 5) -> List[Chunk]:
         """Search the indexed chunks."""

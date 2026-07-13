@@ -17,3 +17,5 @@ types-PyYAML==6.0.12.20240311
 # Security & Supply Chain
 pip-audit==2.7.3
 cyclonedx-bom==4.4.1
+bandit==1.8.2
+safety==3.2.1

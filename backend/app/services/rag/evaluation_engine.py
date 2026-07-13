@@ -3,6 +3,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 from app.core.observability.logger import get_logger
+from app.core.observability.telemetry import traced
 from app.domain.models import (
     EvaluationReport,
     Evidence,
@@ -20,8 +21,10 @@ logger = get_logger(__name__)
 class EvaluationEngine:
     """
     Scientific measurement framework for AI quality, performance and cost.
+    Part of the AI Pipeline Tracing (Milestone 10.2.1).
     """
 
+    @traced("evaluation.retrieval")
     def evaluate_retrieval(
         self, results: List[SearchResult], expected_ids: List[str]
     ) -> RetrievalMetrics:
@@ -73,6 +76,7 @@ class EvaluationEngine:
             context_utilization=round(utilization, 4),
         )
 
+    @traced("evaluation.grounding")
     def evaluate_grounding(
         self, answer: str, evidence_list: List[Evidence], grounding_score: float
     ) -> GroundingMetrics:
@@ -80,10 +84,6 @@ class EvaluationEngine:
         Phase 7.5.2: Grounding Evaluation
         """
         import re
-
-        # Citation accuracy: are cited evidences actually relevant?
-        # In a real system, we'd use another model to verify if cited text supports the statement.
-        # Here we use the calculated grounding_score as a proxy for quality.
 
         citations = re.findall(r"\[Evidence (\d+)\]", answer)
         valid_citations = [c for c in citations if 0 < int(c) <= len(evidence_list)]
@@ -100,6 +100,7 @@ class EvaluationEngine:
             evidence_coverage=round(coverage, 4),
         )
 
+    @traced("evaluation.reasoning")
     def evaluate_reasoning(self, report: ReasoningReport) -> ReasoningMetrics:
         """
         Phase 7.5.3: Reasoning Evaluation
@@ -119,6 +120,7 @@ class EvaluationEngine:
             analysis_quality_score=0.8,  # Placeholder for heuristic
         )
 
+    @traced("evaluation.performance")
     def evaluate_performance(
         self, retrieval_ms: float, total_ms: float, tokens_in: int, tokens_out: int
     ) -> PerformanceMetrics:
@@ -138,6 +140,7 @@ class EvaluationEngine:
             estimated_cost_usd=round(cost, 6),
         )
 
+    @traced("evaluation.report_generation")
     def generate_report(
         self,
         query: str,

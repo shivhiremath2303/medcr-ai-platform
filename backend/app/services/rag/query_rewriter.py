@@ -1,5 +1,4 @@
 import json
-
 from app.core.observability.logger import get_logger
 from app.domain.models.retrieval import QueryIntent, QueryUnderstanding
 from app.domain.repositories.llm_provider import LLMProvider
@@ -10,21 +9,23 @@ logger = get_logger(__name__)
 
 class QueryRewriter(IQueryRewriter):
     """
-    Intelligently rewrites and expands legal queries.
+    Intelligently rewrites and expands legal queries with Scaling support.
+    Implements Milestone 10.3.3.
     """
 
     def __init__(self, llm_provider: LLMProvider):
         self.llm_provider = llm_provider
 
-    def rewrite(
+    async def rewrite(
         self,
         question: str,
         conversation_context: str,
     ) -> str:
-        """Legacy support."""
-        return question
+        if not conversation_context:
+            return question
+        return await self.llm_provider.rewrite_question(question, conversation_context)
 
-    def understand_query(
+    async def understand_query(
         self,
         question: str,
         conversation_context: str,
@@ -32,28 +33,25 @@ class QueryRewriter(IQueryRewriter):
         """
         Detects legal intent, entities, and expands terms.
         """
+        # If there's context, rewrite first (Async)
+        rewritten = question
+        if conversation_context:
+            rewritten = await self.rewrite(question, conversation_context)
 
-        # In a real production system, this would use a specific prompt
-        # to the LLM to return a JSON with intent, entities, and expansions.
-        # For this milestone, we'll implement a hybrid logic:
-        # 1. Heuristic intent detection
-        # 2. Basic expansion
+        intent = self._detect_intent(rewritten)
+        expansions = self._expand_legal_terms(rewritten)
 
-        intent = self._detect_intent(question)
-        expansions = self._expand_legal_terms(question)
-
-        # Simple entity detection (dates, sections)
         entities = []
-        if "section" in question.lower() or "clause" in question.lower():
+        if "section" in rewritten.lower() or "clause" in rewritten.lower():
             entities.append("legal_reference")
 
         return QueryUnderstanding(
             original_query=question,
-            rewritten_query=question,  # In prod, this would be standalone
+            rewritten_query=rewritten,
             intent=intent,
             entities=entities,
             expanded_terms=expansions,
-            is_multi_doc="compare" in question.lower() or "between" in question.lower(),
+            is_multi_doc="compare" in rewritten.lower() or "between" in rewritten.lower(),
         )
 
     def _detect_intent(self, query: str) -> QueryIntent:
@@ -71,7 +69,6 @@ class QueryRewriter(IQueryRewriter):
         return QueryIntent.GENERAL_LEGAL_QA
 
     def _expand_legal_terms(self, query: str) -> list[str]:
-        # Basic legal synonym map for expansion
         expansions = []
         synonyms = {
             "termination": ["dismissal", "resignation", "breach", "cancellation"],

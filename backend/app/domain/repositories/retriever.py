@@ -1,16 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
-
-from app.domain.models import Chunk, SearchResult
-
+from typing import Any, Dict, List, Optional
+from app.domain.models import SearchResult
 
 class Retriever(ABC):
     """
-    Interface for retrieval operations.
+    Enterprise Interface for retrieval operations.
+    Updated to support async for horizontal scaling (10.3.3).
     """
 
     @abstractmethod
-    def retrieve(
+    async def retrieve(
         self, query: str, k: int = 5, params: Optional[Dict[str, Any]] = None
-    ) -> list[SearchResult]:
+    ) -> List[SearchResult]:
         """Retrieve relevant results for a query."""

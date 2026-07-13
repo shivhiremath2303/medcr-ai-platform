@@ -1,0 +1,19 @@
+{
+  "title": "Business & Operational Analytics",
+  "uid": "business-analytics",
+  "tags": ["Business", "Usage"],
+  "panels": [
+    {
+      "title": "Documents Processed by Type",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "sum(rate(business_documents_processed_total[1h])) by (extension)" }]
+    },
+    {
+      "title": "User Actions by Role",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "sum(rate(business_user_actions_total[1h])) by (role, action)" }]
+    }
+  ]
+}

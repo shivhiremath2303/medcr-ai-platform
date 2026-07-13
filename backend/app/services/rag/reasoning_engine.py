@@ -2,6 +2,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from app.core.observability.logger import get_logger
+from app.core.observability.telemetry import traced
 from app.domain.models import (
     ClauseComparison,
     Evidence,
@@ -17,8 +18,10 @@ logger = get_logger(__name__)
 class ReasoningEngine:
     """
     Service responsible for extracting structured legal reasoning from LLM output.
+    Part of the AI Pipeline Tracing (Milestone 10.2.1).
     """
 
+    @traced("reasoning.extract_structured")
     def extract_reasoning(
         self, answer: str, evidence_list: List[Evidence]
     ) -> ReasoningReport:
@@ -146,12 +149,8 @@ class ReasoningEngine:
         return rels
 
     def _extract_comparisons(self, text: str) -> List[ClauseComparison]:
-        # This is harder to extract from free-form analysis, but we can look for "Comparison:" blocks
-        # or just rely on the Analysis section for human reading.
-        # For structured extraction, we'll look for specific keywords.
         comparisons = []
         if "compare" in text.lower() or "difference" in text.lower():
-            # Heuristic: extract a single "Legal Comparison" if multi-doc is mentioned
             comparisons.append(
                 ClauseComparison(
                     clause_type="General Comparison",

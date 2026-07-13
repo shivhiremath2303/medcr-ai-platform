@@ -1,7 +1,7 @@
 # --- Stage 1: Build base ---
-FROM python:3.12-slim as builder
+FROM python:3.12-slim-bookworm as builder
 
-# Set environment variables
+# Set environment variables for build safety
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=off \
@@ -19,48 +19,66 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set work directory
 WORKDIR /build
 
-# Install dependencies
+# Install dependencies into a specific directory for easy transfer
 COPY requirements.txt .
-COPY requirements-dev.txt .
 RUN pip install --upgrade pip && \
-    pip install --user --no-warn-script-location -r requirements.txt
+    pip install --prefix=/install --no-warn-script-location -r requirements.txt
 
-# Pre-download ML models to speed up container startup and ensure CI stability
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')" && \
-    python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
+# Pre-download ML models to builder cache
+# We use a temp home to ensure the builder's environment doesn't leak into the install prefix
+ENV SENTENCE_TRANSFORMERS_HOME=/install/cache/torch/sentence_transformers
+RUN mkdir -p $SENTENCE_TRANSFORMERS_HOME && \
+    python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', cache_folder='$SENTENCE_TRANSFORMERS_HOME')" && \
+    python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2', cache_folder='$SENTENCE_TRANSFORMERS_HOME')"
 
-# --- Stage 2: Production ---
-FROM python:3.12-slim as runtime
+# --- Stage 2: Production Hardening ---
+FROM python:3.12-slim-bookworm as runtime
 
-# Create a non-root user
-RUN groupadd -r legalai && useradd -r -g legalai legalai
+# 1. Define explicit security identity (UID/GID 10001 is common for non-privileged services)
+ARG USER_ID=10001
+ARG GROUP_ID=10001
 
-# Set environment variables
+RUN groupadd -g ${GROUP_ID} legalai && \
+    useradd -l -u ${USER_ID} -g legalai -m -s /sbin/nologin legalai
+
+# 2. Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
-    SENTENCE_TRANSFORMERS_HOME=/home/legalai/.cache/torch/sentence_transformers
+    PATH="/home/legalai/.local/bin:$PATH" \
+    SENTENCE_TRANSFORMERS_HOME=/app/data/cache/models
 
-# Set work directory
+# 3. Secure Workspace Preparation
 WORKDIR /app
 
-# Copy dependencies and pre-downloaded models from builder
-COPY --from=builder /root/.local /home/legalai/.local
-COPY --from=builder /root/.cache /home/legalai/.cache
+# 4. Copy dependencies from builder
+COPY --from=builder /install/lib /usr/local/lib
+COPY --from=builder /install/bin /usr/local/bin
+COPY --from=builder /install/cache/torch/sentence_transformers /app/data/cache/models
 
-ENV PATH=/home/legalai/.local/bin:$PATH
+# 5. Copy Application Source
+# We copy this as root first to ensure immutability
+COPY app /app/app
+COPY main.py /app/
 
-# Install runtime system dependencies (if any)
+# 6. Create structure for writable directories (to be used as volumes or tmpfs)
+# We place these under /app but they must be owned by the app user
+RUN mkdir -p /app/uploads/documents /app/data/faiss /app/data/metadata /app/data/temp /app/data/cache /app/logs && \
+    chown -R legalai:legalai /app/uploads /app/data /app/logs
+
+# 7. Harden permissions
+# - Source code (/app/app) should be owned by root and read-only for legalai
+# - This prevents "In-container code modification" if the process is compromised
+RUN chown -R root:root /app && \
+    chown -R legalai:legalai /app/uploads /app/data /app/logs && \
+    chmod -R 555 /app/app && \
+    chmod 555 /app/main.py
+
+# 8. Install runtime essentials only
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
     && rm -rf /var/lib/apt/lists/*
-
-# Copy application code
-COPY . .
-
-# Create necessary directories and set permissions
-RUN mkdir -p uploads/documents data/faiss data/metadata data/temp data/cache logs && \
-    chown -R legalai:legalai /app /home/legalai/.cache
 
 # Switch to non-root user
 USER legalai
@@ -68,9 +86,11 @@ USER legalai
 # Expose port
 EXPOSE 8000
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health/ready || exit 1
+# 9. Hardened Healthcheck
+# Uses a non-shell form for efficiency and security
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD ["curl", "-f", "http://localhost:8000/health/ready"]
 
-# Start the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 10. Execution
+# We use uvicorn directly. In high-security environments, consider a process manager like gunicorn with UvicornWorker.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "warning"]

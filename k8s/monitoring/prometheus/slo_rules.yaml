@@ -1,0 +1,40 @@
+groups:
+  - name: legal_ai_slo_metrics
+    interval: 1m
+    rules:
+      # --- Availability SLI (Service Level Indicator) ---
+      # Ratio of successful requests to total requests (excluding 4xx which are often client errors)
+      - record: job:api_availability:ratio_rate5m
+        expr: |
+          sum(rate(api_requests_total{status!~"5.."}[5m])) 
+          / 
+          sum(rate(api_requests_total[5m]))
+
+      # --- Latency SLI ---
+      # Percentage of requests faster than 2 seconds (FastAPI goal)
+      - record: job:api_latency_compliance:ratio_rate5m
+        expr: |
+          sum(rate(api_request_duration_seconds_bucket{le="2.0"}[5m]))
+          /
+          sum(rate(api_request_duration_seconds_count[5m]))
+
+      # --- AI Quality SLI ---
+      # Percentage of RAG answers with grounding score > 0.7
+      - record: job:ai_grounding_compliance:ratio_rate1h
+        expr: |
+          sum(rate(ai_evaluation_score_bucket{metric="grounding", le="+Inf"}[1h])) 
+          - sum(rate(ai_evaluation_score_bucket{metric="grounding", le="0.7"}[1h]))
+          /
+          sum(rate(ai_evaluation_score_count{metric="grounding"}[1h]))
+
+  - name: legal_ai_error_budgets
+    interval: 5m
+    rules:
+      # Error Budget Remaining (Target: 99.9% availability over 30d)
+      # Budget = (1 - Target) - (1 - Availability)
+      - record: job:api_availability:error_budget_remaining
+        expr: 100 - ((1 - avg_over_time(job:api_availability:ratio_rate5m[30d])) / (1 - 0.999) * 100)
+
+      # Latency Budget Remaining (Target: 95% of requests < 2s over 7d)
+      - record: job:api_latency:error_budget_remaining
+        expr: 100 - ((1 - avg_over_time(job:api_latency_compliance:ratio_rate5m[7d])) / (1 - 0.95) * 100)

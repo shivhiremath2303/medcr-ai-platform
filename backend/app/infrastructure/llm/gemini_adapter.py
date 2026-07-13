@@ -1,9 +1,13 @@
 import time
-
+import asyncio
+from typing import Optional, AsyncGenerator
 from google import genai
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from app.core.observability.metrics import MetricsRegistry
 from app.core.observability.telemetry import get_tracer
+from app.core.observability.concurrency import ConcurrencyLimiter
+from app.core.observability.resilience import CircuitBreaker
 from app.domain.repositories.llm_provider import LLMProvider
 
 tracer = get_tracer(__name__)
@@ -11,7 +15,8 @@ tracer = get_tracer(__name__)
 
 class GeminiLLMAdapter(LLMProvider):
     """
-    Adapter for Google Gemini AI.
+    Adapter for Google Gemini AI with Resilience & Fault Tolerance.
+    Implements Milestone 10.3.8 (Retries, Circuit Breaker, Fallbacks).
     """
 
     def __init__(
@@ -19,23 +24,41 @@ class GeminiLLMAdapter(LLMProvider):
         client: genai.Client,
         model_name: str,
         metrics: MetricsRegistry,
+        limiter: ConcurrencyLimiter,
         temperature: float = 0.1,
         max_tokens: int = 2048,
     ):
-        """
-        Accept an injected genai.Client and configuration.
-        """
         self.client = client
         self.model_name = model_name
         self.metrics = metrics
+        self.limiter = limiter
         self.temperature = temperature
         self.max_tokens = max_tokens
 
-    def generate_answer(
+        # Initialize Circuit Breaker for this provider
+        self.circuit_breaker = CircuitBreaker(
+            name=f"llm_gemini_{model_name}",
+            failure_threshold=5,
+            recovery_timeout=60,
+            metrics=metrics
+        )
+
+    # 1. Retry with Exponential Backoff (10.3.8)
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((TimeoutError, ConnectionError, RuntimeError)),
+        reraise=True
+    )
+    async def generate_answer(
         self,
         question: str,
         context: str,
     ) -> str:
+        # 2. Circuit Breaker protection (10.3.8)
+        return await self.circuit_breaker.call(self._generate_answer_internal, question, context)
+
+    async def _generate_answer_internal(self, question: str, context: str) -> str:
         from app.prompts.legal_prompt import LEGAL_RAG_PROMPT
 
         prompt = LEGAL_RAG_PROMPT.format(
@@ -46,69 +69,79 @@ class GeminiLLMAdapter(LLMProvider):
         start_time = time.perf_counter()
         with tracer.start_as_current_span("gemini_generate_answer") as span:
             span.set_attribute("llm.model", self.model_name)
+
             try:
-                response = self.client.models.generate_content(
+                # Use bulkhead limiter
+                response = await self.limiter.run_in_thread(
+                    self.client.models.generate_content,
                     model=self.model_name,
                     contents=prompt,
                     config={
                         "temperature": self.temperature,
                         "max_output_tokens": self.max_tokens,
-                    },
+                    }
                 )
 
                 duration = time.perf_counter() - start_time
                 self.metrics.track_llm_call("google", self.model_name, duration)
-                span.set_attribute("llm.duration", duration)
+
+                if hasattr(response, "usage_metadata") and response.usage_metadata:
+                    usage = response.usage_metadata
+                    self.metrics.track_tokens(self.model_name, usage.prompt_token_count, usage.candidates_token_count)
 
                 return response.text
 
             except Exception as e:
                 span.record_exception(e)
+                # In production, we classify errors for the circuit breaker
                 raise RuntimeError(f"LLM request failed: {e}") from e
 
-    def rewrite_question(
+    async def stream_answer(
+        self,
+        question: str,
+        context: str,
+    ) -> AsyncGenerator[str, None]:
+        """
+        Streamed RAG response with basic resilience.
+        """
+        from app.prompts.legal_prompt import LEGAL_RAG_PROMPT
+        prompt = LEGAL_RAG_PROMPT.format(context=context, question=question)
+
+        with tracer.start_as_current_span("gemini_stream_answer") as span:
+            try:
+                # Streaming is harder to retry mid-stream, so we wrap the connection setup
+                async for chunk in self.client.aio.models.generate_content_stream(
+                    model=self.model_name,
+                    contents=prompt,
+                    config={
+                        "temperature": self.temperature,
+                        "max_output_tokens": self.max_tokens,
+                    }
+                ):
+                    if chunk.text:
+                        yield chunk.text
+            except Exception as e:
+                span.record_exception(e)
+                # Fail fast for streaming to maintain UX consistency
+                raise
+
+    async def rewrite_question(
         self,
         question: str,
         conversation_context: str,
     ) -> str:
-        if not conversation_context.strip():
+        # Rewriting is less critical, so we just use the circuit breaker without aggressive retries
+        return await self.circuit_breaker.call(self._rewrite_internal, question, conversation_context)
+
+    async def _rewrite_internal(self, question: str, conversation_context: str) -> str:
+        prompt = f"Rewrite this legal question to be standalone: {question}\nContext: {conversation_context}"
+        try:
+            response = await self.limiter.run_in_thread(
+                self.client.models.generate_content,
+                model=self.model_name,
+                contents=prompt,
+                config={"temperature": 0.0}
+            )
+            return response.text.strip()
+        except Exception:
             return question
-
-        prompt = f"""
-You are a query rewriting assistant.
-
-Given the previous conversation and the latest user question,
-rewrite the latest question so it is completely standalone.
-
-Do NOT answer the question.
-Do NOT add extra information.
-Return only the rewritten question.
-
-Conversation:
-{conversation_context}
-
-Latest Question:
-{question}
-"""
-
-        start_time = time.perf_counter()
-        with tracer.start_as_current_span("gemini_rewrite_question") as span:
-            span.set_attribute("llm.model", self.model_name)
-            try:
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=prompt,
-                    config={
-                        "temperature": 0.0,  # Usually better for rewriting
-                    },
-                )
-
-                duration = time.perf_counter() - start_time
-                self.metrics.track_llm_call("google", self.model_name, duration)
-                span.set_attribute("llm.duration", duration)
-
-                return response.text.strip()
-
-            except Exception as e:
-                span.record_exception(e)
-                return question

@@ -2,6 +2,7 @@ import re
 from typing import Any, Dict, List
 
 from app.core.observability.logger import get_logger
+from app.core.observability.telemetry import traced
 from app.domain.models import (
     AnswerStatus,
     Evidence,
@@ -17,8 +18,10 @@ class GroundingEngine:
     """
     Service responsible for hallucination detection, grounding validation,
     and evidence sufficiency analysis.
+    Part of the AI Pipeline Tracing (Milestone 10.2.1).
     """
 
+    @traced("grounding.analyze_sufficiency")
     def analyze_sufficiency(
         self, results: List[SearchResult], confidence: float
     ) -> SufficiencyLevel:
@@ -36,6 +39,7 @@ class GroundingEngine:
 
         return SufficiencyLevel.PARTIAL
 
+    @traced("grounding.calculate_score")
     def calculate_grounding_score(
         self,
         evidence_list: List[Evidence],
@@ -86,6 +90,7 @@ class GroundingEngine:
 
         return round(score, 4)
 
+    @traced("grounding.detect_contradictions")
     def detect_contradictions(self, answer: str) -> List[str]:
         """
         Extract contradiction notes from LLM output.
@@ -97,6 +102,7 @@ class GroundingEngine:
         )
         return [c.strip() for r in conflicts if (c := r.strip())]
 
+    @traced("grounding.detect_missing")
     def detect_missing_evidence(self, answer: str) -> List[str]:
         """
         Extract missing document/clause notes from LLM output.
@@ -108,6 +114,7 @@ class GroundingEngine:
         )
         return [m.strip() for r in missing if (m := r.strip())]
 
+    @traced("grounding.determine_status")
     def determine_status(
         self,
         answer: str,
@@ -135,6 +142,7 @@ class GroundingEngine:
 
         return AnswerStatus.PARTIALLY_SUPPORTED
 
+    @traced("grounding.validate_citations")
     def validate_answer(self, answer: str, evidence_list: List[Evidence]) -> List[str]:
         """
         Performs a final verification check on citations.

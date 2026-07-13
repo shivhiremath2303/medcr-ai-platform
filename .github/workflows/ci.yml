@@ -12,6 +12,9 @@ on:
       - 'backend/**'
       - '.github/workflows/ci.yml'
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Run Tests
@@ -36,6 +39,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -66,5 +71,5 @@ jobs:
 
       - name: Verify Coverage Threshold
         run: |
-          # Example: fail if coverage is below 50%
+          # fail if coverage is below 50%
           coverage report --fail-under=50

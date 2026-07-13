@@ -15,19 +15,40 @@ spec:
   ingress:
     # Allow ingress from Ingress Controller
     - from:
-        - podSelector:
+        - namespaceSelector:
             matchLabels:
-              app.kubernetes.io/name: ingress-nginx
+              kubernetes.io/metadata.name: ingress-nginx
   egress:
-    # Allow egress to Redis
+    # 1. Allow egress to Redis
     - to:
         - podSelector:
             matchLabels:
               {{- include "legal-ai.selectorLabels" . | nindent 14 }}
               app: redis
-    - ports:
+      ports:
         - protocol: TCP
           port: 6379
+    
+    # 2. Allow DNS (CoreDNS)
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+    # 3. Allow Egress to AI Providers (HTTPS/443)
+    # Note: In a true zero-trust env, we would use an Egress Gateway or IP CIDRs
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -41,8 +62,9 @@ spec:
       app: redis
   policyTypes:
     - Ingress
+    - Egress
   ingress:
-    # Allow ingress only from Backend
+    # Allow ingress only from Backend within the same namespace
     - from:
         - podSelector:
             matchLabels:
@@ -51,4 +73,7 @@ spec:
       ports:
         - protocol: TCP
           port: 6379
+  egress:
+    # Redis typically needs no egress in this architecture
+    - []
 {{- end }}

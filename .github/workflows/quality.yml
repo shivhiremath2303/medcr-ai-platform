@@ -12,6 +12,9 @@ on:
       - 'backend/**'
       - '.github/workflows/quality.yml'
 
+permissions:
+  contents: read
+
 jobs:
   quality:
     name: Lint & Format & Type Check
@@ -25,6 +28,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5

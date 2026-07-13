@@ -1,47 +1,148 @@
 groups:
-  - name: legal_ai_alerts
+  - name: legal_ai_enterprise_alerts
     rules:
-      - alert: HighErrorRate
-        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+      # --- API & Performance Alerts ---
+      - alert: APIHighErrorRate
+        expr: sum(rate(api_requests_total{status=~"5.."}[5m])) by (path) / sum(rate(api_requests_total[5m])) by (path) > 0.05
         for: 2m
         labels:
           severity: critical
+          category: api
         annotations:
-          summary: "High HTTP 5xx error rate on {{ $labels.instance }}"
-          description: "Error rate is above 5% for the last 2 minutes."
+          summary: "High HTTP 5xx error rate on {{ $labels.path }}"
+          description: "Endpoint {{ $labels.path }} is failing more than 5% of requests for the last 2 minutes."
 
-      - alert: HighLatency
-        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 2
+      - alert: APIHighLatency
+        expr: histogram_quantile(0.99, sum(rate(api_request_duration_seconds_bucket[5m])) by (le, path)) > 5
         for: 5m
         labels:
           severity: warning
+          category: api
         annotations:
-          summary: "High API Latency (p95) on {{ $labels.instance }}"
-          description: "p95 latency is above 2s for the last 5 minutes."
+          summary: "API Latency spike (p99) on {{ $labels.path }}"
+          description: "p99 latency for {{ $labels.path }} is above 5s for the last 5 minutes."
 
-      - alert: RedisDown
-        expr: redis_up == 0
+      # --- AI & RAG Operational Alerts ---
+      - alert: LLMServiceDegradation
+        expr: sum(rate(ai_llm_calls_total{status="error"}[5m])) / sum(rate(ai_llm_calls_total[5m])) > 0.15
+        for: 3m
+        labels:
+          severity: critical
+          category: ai
+        annotations:
+          summary: "LLM Provider is degraded"
+          description: "LLM calls are failing at a rate above 15% in the last 3 minutes."
+
+      - alert: AIQualityDrop
+        expr: avg_over_time(ai_evaluation_score{metric="grounding"}[15m]) < 0.65
+        for: 10m
+        labels:
+          severity: warning
+          category: ai
+        annotations:
+          summary: "Significant drop in AI Grounding Score"
+          description: "Average grounding score has dropped below 0.65 for the last 15 minutes."
+
+      - alert: AICostSpike
+        expr: rate(ai_cost_usd_total[1h]) * 24 > 50
+        for: 1h
+        labels:
+          severity: critical
+          category: ai
+        annotations:
+          summary: "AI Daily Spend Forecast exceeded"
+          description: "Current hourly burn rate exceeds $50/day forecast."
+
+      # --- Security & Auth Alerts ---
+      - alert: BruteForceAttempt
+        expr: sum(rate(api_requests_total{path="/auth/login", status="401"}[5m])) > 20
+        for: 2m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "Possible Brute Force detected"
+          description: "High rate of 401 Unauthorized responses detected on login endpoint (>20/min)."
+
+      - alert: ExcessiveAccountLockouts
+        expr: sum(rate(business_user_actions_total{action="account_lockout"}[15m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "High rate of account lockouts"
+          description: "More than 5 accounts were locked out in the last 15 minutes."
+
+      # --- Infrastructure Alerts ---
+      - alert: RedisConnectivityLost
+        expr: infra_redis_operations_total{status="error"} > 0
         for: 1m
         labels:
           severity: critical
+          category: infra
         annotations:
-          summary: "Redis instance down"
-          description: "Redis instance {{ $labels.instance }} is unreachable."
+          summary: "Redis operations are failing"
+          description: "Application is reporting errors while communicating with Redis."
 
-      - alert: HighHallucinationRate
-        expr: avg(evaluation_scores{metric="grounding"}) < 0.7
-        for: 15m
+      - alert: VectorStoreSaturation
+        expr: infra_vector_store_documents_total > 1000000
+        for: 1h
         labels:
           severity: warning
+          category: infra
         annotations:
-          summary: "High hallucination rate detected"
-          description: "Average grounding score is below 0.7 for the last 15 minutes."
+          summary: "Vector Store approaching capacity"
+          description: "FAISS index has exceeded 1 million documents. Consider horizontal scaling or sharding."
 
-      - alert: LLMFailureRate
-        expr: sum(rate(llm_calls_total{status="error"}[10m])) / sum(rate(llm_calls_total[10m])) > 0.1
-        for: 5m
+      - alert: StorageWriteFailure
+        expr: delta(infra_pipeline_steps_total{step="storage_write", status="error"}[5m]) > 0
+        for: 1m
         labels:
           severity: critical
+          category: infra
         annotations:
-          summary: "High LLM failure rate"
-          description: "LLM calls are failing at a rate above 10%."
+          summary: "Document storage write failures"
+          description: "The system is unable to write documents to disk/S3."
+
+      # --- Capacity & Resource Monitoring (10.2.10) ---
+      - alert: PodMemorySaturation
+        expr: container_memory_usage_bytes{container="backend"} / container_spec_memory_limit_bytes{container="backend"} > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          category: infra
+        annotations:
+          summary: "Backend Memory Saturation High (>85%)"
+          description: "Container {{ $labels.pod }} is using {{ $value | humanizePercentage }} of its memory limit. Risk of OOM kill."
+
+      - alert: PodCPUSaturation
+        expr: rate(container_cpu_usage_seconds_total{container="backend"}[5m]) / container_spec_cpu_quota{container="backend"} > 0.90
+        for: 5m
+        labels:
+          severity: warning
+          category: infra
+        annotations:
+          summary: "Backend CPU Saturation High (>90%)"
+          description: "Container {{ $labels.pod }} is near CPU limits. Throttling may occur."
+
+      - alert: HPAAtMaxCapacity
+        expr: kube_horizontalpodautoscaler_status_current_replicas == kube_horizontalpodautoscaler_spec_max_replicas
+        for: 10m
+        labels:
+          severity: warning
+          category: infra
+        annotations:
+          summary: "HPA reached Max Replicas"
+          description: "Horizontal Pod Autoscaler {{ $labels.horizontalpodautoscaler }} is at max capacity. System cannot scale further for load."
+
+      - alert: ErrorBudgetCritical
+        expr: job:api_availability:error_budget_remaining < 10
+        for: 1h
+        labels:
+          severity: critical
+          category: business
+        annotations:
+          summary: "API Error Budget Critical (<10%)"
+          description: "Service Level Objective (99.9% availability) is at risk. Stop non-critical releases."
+

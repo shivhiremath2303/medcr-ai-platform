@@ -1,30 +1,50 @@
 {
-  "title": "Legal AI Platform Overview",
+  "title": "Legal AI Platform Executive Summary",
+  "uid": "main-summary",
+  "timezone": "browser",
   "panels": [
     {
-      "title": "Request Rate",
-      "type": "timeseries",
-      "targets": [{ "expr": "sum(rate(http_requests_total[5m])) by (method, path)" }]
+      "title": "Availability SLO (Target 99.9%)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "targets": [{ "expr": "avg_over_time(job:api_availability:ratio_rate5m[30d]) * 100" }],
+      "fieldConfig": { "defaults": { "unit": "percent", "thresholds": { "steps": [{ "color": "red", "value": 0 }, { "color": "yellow", "value": 99.5 }, { "color": "green", "value": 99.9 }] } } }
     },
     {
-      "title": "p95 Latency",
-      "type": "timeseries",
-      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))" }]
+      "title": "Error Budget Remaining",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "targets": [{ "expr": "job:api_availability:error_budget_remaining" }],
+      "fieldConfig": { "defaults": { "unit": "percent", "thresholds": { "steps": [{ "color": "red", "value": 0 }, { "color": "yellow", "value": 20 }, { "color": "green", "value": 50 }] } } }
     },
     {
-      "title": "Error Rate (5xx)",
-      "type": "timeseries",
-      "targets": [{ "expr": "sum(rate(http_requests_total{status=~'5..'}[5m]))" }]
+      "title": "AI Quality Compliance",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "targets": [{ "expr": "job:ai_grounding_compliance:ratio_rate1h * 100" }],
+      "fieldConfig": { "defaults": { "unit": "percent", "thresholds": { "steps": [{ "color": "red", "value": 0 }, { "color": "yellow", "value": 85 }, { "color": "green", "value": 95 }] } } }
     },
     {
-      "title": "LLM Latency",
-      "type": "timeseries",
-      "targets": [{ "expr": "avg(llm_call_duration_seconds)" }]
+      "title": "Total AI Spend (USD)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "targets": [{ "expr": "sum(ai_cost_usd_total)" }],
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
     },
     {
-      "title": "Grounding Scores",
-      "type": "gauge",
-      "targets": [{ "expr": "avg(evaluation_scores{metric='grounding'})" }]
+      "title": "Request Latency (p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 6 },
+      "targets": [{ "expr": "histogram_quantile(0.99, sum(rate(api_request_duration_seconds_bucket[5m])) by (le))" }]
+    },
+    {
+      "title": "HPA Scaling Status",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        { "expr": "kube_horizontalpodautoscaler_status_current_replicas", "legendFormat": "Current Replicas" },
+        { "expr": "kube_horizontalpodautoscaler_spec_max_replicas", "legendFormat": "Max Capacity" }
+      ]
     }
   ]
 }
