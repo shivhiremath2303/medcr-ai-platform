@@ -1,4 +1,5 @@
 export type Severity = "low" | "medium" | "high" | "critical";
+export type RiskLevel = "low" | "medium" | "high" | "critical";
 
 export interface Evidence {
   id: string;
@@ -15,6 +16,12 @@ export interface TimelineEvent {
   description: string;
   evidence: Evidence[];
   tags: string[];
+  // Future backend metadata
+  legalIssue?: string;
+  evidenceCount?: number;
+  citationCount?: number;
+  confidenceScore?: number;
+  category?: string;
 }
 
 export interface LegalClause {
@@ -35,6 +42,10 @@ export interface ClauseComparison {
     endIndex: number;
   }[];
   conflicts: string[];
+  // Future backend metadata
+  legalImpact?: string;
+  riskLevel?: RiskLevel;
+  confidenceScore?: number;
 }
 
 export interface LegalConflict {
@@ -45,4 +56,9 @@ export interface LegalConflict {
   evidence: Evidence[];
   reasoning: string;
   relationshipType: string;
+  // Future backend metadata
+  suggestedResolution?: string;
+  relatedClauses?: string[];
+  confidenceScore?: number;
+  reasoningSummary?: string;
 }

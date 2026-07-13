@@ -1,10 +1,16 @@
-import { AppLayout } from "@/shared/layouts/app-layout";
-import { DocumentManagement } from "@/features/documents/components/document-management";
+"use client"
 
-export const metadata = {
-  title: "Documents | Legal AI Platform",
-  description: "Ingest and manage legal evidence for AI analysis.",
-};
+import dynamic from "next/dynamic";
+import { AppLayout } from "@/shared/layouts/app-layout";
+import { PageSkeleton } from "@/shared/components/loading/page-skeleton";
+
+const DocumentManagement = dynamic(
+  () => import("@/features/documents/components/document-management").then(mod => mod.DocumentManagement),
+  {
+    loading: () => <PageSkeleton />,
+    ssr: false // Client-side heavy feature
+  }
+);
 
 export default function DocumentsPage() {
   return (
