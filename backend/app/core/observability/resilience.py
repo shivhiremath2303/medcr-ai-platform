@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import inspect
 import logging
 import time
 from datetime import datetime, timedelta
@@ -64,7 +65,7 @@ class CircuitBreaker:
 
         try:
             # Execution
-            if asyncio.iscoroutinefunction(func):
+            if inspect.iscoroutinefunction(func):
                 result = await func(*args, **kwargs)
             else:
                 result = func(*args, **kwargs)

@@ -61,6 +61,7 @@ class SourceResponse(BaseModel):
 class EvaluationSchema(BaseModel):
     retrieval_ndcg: float
     grounding_score: float
+    citation_accuracy: float
     reasoning_consistency: float
     hallucination_rate: float
     overall_score: float

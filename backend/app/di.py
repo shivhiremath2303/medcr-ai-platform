@@ -38,6 +38,9 @@ from app.domain.repositories.context_builder import ContextBuilder as IContextBu
 from app.domain.repositories.query_rewriter import QueryRewriter as IQueryRewriter
 from app.domain.repositories.security.secret_provider import SecretProvider
 from app.infrastructure.background.redis_job_queue import RedisJobQueueProvider
+from app.infrastructure.background.fastapi_background_tasks import (
+    FastAPIBackgroundTaskProvider,
+)
 from app.infrastructure.embeddings.huggingface_adapter import (
     HuggingFaceEmbeddingAdapter,
 )
@@ -431,6 +434,18 @@ if _redis_client:
 else:
     _background_task_provider = None
 
+
+def get_background_task_provider(
+    background_tasks: BackgroundTasks,
+) -> BackgroundTaskProvider:
+    """
+    Enterprise Background Task Provider with fallback (10.3.2/10.3.7).
+    """
+    if _background_task_provider:
+        return _background_task_provider
+    return FastAPIBackgroundTaskProvider(background_tasks)
+
+
 _worker_service = (
     WorkerService(
         task_provider=_background_task_provider,
@@ -440,10 +455,6 @@ _worker_service = (
     if _background_task_provider
     else None
 )
-
-
-def get_background_task_provider() -> BackgroundTaskProvider:
-    return _background_task_provider
 
 
 def get_worker_service() -> WorkerService:

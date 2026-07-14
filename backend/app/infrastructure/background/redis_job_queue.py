@@ -1,7 +1,6 @@
 import json
-import time
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Dict, List, Optional
 
 from app.core.observability.metrics import MetricsRegistry
@@ -79,9 +78,9 @@ class RedisJobQueueProvider(BackgroundTaskProvider):
         task.status = status
 
         if status == TaskStatus.RUNNING:
-            task.started_at = datetime.utcnow()
+            task.started_at = datetime.now(UTC)
         elif status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
-            task.completed_at = datetime.utcnow()
+            task.completed_at = datetime.now(UTC)
             task.result = result
             task.error = error
 

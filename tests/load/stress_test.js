@@ -31,7 +31,7 @@ export default function () {
         'status is 200 or 503': (r) => [200, 503].includes(r.status),
     });
 
-    if (r.status === 503) {
+    if (res.status === 503) {
         console.warn('System under pressure (503 Service Unavailable). Load shedding active.');
     }
 

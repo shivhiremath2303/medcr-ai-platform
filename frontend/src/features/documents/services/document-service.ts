@@ -10,15 +10,6 @@ export const documentService = {
     const formData = new FormData();
     formData.append("file", file);
 
-    // We use a custom fetch here because apiClient default is JSON
-    // but our apiClient wrapper can handle custom bodies if we don't stringify
-    // However, the current apiClient stringifies body by default in POST.
-    // Let's use a raw fetch or adjust apiClient to handle FormData.
-
-    // I will use a direct fetch or better, I should have updated apiClient
-    // to handle FormData in Step 2, but for now I'll do a specialized request.
-
-    // Re-using headers and base URL logic from apiClient but with FormData
     const token = localStorage.getItem("auth_token");
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -39,18 +30,18 @@ export const documentService = {
   },
 
   /**
-   * Fetches a list of all documents.
-   * NOTE: Based on Audit, this endpoint is currently NOT EXPOSED by the backend API.
-   * We implement the service call anyway for future-readiness.
+   * Fetches a list of all documents with pagination support.
    */
-  getDocuments: async (): Promise<Document[]> => {
-    // This will currently fail with 404 until backend adds the route
-    return apiClient.get<Document[]>("/api/v1/documents");
+  getDocuments: async (limit: number = 20, offset: number = 0): Promise<Document[]> => {
+    const response = await apiClient.get<DocumentListResponse>(
+      `/api/v1/documents?limit=${limit}&offset=${offset}`
+    );
+    // Flatten items for the current frontend hook compatibility
+    return response.items;
   },
 
   /**
    * Fetches a single document by ID.
-   * NOTE: Based on Audit, this endpoint is currently NOT EXPOSED by the backend API.
    */
   getDocumentById: async (id: string): Promise<Document> => {
     return apiClient.get<Document>(`/api/v1/documents/${id}`);
@@ -58,9 +49,15 @@ export const documentService = {
 
   /**
    * Deletes a document by ID.
-   * NOTE: Based on Audit, this endpoint is currently NOT EXPOSED by the backend API.
    */
   deleteDocument: async (id: string): Promise<void> => {
     return apiClient.delete(`/api/v1/documents/${id}`);
+  },
+
+  /**
+   * Polls for the status of a background task.
+   */
+  getTaskStatus: async (taskId: string) => {
+    return apiClient.get(`/api/v1/tasks/${taskId}`);
   },
 };

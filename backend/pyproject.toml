@@ -29,6 +29,9 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=xml",
 ]
+markers = [
+    "asyncio: mark async tests",
+]
 
 [tool.coverage.run]
 source = [

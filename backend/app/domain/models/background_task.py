@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TaskStatus(str, Enum):
@@ -24,6 +24,8 @@ class BackgroundTask(BaseModel):
     Enterprise Background Task Model (Milestone 10.3.2).
     """
 
+    model_config = ConfigDict(use_enum_values=True)
+
     task_id: str
     name: str
     status: TaskStatus = TaskStatus.PENDING
@@ -33,9 +35,6 @@ class BackgroundTask(BaseModel):
     error: Optional[str] = None
     retry_count: int = 0
     max_retries: int = 3
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
-
-    class Config:
-        use_enum_values = True

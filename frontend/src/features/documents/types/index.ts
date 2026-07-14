@@ -7,21 +7,23 @@ export interface Document {
   document_id: string;
   filename: string;
   page_count: number;
+  owner_id?: string;
   pages?: DocumentPage[];
   created_at?: string;
-  status?: "processing" | "completed" | "failed";
+  status?: "pending" | "running" | "completed" | "failed";
 }
 
 export interface UploadResponse {
   message: string;
   filename: string;
-  chunks: number;
-  document_id?: string;
+  task_id: string;
 }
 
 export interface DocumentListResponse {
-  documents: Document[];
+  items: Document[];
   total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface SearchFilters {

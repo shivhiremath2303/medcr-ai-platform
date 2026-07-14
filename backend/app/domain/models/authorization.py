@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Any
 
 from app.domain.models.user import UserRole
 
@@ -25,6 +25,22 @@ class Permission(str, Enum):
     ADMIN_METRICS = "admin:metrics"
     ADMIN_USER_MANAGE = "admin:user_manage"
     ADMIN_CACHE_MANAGE = "admin:cache_manage"
+
+
+class Role(str, Enum):
+    """Legacy Role model for backward compatibility with existing tests."""
+    ADMIN = "admin"
+    LAWYER = "lawyer"
+    PARALEGAL = "paralegal"
+    REVIEWER = "reviewer"
+    READ_ONLY = "read_only"
+
+
+class RolePermissions:
+    """Helper for checking permissions (used by tests)."""
+    @staticmethod
+    def get_for_role(role: Any) -> Set[Permission]:
+        return ROLE_PERMISSIONS.get(role, set())
 
 
 # Role to Permission Mapping

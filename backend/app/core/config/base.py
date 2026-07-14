@@ -175,6 +175,12 @@ class Settings(BaseSettings):
     conversation_ttl: int = Field(
         3600 * 24, description="Conversation history TTL in seconds (24h)"
     )
+
+    max_conversation_messages: int = Field(
+        100,
+        description="Maximum number of messages retained per conversation",
+    )
+
     token_revocation_ttl: int = Field(
         3600 * 2, description="Token revocation record TTL in seconds"
     )

@@ -7,13 +7,9 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
 from app import di
-from app.api.router import router
-from app.api.routes.auth import router as auth_router
-from app.api.routes.documents import router as document_router
+from app.api.router import api_router
 from app.api.routes.health import router as health_router
 from app.api.routes.metrics import router as metrics_router
-from app.api.routes.rag import router as rag_router
-from app.api.routes.tasks import router as task_router
 from app.core.config import get_settings
 from app.core.observability.context import get_request_id
 from app.core.observability.logger import get_logger, setup_logging
@@ -145,6 +141,15 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
+@app.get("/", tags=["Public"])
+async def home():
+    return {
+        "message": "Welcome to MedCR AI Platform",
+        "status": "online",
+        "version": settings.app_version,
+    }
+
+
 @app.get("/version", tags=["Public"])
 async def version():
     return {
@@ -154,11 +159,9 @@ async def version():
     }
 
 
-# Include routers
-app.include_router(router)
-app.include_router(auth_router)
-app.include_router(document_router)
-app.include_router(rag_router)
-app.include_router(task_router)
+# Include v1 API routes
+app.include_router(api_router, prefix="/api/v1")
+
+# Public observability routes (Probes and Prometheus)
 app.include_router(health_router)
 app.include_router(metrics_router)
