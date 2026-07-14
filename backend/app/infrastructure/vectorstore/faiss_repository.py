@@ -72,8 +72,9 @@ class FAISSVectorRepository(VectorStoreRepository):
                 await self.limiter.run_in_thread(self._add_sync, chunks)
 
     def _add_sync(self, chunks: List[Chunk]) -> None:
-        texts, metadatas = self._prepare_chunks(chunks)
-        self.vector_store.add_texts(texts=texts, metadatas=metadatas)
+        if self.vector_store:
+            texts, metadatas = self._prepare_chunks(chunks)
+            self.vector_store.add_texts(texts=texts, metadatas=metadatas)
 
     def _prepare_chunks(self, chunks: List[Chunk]) -> tuple[List[str], List[dict]]:
         texts = [chunk.text for chunk in chunks]
@@ -105,6 +106,8 @@ class FAISSVectorRepository(VectorStoreRepository):
             return results
 
     def _search_sync(self, query: str, k: int) -> List[SearchResult]:
+        if not self.vector_store:
+            return []
         # relevance scores in FAISS are distances (lower is better, but LangChain normalizes some)
         docs_and_scores = self.vector_store.similarity_search_with_relevance_scores(
             query=query,
@@ -176,6 +179,8 @@ class FAISSVectorRepository(VectorStoreRepository):
         return await self.limiter.run_in_thread(self._get_all_chunks_sync)
 
     def _get_all_chunks_sync(self) -> List[Chunk]:
+        if not self.vector_store:
+            return []
         chunks = []
         docstore = self.vector_store.docstore
         for doc_id in self.vector_store.index_to_docstore_id.values():
@@ -211,5 +216,8 @@ class FAISSVectorRepository(VectorStoreRepository):
                 index_name=self.index_name,
                 allow_dangerous_deserialization=True,
             )
-            self.vector_store.merge_from(other_index)
+            if self.vector_store:
+                self.vector_store.merge_from(other_index)
+            else:
+                self.vector_store = other_index
             await self.save()

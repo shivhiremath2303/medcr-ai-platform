@@ -1,7 +1,7 @@
 import asyncio
 from typing import List
 
-from rank_bm25 import BM25Okapi  # type: ignore
+from rank_bm25 import BM25Okapi
 
 from app.domain.models.chunk import Chunk
 from app.domain.repositories.keyword_retriever import KeywordRetriever

@@ -99,7 +99,7 @@ class RAGService:
             )
             results = self.cache.get(retrieval_cache_key)
 
-            retrieval_ms = 0
+            retrieval_ms = 0.0
             if results:
                 logger.info("Serving retrieval results from cache.")
                 span.set_attribute("retrieval.cache_hit", True)

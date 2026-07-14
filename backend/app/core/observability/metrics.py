@@ -45,6 +45,12 @@ class MetricsRegistry:
         """Passthrough to the underlying provider."""
         self.provider.increment_counter(name, labels, amount)
 
+    def observe_histogram(
+        self, name: str, value: float, labels: Dict[str, str] | None = None
+    ):
+        """Passthrough to the underlying provider."""
+        self.provider.observe_histogram(name, value, labels)
+
     # --- HTTP & API Metrics ---
 
     def track_http_request(

@@ -104,9 +104,9 @@ async def get_current_user(
         logger.warning("Authentication failed: Invalid token")
         raise credentials_exception
 
-    user_id: str = payload.get("sub")
-    sid: str = payload.get("sid")
-    if user_id is None:
+    user_id = str(payload.get("sub", ""))
+    sid = str(payload.get("sid", ""))
+    if not user_id or user_id == "None":
         logger.warning("Authentication failed: Token missing subject")
         raise credentials_exception
 
@@ -145,8 +145,10 @@ async def rate_limit(
     # For now tenant_id is None as we don't have multi-tenancy models yet
     tenant_id = None
 
+    ip_address = request.client.host if request.client else "127.0.0.1"
+
     if not await limiter.check_all(
-        ip_address=request.client.host,
+        ip_address=ip_address,
         user_id=user_id,
         tenant_id=tenant_id,
         path=request.url.path,

@@ -1,4 +1,4 @@
-import fitz  # type: ignore # PyMuPDF
+import fitz  # PyMuPDF
 
 
 class DocumentReader:

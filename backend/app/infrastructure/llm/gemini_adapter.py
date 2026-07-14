@@ -97,11 +97,11 @@ class GeminiLLMAdapter(LLMProvider):
                     usage = response.usage_metadata
                     self.metrics.track_tokens(
                         self.model_name,
-                        usage.prompt_token_count,
-                        usage.candidates_token_count,
+                        usage.prompt_token_count or 0,
+                        usage.candidates_token_count or 0,
                     )
 
-                return response.text
+                return response.text or ""
 
             except Exception as e:
                 span.record_exception(e)
@@ -158,6 +158,6 @@ class GeminiLLMAdapter(LLMProvider):
                 contents=prompt,
                 config={"temperature": 0.0},
             )
-            return response.text.strip()
+            return response.text.strip() if response.text else question
         except Exception:
             return question

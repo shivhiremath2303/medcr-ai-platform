@@ -9,7 +9,12 @@ class RateLimit:
     Dependency for applying rate limits to routes.
     """
 
-    def __init__(self, limit: int = None, window: int = None, key_prefix: str = "gen"):
+    def __init__(
+        self,
+        limit: int | None = None,
+        window: int | None = None,
+        key_prefix: str = "gen",
+    ):
         self.limit = limit
         self.window = window
         self.key_prefix = key_prefix
@@ -28,7 +33,10 @@ class RateLimit:
         window = self.window or settings.rate_limit_window_seconds
 
         # Use IP or user_id as key
-        user_id = getattr(request.state, "user_id", request.client.host)
+        user_id = getattr(request.state, "user_id", None)
+        if not user_id:
+            user_id = request.client.host if request.client else "unknown"
+
         key = f"{self.key_prefix}:{user_id}"
 
         if await rate_limiter.is_rate_limited(key, limit, window):
