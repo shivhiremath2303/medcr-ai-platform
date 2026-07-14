@@ -24,7 +24,7 @@ jobs:
           cat > .env.production <<EOF
           ENVIRONMENT=production
           GEMINI_API_KEY=dummy
-          JWT_SECRET_KEY=$(openssl rand -hex 32)
+          JWT_SECRET_KEY=$(openssl rand -hex 32) # gitleaks:allow
           CORS_ALLOWED_ORIGINS=["http://localhost"]
           REDIS_URL=redis://redis:6379/0
           EOF

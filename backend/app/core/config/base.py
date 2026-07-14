@@ -206,7 +206,7 @@ class Settings(BaseSettings):
 
     # Authentication
     jwt_secret_key: SecretStr = Field(
-        SecretStr("development-secret-key-change-me-in-production"),
+        SecretStr("development-secret-key-change-me-in-production"),  # gitleaks:allow
         description="Secret key for JWT",
     )
     jwt_algorithm: str = Field("HS256", description="JWT algorithm")

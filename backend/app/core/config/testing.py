@@ -26,7 +26,7 @@ class TestingSettings(Settings):
 
     # Allow tests to run without real API key if they mock the provider
     gemini_api_key: SecretStr = SecretStr("dummy")
-    jwt_secret_key: SecretStr = SecretStr("dummy")  # noqa: S105
+    jwt_secret_key: SecretStr = SecretStr("dummy")  # noqa: S105 # gitleaks:allow
 
     # Test CORS
     cors_allowed_origins: list[str] = ["http://testserver", "http://localhost"]
