@@ -3,15 +3,20 @@ import logging
 from typing import Any, Callable, Optional
 
 from fastapi import FastAPI
-from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
-from opentelemetry.instrumentation.redis import RedisInstrumentor
-from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION, Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
-from opentelemetry.sdk.trace.sampling import ParentBasedTraceIdRatio
+
+try:
+    from opentelemetry import trace
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+    from opentelemetry.instrumentation.redis import RedisInstrumentor
+    from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION, Resource
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+    from opentelemetry.sdk.trace.sampling import ParentBasedTraceIdRatio
+    HAS_OTEL = True
+except ImportError:
+    HAS_OTEL = False
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +33,10 @@ def setup_telemetry(
     Sets up Enterprise-grade OpenTelemetry tracing for the FastAPI application.
     Implements Milestone 10.2.1: Distributed Request Tracing.
     """
+    if not HAS_OTEL:
+        logger.warning("OpenTelemetry packages not found. Tracing is disabled.")
+        return
+
     try:
         resource = Resource(
             attributes={
@@ -79,7 +88,25 @@ def get_tracer(name: str):
     """
     Returns a tracer for the given name.
     """
-    return trace.get_tracer(name)
+    if HAS_OTEL:
+        return trace.get_tracer(name)
+
+    # Fallback to a dummy tracer-like object if OTel is missing
+    class DummySpan:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def set_attribute(self, *args): pass
+        def record_exception(self, *args): pass
+        def set_status(self, *args): pass
+
+    class DummyTracer:
+        def start_as_current_span(self, name, *args, **kwargs):
+            return DummySpan()
+
+        def start_span(self, name, *args, **kwargs):
+            return DummySpan()
+
+    return DummyTracer()
 
 
 def traced(span_name: Optional[str] = None, attributes: Optional[dict] = None):
@@ -90,6 +117,9 @@ def traced(span_name: Optional[str] = None, attributes: Optional[dict] = None):
     def decorator(func: Callable):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
+            if not HAS_OTEL:
+                return func(*args, **kwargs)
+
             name = span_name or func.__name__
             tracer = trace.get_tracer(func.__module__)
             with tracer.start_as_current_span(name) as span:
@@ -106,6 +136,9 @@ def traced(span_name: Optional[str] = None, attributes: Optional[dict] = None):
 
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs):
+            if not HAS_OTEL:
+                return await func(*args, **kwargs)
+
             name = span_name or func.__name__
             tracer = trace.get_tracer(func.__module__)
             with tracer.start_as_current_span(name) as span:

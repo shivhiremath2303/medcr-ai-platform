@@ -164,6 +164,7 @@ else:
     )
 
     _revocation_repository = MemoryRevocationRepository()
+    _user_repository = MemoryUserRepository()
     _conversation_repository = MemoryConversationRepository(
         max_messages=settings.max_conversation_messages
     )
@@ -205,6 +206,7 @@ _llm_provider = GeminiLLMAdapter(
     client=_genai_client,
     model_name=settings.gemini_model,
     metrics=_metrics_registry,
+    limiter=_concurrency_limiter,
     temperature=settings.llm_temperature,
     max_tokens=settings.llm_max_tokens,
 )
@@ -233,6 +235,44 @@ _hybrid_retriever = HybridRetrieverAdapter(
     vector_weight=settings.hybrid_weight_vector,
     similarity_threshold=settings.similarity_threshold,
 )
+
+# --- Service Singletons (to support background workers and routes) ---
+
+_document_service = DocumentService(
+    chunker=_chunker,
+    vector_store=_vector_repository,
+    parser=_parser,
+    document_repository=_document_repository,
+    metrics=_metrics_registry,
+)
+
+_retrieval_service = RetrievalService(
+    retriever=_hybrid_retriever,
+    reranker=_reranker,
+    metrics=_metrics_registry,
+    candidate_multiplier=settings.retrieval_candidate_multiplier,
+    min_candidates=settings.min_retrieval_candidates,
+)
+
+_context_builder = ContextBuilder()
+
+_query_rewriter = QueryRewriter(llm_provider=_llm_provider)
+
+_rag_service = RAGService(
+    retrieval_service=_retrieval_service,
+    llm_provider=_llm_provider,
+    query_rewriter=_query_rewriter,
+    memory=_conversation_repository,
+    context_builder=_context_builder,
+    grounding_engine=_grounding_engine,
+    reasoning_engine=_reasoning_engine,
+    evaluation_engine=_evaluation_engine,
+    benchmark_repo=_benchmark_repo,
+    metrics=_metrics_registry,
+    cache=_cache_provider,
+    limiter=_concurrency_limiter,
+)
+
 
 # --- Health Check Registrations ---
 _health_service.add_readiness_check(VectorStoreHealthCheck(_vector_repository))
@@ -389,13 +429,6 @@ if _redis_client:
         redis_client=_redis_client, metrics=_metrics_registry
     )
 else:
-    # Fallback to local (dummy in 10.3.2 context but preserves stability)
-    from app.infrastructure.background.fastapi_background_tasks import (
-        FastAPIBackgroundTaskProvider,
-    )
-
-    # This requires a dummy BackgroundTasks object which is only available in requests.
-    # In production, Redis is mandatory for 10.3.2.
     _background_task_provider = None
 
 _worker_service = (
@@ -421,80 +454,52 @@ def get_worker_service() -> WorkerService:
 
 
 def get_document_service(
-    chunker: Chunker = Depends(get_chunker),
-    vector_store: VectorStoreRepository = Depends(get_vector_repository),
-    parser: DocumentParser = Depends(get_document_parser),
-    document_repository: DocumentRepository = Depends(get_document_repository),
-    metrics: MetricsRegistry = Depends(get_metrics_registry),
+    doc_service: DocumentService = _document_service,
 ) -> DocumentService:
-    return DocumentService(
-        chunker=chunker,
-        vector_store=vector_store,
-        parser=parser,
-        document_repository=document_repository,
-        metrics=metrics,
-    )
+    return doc_service
 
 
 def get_retrieval_service(
-    retriever: Retriever = Depends(get_retriever),
-    reranker: Reranker = Depends(get_reranker),
-    metrics: MetricsRegistry = Depends(get_metrics_registry),
+    retrieval_service: Retriever = _retrieval_service,
 ) -> Retriever:
-    return RetrievalService(
-        retriever=retriever,
-        reranker=reranker,
-        metrics=metrics,
-        candidate_multiplier=settings.retrieval_candidate_multiplier,
-        min_candidates=settings.min_retrieval_candidates,
-    )
+    return retrieval_service
 
 
 def get_context_builder() -> IContextBuilder:
-    return ContextBuilder()
+    return _context_builder
 
 
 def get_query_rewriter(
-    llm_provider: LLMProvider = Depends(get_llm_provider),
+    query_rewriter: IQueryRewriter = _query_rewriter,
 ) -> IQueryRewriter:
-    return QueryRewriter(llm_provider=llm_provider)
+    return query_rewriter
 
 
 def get_rag_service(
-    retrieval_service: Retriever = Depends(get_retrieval_service),
-    llm_provider: LLMProvider = Depends(get_llm_provider),
-    conversation_repository: ConversationRepository = Depends(
-        get_conversation_repository
-    ),
-    query_rewriter: IQueryRewriter = Depends(get_query_rewriter),
-    context_builder: IContextBuilder = Depends(get_context_builder),
-    grounding_engine: GroundingEngine = Depends(get_grounding_engine),
-    reasoning_engine: ReasoningEngine = Depends(get_reasoning_engine),
-    evaluation_engine: EvaluationEngine = Depends(get_evaluation_engine),
-    benchmark_repo: BenchmarkRepository = Depends(get_benchmark_repository),
-    metrics: MetricsRegistry = Depends(get_metrics_registry),
-    cache: CacheProvider = Depends(get_cache_provider),
+    rag_service: RAGService = _rag_service,
 ) -> RAGService:
-    return RAGService(
-        retrieval_service=retrieval_service,
-        llm_provider=llm_provider,
-        query_rewriter=query_rewriter,
-        memory=conversation_repository,
-        context_builder=context_builder,
-        grounding_engine=grounding_engine,
-        reasoning_engine=reasoning_engine,
-        evaluation_engine=evaluation_engine,
-        benchmark_repo=benchmark_repo,
-        metrics=metrics,
-        cache=cache,
-        limiter=_concurrency_limiter,
-    )
+    return rag_service
 
 
 # --- Lifecycle Management ---
 
 
+def init_dev_user():
+    if not _user_repository.get_by_username("admin"):
+        _user_repository.save(
+            User(
+                user_id="admin-001",
+                username="admin",
+                email="admin@medcr.ai",
+                hashed_password=PasswordHasher.hash("admin-password"),
+                role=UserRole.ADMIN,
+                full_name="System Administrator",
+            )
+        )
+
+
 async def init_vector_store() -> bool:
+    init_dev_user()
     return await _vector_repository.load()
 
 

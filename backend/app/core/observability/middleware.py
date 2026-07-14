@@ -7,8 +7,13 @@ import uuid
 from typing import Callable
 
 from fastapi import Request, Response
-from opentelemetry import trace
 from starlette.middleware.base import BaseHTTPMiddleware
+
+try:
+    from opentelemetry import trace
+    HAS_OTEL = True
+except ImportError:
+    HAS_OTEL = False
 
 from app import di
 from app.core.config import get_settings
@@ -56,8 +61,11 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             profiler.enable()
 
         # 4. Get OpenTelemetry Trace ID
-        current_span = trace.get_current_span()
-        trace_id = format(current_span.get_span_context().trace_id, "032x")
+        trace_id = "none"
+        if HAS_OTEL:
+            current_span = trace.get_current_span()
+            if current_span and current_span.get_span_context().is_valid:
+                trace_id = format(current_span.get_span_context().trace_id, "032x")
 
         # Process the request
         try:
@@ -75,8 +83,11 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             response.headers["X-Memory-Delta"] = f"{mem_delta:.2f}MB"
 
             # 6. Enrich span with performance data
-            current_span.set_attribute("http.memory_delta_mb", mem_delta)
-            current_span.set_attribute("http.duration_ms", process_time * 1000)
+            if HAS_OTEL:
+                current_span = trace.get_current_span()
+                if current_span.is_recording():
+                    current_span.set_attribute("http.memory_delta_mb", mem_delta)
+                    current_span.set_attribute("http.duration_ms", process_time * 1000)
 
             # 7. Operational Analytics: API Usage (10.2.9)
             metrics.track_http_request(
@@ -143,6 +154,9 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 },
                 exc_info=True,
             )
-            current_span.record_exception(e)
-            current_span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+            if HAS_OTEL:
+                current_span = trace.get_current_span()
+                if current_span.is_recording():
+                    current_span.record_exception(e)
+                    current_span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
             raise

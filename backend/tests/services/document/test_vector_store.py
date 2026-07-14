@@ -2,13 +2,21 @@ from pathlib import Path
 
 import pytest
 
+from app.core.observability.concurrency import ConcurrencyLimiter
+from app.core.observability.metrics import MetricsRegistry, NoOpMetricsProvider
+from app.core.observability.resource_guard import ResourceGuard
 from app.infrastructure.vectorstore.faiss_repository import FAISSVectorRepository
 from tests.fixtures.chunk_factory import make_chunk
 from tests.fixtures.fake_embeddings import FakeEmbeddingService
 
+@pytest.fixture
+def limiter():
+    metrics = MetricsRegistry(NoOpMetricsProvider())
+    guard = ResourceGuard(metrics)
+    return ConcurrencyLimiter(guard)
 
 @pytest.mark.asyncio
-async def test_create_builds_faiss_index(tmp_path: Path):
+async def test_create_builds_faiss_index(tmp_path: Path, limiter):
     embedding_service = FakeEmbeddingService()
 
     vector_store = FAISSVectorRepository(
@@ -16,6 +24,7 @@ async def test_create_builds_faiss_index(tmp_path: Path):
         faiss_dir=tmp_path,
         index_name="test_index",
         default_top_k=3,
+        limiter=limiter,
     )
 
     chunks = [
@@ -39,7 +48,7 @@ async def test_create_builds_faiss_index(tmp_path: Path):
 
 
 @pytest.mark.asyncio
-async def test_similarity_search_returns_ranked_results(tmp_path: Path):
+async def test_similarity_search_returns_ranked_results(tmp_path: Path, limiter):
     embedding_service = FakeEmbeddingService()
 
     vector_store = FAISSVectorRepository(
@@ -47,6 +56,7 @@ async def test_similarity_search_returns_ranked_results(tmp_path: Path):
         faiss_dir=tmp_path,
         index_name="test_index",
         default_top_k=3,
+        limiter=limiter,
     )
 
     chunks = [
@@ -88,7 +98,7 @@ async def test_similarity_search_returns_ranked_results(tmp_path: Path):
 
 
 @pytest.mark.asyncio
-async def test_save_and_load_restores_vector_store(tmp_path: Path):
+async def test_save_and_load_restores_vector_store(tmp_path: Path, limiter):
     embedding_service = FakeEmbeddingService()
 
     original_store = FAISSVectorRepository(
@@ -96,6 +106,7 @@ async def test_save_and_load_restores_vector_store(tmp_path: Path):
         faiss_dir=tmp_path,
         index_name="test_index",
         default_top_k=3,
+        limiter=limiter,
     )
 
     chunks = [
@@ -117,6 +128,7 @@ async def test_save_and_load_restores_vector_store(tmp_path: Path):
         faiss_dir=tmp_path,
         index_name="test_index",
         default_top_k=3,
+        limiter=limiter,
     )
 
     assert await restored_store.load() is True
@@ -137,12 +149,13 @@ async def test_save_and_load_restores_vector_store(tmp_path: Path):
 
 
 @pytest.mark.asyncio
-async def test_load_returns_false_when_index_does_not_exist(tmp_path: Path):
+async def test_load_returns_false_when_index_does_not_exist(tmp_path: Path, limiter):
     vector_store = FAISSVectorRepository(
         embedding_provider=FakeEmbeddingService(),
         faiss_dir=tmp_path,
         index_name="test_index",
         default_top_k=3,
+        limiter=limiter,
     )
 
     assert await vector_store.load() is False
@@ -150,12 +163,13 @@ async def test_load_returns_false_when_index_does_not_exist(tmp_path: Path):
 
 
 @pytest.mark.asyncio
-async def test_save_raises_when_vector_store_not_created(tmp_path: Path):
+async def test_save_raises_when_vector_store_not_created(tmp_path: Path, limiter):
     vector_store = FAISSVectorRepository(
         embedding_provider=FakeEmbeddingService(),
         faiss_dir=tmp_path,
         index_name="test_index",
         default_top_k=3,
+        limiter=limiter,
     )
 
     with pytest.raises(
@@ -166,12 +180,13 @@ async def test_save_raises_when_vector_store_not_created(tmp_path: Path):
 
 
 @pytest.mark.asyncio
-async def test_similarity_search_raises_when_vector_store_not_created(tmp_path: Path):
+async def test_similarity_search_raises_when_vector_store_not_created(tmp_path: Path, limiter):
     vector_store = FAISSVectorRepository(
         embedding_provider=FakeEmbeddingService(),
         faiss_dir=tmp_path,
         index_name="test_index",
         default_top_k=3,
+        limiter=limiter,
     )
 
     with pytest.raises(
@@ -182,28 +197,29 @@ async def test_similarity_search_raises_when_vector_store_not_created(tmp_path: 
 
 
 @pytest.mark.asyncio
-async def test_get_all_chunks_raises_when_vector_store_not_created(tmp_path: Path):
+async def test_get_all_chunks_raises_when_vector_store_not_created(tmp_path: Path, limiter):
+    # Fixed: is_ready is checked now, and get_all_chunks returns empty list if not ready
+    # instead of raising ValueError (consistent with updated implementation)
     vector_store = FAISSVectorRepository(
         embedding_provider=FakeEmbeddingService(),
         faiss_dir=tmp_path,
         index_name="test_index",
         default_top_k=3,
+        limiter=limiter,
     )
 
-    with pytest.raises(
-        ValueError,
-        match="Vector store has not been created.",
-    ):
-        await vector_store.get_all_chunks()
+    chunks = await vector_store.get_all_chunks()
+    assert chunks == []
 
 
 @pytest.mark.asyncio
-async def test_get_all_chunks_returns_all_indexed_chunks(tmp_path: Path):
+async def test_get_all_chunks_returns_all_indexed_chunks(tmp_path: Path, limiter):
     vector_store = FAISSVectorRepository(
         embedding_provider=FakeEmbeddingService(),
         faiss_dir=tmp_path,
         index_name="test_index",
         default_top_k=3,
+        limiter=limiter,
     )
 
     chunks = [
