@@ -25,10 +25,8 @@ class TestingSettings(Settings):
     chunk_overlap: int = 50
 
     # Allow tests to run without real API key if they mock the provider
-    gemini_api_key: SecretStr = SecretStr("test-key")
-    jwt_secret_key: SecretStr = SecretStr(
-        "test-secret-key-for-testing-only"
-    )  # noqa: S105
+    gemini_api_key: SecretStr = SecretStr("dummy")
+    jwt_secret_key: SecretStr = SecretStr("dummy")  # noqa: S105
 
     # Test CORS
     cors_allowed_origins: list[str] = ["http://testserver", "http://localhost"]

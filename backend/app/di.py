@@ -466,9 +466,7 @@ _worker_service: WorkerService | None = (
 )
 
 
-def get_worker_service() -> WorkerService:
-    if not _worker_service:
-        raise RuntimeError("Worker service not initialized")
+def get_worker_service() -> WorkerService | None:
     return _worker_service
 
 
