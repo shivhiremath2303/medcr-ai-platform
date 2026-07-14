@@ -49,13 +49,13 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Ruff Check
-        run: ruff check .
+        run: python -m ruff check .
 
       - name: Black Check
-        run: black --check .
+        run: python -m black --check .
 
       - name: isort Check
-        run: isort --check-only .
+        run: python -m isort --check-only .
 
       - name: MyPy Check
-        run: mypy .
+        run: python -m mypy .
