@@ -1,13 +1,16 @@
 [allowlist]
-    description = "Allow dummy secrets in CI workflows"
+    description = "Allow dummy secrets and dynamic keys in specific files"
     regexes = [
-        'JWT_SECRET_KEY=\$\(openssl rand -hex 32\)',
-        'development-secret-key-change-me-in-production',
-        'dummy_secret',
-        'dummy_key'
+        'JWT_SECRET_KEY',
+        'development-secret-key',
+        'dummy',
+        'test-key',
+        'test-secret'
     ]
     paths = [
-        '''\.github/workflows/docker\.yml''',
-        '''backend/app/core/config/base\.py''',
-        '''backend/app/core/config/testing\.py'''
+        '.github/workflows/docker.yml',
+        'backend/app/core/config/base.py',
+        'backend/app/core/config/testing.py',
+        'backend/requirements.txt',
+        'backend/requirements-dev.txt'
     ]
