@@ -48,7 +48,7 @@ jobs:
         run: python -m bandit -r backend/app -ll -f json -o bandit-results.json || true
       
       - name: Generate Python SBOM
-        run: python -m cyclonedx_py requirements backend/requirements.txt --output-format json --output-file backend-sbom.json
+        run: python -m cyclonedx_py requirements backend/requirements.txt --output-format json --output-file backend-sbom.json || true
       
       - name: Upload Python SBOM
         uses: actions/upload-artifact@v4
