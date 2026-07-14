@@ -32,7 +32,7 @@ class LocalStorageAdapter(StorageProvider):
         """
         Saves an uploaded file to the local directory with enterprise optimizations.
         """
-        filename = file.filename or "unnamed_file"
+        filename = os.path.basename(file.filename or "unnamed_file")
         extension = Path(filename).suffix.lower()
 
         # 1. Validation (Security/Sanity)
