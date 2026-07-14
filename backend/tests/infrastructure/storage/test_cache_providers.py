@@ -1,14 +1,21 @@
 import time
-import pytest
 from unittest.mock import MagicMock, patch
-from app.infrastructure.storage.memory_cache_provider import MemoryCacheProvider
-from app.infrastructure.storage.redis_cache_provider import RedisCacheProvider
-from app.infrastructure.storage.multi_level_cache_provider import MultiLevelCacheProvider, MemoryL1Cache
+
+import pytest
+
 from app.core.observability.metrics import MetricsRegistry, NoOpMetricsProvider
+from app.infrastructure.storage.memory_cache_provider import MemoryCacheProvider
+from app.infrastructure.storage.multi_level_cache_provider import (
+    MemoryL1Cache,
+    MultiLevelCacheProvider,
+)
+from app.infrastructure.storage.redis_cache_provider import RedisCacheProvider
+
 
 @pytest.fixture
 def metrics():
     return MetricsRegistry(NoOpMetricsProvider())
+
 
 class TestMemoryCacheProvider:
     def test_set_get(self):
@@ -44,6 +51,7 @@ class TestMemoryCacheProvider:
         assert provider.get("k1") is None
         assert provider.get("k2") is None
 
+
 class TestRedisCacheProvider:
     @pytest.fixture
     def mock_redis_client(self):
@@ -59,8 +67,9 @@ class TestRedisCacheProvider:
 
         # Mock GET to return pickled value
         import pickle
+
         test_val = {"data": 123}
-        client.get.return_value = pickle.dumps(test_val).decode('latin1')
+        client.get.return_value = pickle.dumps(test_val).decode("latin1")
 
         val = provider.get("key")
         assert val == test_val
@@ -84,7 +93,8 @@ class TestRedisCacheProvider:
         assert args[0] == "cache:key"
         assert args[1] == 100
         import pickle
-        assert pickle.loads(args[2]) == "value"
+
+        assert pickle.loads(args[2]) == "value"  # noqa: S301
 
     def test_delete_success(self, mock_redis_client, metrics):
         wrapper, client = mock_redis_client
@@ -103,7 +113,7 @@ class TestRedisCacheProvider:
         wrapper, client = mock_redis_client
         provider = RedisCacheProvider(wrapper, metrics)
         client.delete.side_effect = Exception("error")
-        provider.delete("key") # should not raise
+        provider.delete("key")  # should not raise
 
     def test_clear_success(self, mock_redis_client, metrics):
         wrapper, client = mock_redis_client
@@ -131,7 +141,7 @@ class TestRedisCacheProvider:
         wrapper, client = mock_redis_client
         provider = RedisCacheProvider(wrapper, metrics)
         client.keys.side_effect = Exception("error")
-        provider.clear() # should not raise
+        provider.clear()  # should not raise
 
     def test_graceful_degradation_unavailable(self, mock_redis_client, metrics):
         wrapper, client = mock_redis_client
@@ -168,6 +178,7 @@ class TestRedisCacheProvider:
 
         metrics_mock.track_redis_op.assert_called_with("get")
         metrics_mock.track_cache_hit.assert_called_with(False)
+
 
 class TestMultiLevelCacheProvider:
     @pytest.fixture
@@ -224,7 +235,7 @@ class TestMultiLevelCacheProvider:
     def test_set_existing_l1(self, mock_l2, metrics):
         l1 = MemoryL1Cache(max_size=10)
         l1.set("key", "v1")
-        l1.set("key", "v2") # Should trigger move_to_end
+        l1.set("key", "v2")  # Should trigger move_to_end
         assert l1.get("key") == "v2"
 
     def test_clear_both(self, mock_l2, metrics):
@@ -238,7 +249,7 @@ class TestMultiLevelCacheProvider:
         l1 = MemoryL1Cache(max_size=2)
         l1.set("k1", "v1")
         l1.set("k2", "v2")
-        l1.set("k3", "v3") # Should evict k1
+        l1.set("k3", "v3")  # Should evict k1
 
         assert l1.get("k1") is None
         assert l1.get("k2") == "v2"

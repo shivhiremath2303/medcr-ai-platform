@@ -28,7 +28,7 @@ class HybridRetrieverAdapter(Retriever):
         # but we need initial sync for simple deployments.
 
     async def retrieve(
-        self, query: str, k: int = 5, params: Optional[Dict[str, Any]] = None
+        self, query: str, k: int = 5, params: Dict[str, Any] | None = None
     ) -> List[SearchResult]:
         """
         Retrieve using both vector search and BM25 in parallel (10.3.3).

@@ -38,7 +38,7 @@ class HealthService:
         self.environment = environment
         self.readiness_checks: List[HealthCheck] = []
         self.cache_ttl = cache_ttl
-        self._cache: Optional[Dict[str, Any]] = None
+        self._cache: Dict[str, Any] | None = None
         self._last_check: float = 0
 
     def add_readiness_check(self, check: HealthCheck) -> None:

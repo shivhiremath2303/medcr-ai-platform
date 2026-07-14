@@ -48,10 +48,10 @@ class EvaluationReport:
 
     timestamp: datetime = field(default_factory=datetime.utcnow)
     query: str = ""
-    retrieval: Optional[RetrievalMetrics] = None
-    grounding: Optional[GroundingMetrics] = None
-    reasoning: Optional[ReasoningMetrics] = None
-    performance: Optional[PerformanceMetrics] = None
+    retrieval: RetrievalMetrics | None = None
+    grounding: GroundingMetrics | None = None
+    reasoning: ReasoningMetrics | None = None
+    performance: PerformanceMetrics | None = None
     hallucination_rate: float = 0.0
     overall_score: float = 0.0
     metadata: Dict[str, Any] = field(default_factory=dict)

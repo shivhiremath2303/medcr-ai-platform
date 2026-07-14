@@ -16,9 +16,9 @@ class MemoryL1Cache:
 
     def __init__(self, max_size: int = 1000):
         self.max_size = max_size
-        self.cache: Dict[str, tuple[Any, float]] = OrderedDict()
+        self.cache: OrderedDict[str, tuple[Any, float]] = OrderedDict()
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         if key not in self.cache:
             return None
         value, expiry = self.cache[key]
@@ -29,7 +29,7 @@ class MemoryL1Cache:
         self.cache.move_to_end(key)
         return value
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None):
+    def set(self, key: str, value: Any, ttl: int | None = None):
         expiry = (time.time() + ttl) if ttl else 0
         if key in self.cache:
             self.cache.move_to_end(key)
@@ -63,7 +63,7 @@ class MultiLevelCacheProvider(CacheProvider):
         self.l1 = MemoryL1Cache(max_size=l1_max_size)
         self.metrics = metrics
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         with tracer.start_as_current_span("cache_get_multi_level") as span:
             span.set_attribute("cache.key", key)
 
@@ -86,7 +86,7 @@ class MultiLevelCacheProvider(CacheProvider):
             self.metrics.track_cache_hit(False)
             return None
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         with tracer.start_as_current_span("cache_set_multi_level") as span:
             span.set_attribute("cache.key", key)
             # Write-through to both layers

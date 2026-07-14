@@ -12,6 +12,6 @@ class Retriever(ABC):
 
     @abstractmethod
     async def retrieve(
-        self, query: str, k: int = 5, params: Optional[Dict[str, Any]] = None
+        self, query: str, k: int = 5, params: Dict[str, Any] | None = None
     ) -> List[SearchResult]:
         """Retrieve relevant results for a query."""

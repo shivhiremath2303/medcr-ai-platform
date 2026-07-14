@@ -39,7 +39,7 @@ class FilesystemDocumentRepository(DocumentRepository):
         tasks = [self.save(doc) for doc in documents]
         await asyncio.gather(*tasks)
 
-    async def get_by_id(self, document_id: str) -> Optional[Document]:
+    async def get_by_id(self, document_id: str) -> Document | None:
         """
         Retrieve a document by ID.
         """

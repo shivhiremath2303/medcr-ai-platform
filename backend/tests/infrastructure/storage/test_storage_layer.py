@@ -1,22 +1,31 @@
-import os
-import json
-import pytest
 import asyncio
-from pathlib import Path
-from unittest.mock import MagicMock, AsyncMock, patch
-from fastapi import UploadFile
+import json
+import os
 from io import BytesIO
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from fastapi import UploadFile
 
 # Early mock to prevent database engine creation during import
-with patch("sqlalchemy.ext.asyncio.create_async_engine"), \
-     patch("sqlalchemy.ext.asyncio.async_sessionmaker"):
-    from app.infrastructure.storage.filesystem_document_repository import FilesystemDocumentRepository
+with (
+    patch("sqlalchemy.ext.asyncio.create_async_engine"),
+    patch("sqlalchemy.ext.asyncio.async_sessionmaker"),
+):
+    from app.infrastructure.storage.filesystem_document_repository import (
+        FilesystemDocumentRepository,
+    )
     from app.infrastructure.storage.local_storage_adapter import LocalStorageAdapter
-    from app.infrastructure.storage.database_foundation import get_db_session, init_database
+    from app.infrastructure.storage.database_foundation import (
+        get_db_session,
+        init_database,
+    )
 
 from app.domain.models import Document, Page
 
 # --- FilesystemDocumentRepository Tests ---
+
 
 class TestFilesystemDocumentRepository:
     @pytest.fixture
@@ -29,7 +38,7 @@ class TestFilesystemDocumentRepository:
             document_id="doc1",
             filename="test.pdf",
             pages=[Page(page_number=1, text="Hello world")],
-            owner_id="user123"
+            owner_id="user123",
         )
         await repo.save(doc)
 
@@ -49,8 +58,7 @@ class TestFilesystemDocumentRepository:
     @pytest.mark.asyncio
     async def test_save_batch(self, repo):
         docs = [
-            Document(document_id=f"d{i}", filename=f"f{i}", pages=[])
-            for i in range(5)
+            Document(document_id=f"d{i}", filename=f"f{i}", pages=[]) for i in range(5)
         ]
         await repo.save_batch(docs)
 
@@ -93,7 +101,9 @@ class TestFilesystemDocumentRepository:
         with pytest.raises(json.JSONDecodeError):
             await repo.get_by_id("corrupt")
 
+
 # --- LocalStorageAdapter Tests ---
+
 
 class TestLocalStorageAdapter:
     @pytest.fixture
@@ -150,12 +160,16 @@ class TestLocalStorageAdapter:
         assert path.parent == adapter.upload_dir
         assert path.exists()
 
+
 # --- DatabaseFoundation Tests ---
+
 
 class TestDatabaseFoundation:
     @pytest.mark.asyncio
     async def test_get_db_session_success(self):
-        with patch("app.infrastructure.storage.database_foundation.AsyncSessionLocal") as mock_session_maker:
+        with patch(
+            "app.infrastructure.storage.database_foundation.AsyncSessionLocal"
+        ) as mock_session_maker:
             mock_session = AsyncMock()
             mock_session_maker.return_value = mock_session
             mock_session.__aenter__.return_value = mock_session
@@ -167,7 +181,9 @@ class TestDatabaseFoundation:
 
     @pytest.mark.asyncio
     async def test_session_exception_handling(self):
-        with patch("app.infrastructure.storage.database_foundation.AsyncSessionLocal") as mock_session_maker:
+        with patch(
+            "app.infrastructure.storage.database_foundation.AsyncSessionLocal"
+        ) as mock_session_maker:
             mock_session = AsyncMock()
             mock_session_maker.return_value = mock_session
             mock_session.__aenter__.return_value = mock_session
@@ -183,7 +199,9 @@ class TestDatabaseFoundation:
 
     @pytest.mark.asyncio
     async def test_init_database(self):
-        with patch("app.infrastructure.storage.database_foundation.engine") as mock_engine:
+        with patch(
+            "app.infrastructure.storage.database_foundation.engine"
+        ) as mock_engine:
             mock_conn = AsyncMock()
             mock_engine.begin.return_value.__aenter__.return_value = mock_conn
 

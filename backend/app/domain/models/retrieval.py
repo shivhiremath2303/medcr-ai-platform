@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any, Dict, List, Optional
 
 
-class QueryIntent(str, Enum):
+class QueryIntent(StrEnum):
     CLAUSE_LOOKUP = "clause_lookup"
     DEFINITION = "definition"
     COMPARISON = "comparison"

@@ -9,11 +9,13 @@ from app.infrastructure.vectorstore.faiss_repository import FAISSVectorRepositor
 from tests.fixtures.chunk_factory import make_chunk
 from tests.fixtures.fake_embeddings import FakeEmbeddingService
 
+
 @pytest.fixture
 def limiter():
     metrics = MetricsRegistry(NoOpMetricsProvider())
     guard = ResourceGuard(metrics)
     return ConcurrencyLimiter(guard)
+
 
 @pytest.mark.asyncio
 async def test_create_builds_faiss_index(tmp_path: Path, limiter):
@@ -173,11 +175,13 @@ async def test_save_does_nothing_when_vector_store_not_created(tmp_path: Path, l
         limiter=limiter,
     )
 
-    await vector_store.save() # Should not raise
+    await vector_store.save()  # Should not raise
 
 
 @pytest.mark.asyncio
-async def test_similarity_search_returns_empty_when_vector_store_not_created(tmp_path: Path, limiter):
+async def test_similarity_search_returns_empty_when_vector_store_not_created(
+    tmp_path: Path, limiter
+):
     # Updated: Implementation now returns empty list if not ready, no longer raises ValueError
     vector_store = FAISSVectorRepository(
         embedding_provider=FakeEmbeddingService(),
@@ -192,7 +196,9 @@ async def test_similarity_search_returns_empty_when_vector_store_not_created(tmp
 
 
 @pytest.mark.asyncio
-async def test_get_all_chunks_returns_empty_when_vector_store_not_created(tmp_path: Path, limiter):
+async def test_get_all_chunks_returns_empty_when_vector_store_not_created(
+    tmp_path: Path, limiter
+):
     # Updated: Implementation now returns empty list if None, no longer raises ValueError
     vector_store = FAISSVectorRepository(
         embedding_provider=FakeEmbeddingService(),

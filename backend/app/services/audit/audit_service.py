@@ -18,12 +18,12 @@ class AuditService:
         event_type: AuditEventType,
         action: str,
         status: str = "success",
-        user_id: Optional[str] = None,
-        username: Optional[str] = None,
-        resource_id: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None,
+        user_id: str | None = None,
+        username: str | None = None,
+        resource_id: str | None = None,
+        details: Dict[str, Any] | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> None:
         event = AuditEvent(
             event_type=event_type,

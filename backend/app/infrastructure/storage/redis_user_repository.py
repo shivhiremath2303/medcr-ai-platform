@@ -1,4 +1,5 @@
 import json
+from dataclasses import asdict
 from typing import List, Optional
 
 from app.domain.models.user import User
@@ -21,21 +22,23 @@ class RedisUserRepository(UserRepository):
     def _key(self, user_id: str) -> str:
         return f"{self.key_prefix}{user_id}"
 
-    def get_by_id(self, user_id: str) -> Optional[User]:
+    def get_by_id(self, user_id: str) -> User | None:
         data = self.redis.client.get(self._key(user_id))
         if data:
-            return User.model_validate_json(data)
+            if isinstance(data, bytes):
+                data = data.decode()
+            return User(**json.loads(data))
         return None
 
-    def get_by_username(self, username: str) -> Optional[User]:
+    def get_by_username(self, username: str) -> User | None:
         user_id = self.redis.client.hget(self.username_index, username)
         if user_id:
             if isinstance(user_id, bytes):
                 user_id = user_id.decode()
-            return self.get_by_id(user_id)
+            return self.get_by_id(str(user_id))
         return None
 
-    def get_by_email(self, email: str) -> Optional[User]:
+    def get_by_email(self, email: str) -> User | None:
         for user in self.list_all():
             if user.email == email:
                 return user
@@ -45,7 +48,7 @@ class RedisUserRepository(UserRepository):
         client = self.redis.client
         pipeline = client.pipeline()
         # 1. Save user object
-        pipeline.set(self._key(user.user_id), user.model_dump_json())
+        pipeline.set(self._key(user.user_id), json.dumps(asdict(user)))
         # 2. Update username index
         pipeline.hset(self.username_index, user.username, user.user_id)
         pipeline.execute()
@@ -59,7 +62,9 @@ class RedisUserRepository(UserRepository):
         for key in keys:
             data = self.redis.client.get(key)
             if data:
-                users.append(User.model_validate_json(data))
+                if isinstance(data, bytes):
+                    data = data.decode()
+                users.append(User(**json.loads(data)))
         return users
 
     def delete(self, user_id: str) -> None:

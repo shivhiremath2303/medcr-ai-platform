@@ -167,7 +167,7 @@ class Settings(BaseSettings):
     )
 
     # --- Persistence & Cache ---
-    redis_url: Optional[str] = Field(
+    redis_url: str | None = Field(
         None, description="Redis connection URL (e.g., redis://localhost:6379/0)"
     )
     redis_timeout: int = Field(5, description="Redis connection timeout")
@@ -191,18 +191,18 @@ class Settings(BaseSettings):
     )
 
     # --- Future Infrastructure Models (Not implemented) ---
-    database_url: Optional[str] = Field(None, description="Database connection URL")
+    database_url: str | None = Field(None, description="Database connection URL")
     database_pool_size: int = Field(5, description="Database connection pool size")
     database_echo: bool = Field(False, description="Enable SQL echoing")
     database_max_overflow: int = Field(10, description="Database pool max overflow")
 
     # Object Storage
     storage_provider: str = Field("local", description="Storage provider (local, s3)")
-    s3_endpoint: Optional[str] = Field(None, description="S3 endpoint URL")
-    s3_bucket: Optional[str] = Field(None, description="S3 bucket name")
-    s3_region: Optional[str] = Field(None, description="S3 region")
-    s3_access_key: Optional[SecretStr] = Field(None, description="S3 access key")
-    s3_secret_key: Optional[SecretStr] = Field(None, description="S3 secret key")
+    s3_endpoint: str | None = Field(None, description="S3 endpoint URL")
+    s3_bucket: str | None = Field(None, description="S3 bucket name")
+    s3_region: str | None = Field(None, description="S3 region")
+    s3_access_key: SecretStr | None = Field(None, description="S3 access key")
+    s3_secret_key: SecretStr | None = Field(None, description="S3 secret key")
 
     # Authentication
     jwt_secret_key: SecretStr = Field(
@@ -238,7 +238,7 @@ class Settings(BaseSettings):
     otel_service_name: str = Field(
         "medcr-ai-platform", description="Service name for OTEL"
     )
-    otel_exporter_endpoint: Optional[str] = Field(
+    otel_exporter_endpoint: str | None = Field(
         None, description="OTEL exporter endpoint"
     )
     profiling_enabled: bool = Field(

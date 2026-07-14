@@ -1,11 +1,11 @@
 from datetime import UTC, datetime
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class TaskStatus(str, Enum):
+class TaskStatus(StrEnum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -13,7 +13,7 @@ class TaskStatus(str, Enum):
     RETRYING = "retrying"
 
 
-class TaskPriority(str, Enum):
+class TaskPriority(StrEnum):
     HIGH = "high"  # Real-time user interactions
     DEFAULT = "default"  # Document ingestion
     LOW = "low"  # Periodic cleanup, optimization
@@ -31,10 +31,10 @@ class BackgroundTask(BaseModel):
     status: TaskStatus = TaskStatus.PENDING
     priority: TaskPriority = TaskPriority.DEFAULT
     payload: Dict[str, Any] = Field(default_factory=dict)
-    result: Optional[Any] = None
-    error: Optional[str] = None
+    result: Any | None = None
+    error: str | None = None
     retry_count: int = 0
     max_retries: int = 3
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None

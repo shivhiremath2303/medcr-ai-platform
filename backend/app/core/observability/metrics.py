@@ -10,17 +10,17 @@ class NoOpMetricsProvider(MetricsProvider):
     """
 
     def increment_counter(
-        self, name: str, labels: Optional[Dict[str, str]] = None, amount: float = 1.0
+        self, name: str, labels: Dict[str, str] | None = None, amount: float = 1.0
     ) -> None:
         pass
 
     def observe_histogram(
-        self, name: str, value: float, labels: Optional[Dict[str, str]] = None
+        self, name: str, value: float, labels: Dict[str, str] | None = None
     ) -> None:
         pass
 
     def set_gauge(
-        self, name: str, value: float, labels: Optional[Dict[str, str]] = None
+        self, name: str, value: float, labels: Dict[str, str] | None = None
     ) -> None:
         pass
 
@@ -35,11 +35,13 @@ class MetricsRegistry:
     def __init__(self, provider: MetricsProvider):
         self.provider = provider
 
-    def set_gauge(self, name: str, value: float, labels: Optional[Dict[str, str]] = None):
+    def set_gauge(self, name: str, value: float, labels: Dict[str, str] | None = None):
         """Passthrough to the underlying provider."""
         self.provider.set_gauge(name, value, labels)
 
-    def increment_counter(self, name: str, labels: Optional[Dict[str, str]] = None, amount: float = 1.0):
+    def increment_counter(
+        self, name: str, labels: Dict[str, str] | None = None, amount: float = 1.0
+    ):
         """Passthrough to the underlying provider."""
         self.provider.increment_counter(name, labels, amount)
 

@@ -1,22 +1,28 @@
-import pytest
 import asyncio
-from unittest.mock import MagicMock, AsyncMock, patch
 from datetime import datetime
-from app.core.observability.resource_guard import ResourceGuard
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from app.core.observability.concurrency import ConcurrencyLimiter
-from app.core.observability.resilience import CircuitBreaker, CircuitState
+from app.core.observability.health import HealthCheck, HealthService
 from app.core.observability.metrics import MetricsRegistry, NoOpMetricsProvider
-from app.core.observability.health import HealthService, HealthCheck
-from app.infrastructure.storage.multi_level_cache_provider import MultiLevelCacheProvider
-from app.infrastructure.background.redis_job_queue import RedisJobQueueProvider
-from app.services.background.worker_service import WorkerService
-from app.domain.models.background_task import BackgroundTask, TaskStatus, TaskPriority
-from app.services.audit.audit_service import AuditService
+from app.core.observability.resilience import CircuitBreaker, CircuitState
+from app.core.observability.resource_guard import ResourceGuard
 from app.domain.models.audit import AuditEventType
+from app.domain.models.background_task import BackgroundTask, TaskPriority, TaskStatus
+from app.infrastructure.background.redis_job_queue import RedisJobQueueProvider
+from app.infrastructure.storage.multi_level_cache_provider import (
+    MultiLevelCacheProvider,
+)
+from app.services.audit.audit_service import AuditService
+from app.services.background.worker_service import WorkerService
+
 
 @pytest.fixture
 def metrics():
     return MetricsRegistry(NoOpMetricsProvider())
+
 
 def test_resource_guard_monitors_memory(metrics):
     guard = ResourceGuard(metrics, memory_limit_mb=100.0, pressure_threshold=0.5)
@@ -24,6 +30,7 @@ def test_resource_guard_monitors_memory(metrics):
     assert usage >= 0
     is_pressed = guard.is_under_pressure()
     assert isinstance(is_pressed, bool)
+
 
 @pytest.mark.asyncio
 async def test_concurrency_limiter_executes_tasks(metrics):
@@ -43,9 +50,12 @@ async def test_concurrency_limiter_executes_tasks(metrics):
     result_sync = await limiter.run_in_thread(sync_task, 10)
     assert result_sync == 11
 
+
 @pytest.mark.asyncio
 async def test_circuit_breaker_trips_on_failure(metrics):
-    breaker = CircuitBreaker("test", failure_threshold=2, recovery_timeout=1, metrics=metrics)
+    breaker = CircuitBreaker(
+        "test", failure_threshold=2, recovery_timeout=1, metrics=metrics
+    )
 
     async def failing_func():
         raise ValueError("Fail")
@@ -61,6 +71,7 @@ async def test_circuit_breaker_trips_on_failure(metrics):
     with pytest.raises(RuntimeError, match="OPEN"):
         await breaker.call(failing_func)
 
+
 @pytest.mark.asyncio
 async def test_multi_level_cache_logic(metrics):
     l2 = MagicMock()
@@ -73,6 +84,7 @@ async def test_multi_level_cache_logic(metrics):
 
     provider.clear()
     assert provider.get("key") is None
+
 
 @pytest.mark.asyncio
 async def test_redis_job_queue_enqueue(metrics):
@@ -87,6 +99,7 @@ async def test_redis_job_queue_enqueue(metrics):
     assert task_id is not None
     assert redis_mock.client.set.called
     assert redis_mock.client.lpush.called
+
 
 @pytest.mark.asyncio
 async def test_worker_service_execution(metrics):
@@ -105,7 +118,10 @@ async def test_worker_service_execution(metrics):
 
     handler.assert_called_once_with(x=1)
     task_provider.update_task_status.assert_any_call("t1", TaskStatus.RUNNING)
-    task_provider.update_task_status.assert_any_call("t1", TaskStatus.COMPLETED, result="done")
+    task_provider.update_task_status.assert_any_call(
+        "t1", TaskStatus.COMPLETED, result="done"
+    )
+
 
 def test_audit_service_logs_events():
     with patch("app.services.audit.audit_service.logger") as mock_logger:
@@ -117,14 +133,18 @@ def test_audit_service_logs_events():
         assert "Audit Event" in kwargs["msg"]
         assert kwargs["extra"]["extra_data"]["is_audit_event"] is True
 
+
 @pytest.mark.asyncio
 async def test_health_service_aggregates_checks():
     service = HealthService("1.0", "test")
 
     class MockCheck(HealthCheck):
         @property
-        def name(self): return "mock"
-        async def check(self): return {"status": "up"}
+        def name(self):
+            return "mock"
+
+        async def check(self):
+            return {"status": "up"}
 
     service.add_readiness_check(MockCheck())
     report = await service.get_readiness()

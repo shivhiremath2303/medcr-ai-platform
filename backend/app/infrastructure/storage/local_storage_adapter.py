@@ -21,7 +21,7 @@ class LocalStorageAdapter(StorageProvider):
         self,
         upload_dir: Path,
         max_size_mb: int = 20,
-        allowed_extensions: Optional[Set[str]] = None,
+        allowed_extensions: Set[str] | None = None,
     ):
         self.upload_dir = upload_dir
         self.max_size_mb = max_size_mb

@@ -43,11 +43,11 @@ class CurrentUser:
     email: str
     role: UserRole
     is_active: bool
-    full_name: Optional[str] = None
-    sid: Optional[str] = None  # Track session ID
+    full_name: str | None = None
+    sid: str | None = None  # Track session ID
 
     @classmethod
-    def from_user(cls, user: User, sid: Optional[str] = None) -> "CurrentUser":
+    def from_user(cls, user: User, sid: str | None = None) -> "CurrentUser":
         return cls(
             user_id=user.user_id,
             username=user.username,
@@ -79,7 +79,7 @@ class CurrentUser:
 
 async def get_current_user(
     request: Request,
-    token: Optional[str] = Depends(oauth2_scheme),
+    token: str | None = Depends(oauth2_scheme),
     user_repository: UserRepository = Depends(get_user_repository),
     jwt_manager: JWTManager = Depends(get_jwt_manager),
     auth_service: AuthService = Depends(get_auth_service),
@@ -136,7 +136,7 @@ async def get_current_active_user(
 async def rate_limit(
     request: Request,
     limiter: RateLimiterService = Depends(get_rate_limiter_service),
-    current_user: Optional[CurrentUser] = Depends(get_current_user),
+    current_user: CurrentUser | None = Depends(get_current_user),
 ):
     """
     Tiered rate limiting dependency.

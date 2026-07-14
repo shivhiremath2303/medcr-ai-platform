@@ -1,22 +1,26 @@
-import pytest
 import asyncio
-from unittest.mock import MagicMock, AsyncMock, patch
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.services.background.worker_service import WorkerService
-from app.infrastructure.background.redis_job_queue import RedisJobQueueProvider
-from app.domain.models.background_task import BackgroundTask, TaskStatus, TaskPriority
+import pytest
+
 from app.core.observability.metrics import MetricsRegistry, NoOpMetricsProvider
 from app.core.observability.resource_guard import ResourceGuard
+from app.domain.models.background_task import BackgroundTask, TaskPriority, TaskStatus
+from app.infrastructure.background.redis_job_queue import RedisJobQueueProvider
+from app.services.background.worker_service import WorkerService
+
 
 @pytest.fixture
 def metrics():
     return MetricsRegistry(NoOpMetricsProvider())
 
+
 @pytest.fixture
 def mock_provider():
     provider = AsyncMock()
     return provider
+
 
 @pytest.fixture
 def mock_guard():
@@ -24,6 +28,7 @@ def mock_guard():
     guard.is_under_pressure.return_value = False
     guard.should_reject_task.return_value = False
     return guard
+
 
 class TestWorkerService:
     @pytest.mark.asyncio
@@ -43,15 +48,19 @@ class TestWorkerService:
         await worker.stop()
         try:
             await asyncio.wait_for(task_loop, timeout=1.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pass
 
         handler.assert_called_with(x=1)
         mock_provider.update_task_status.assert_any_call("t1", TaskStatus.RUNNING)
-        mock_provider.update_task_status.assert_any_call("t1", TaskStatus.COMPLETED, result="done")
+        mock_provider.update_task_status.assert_any_call(
+            "t1", TaskStatus.COMPLETED, result="done"
+        )
 
     @pytest.mark.asyncio
-    async def test_worker_resource_pressure_throttling(self, mock_provider, metrics, mock_guard):
+    async def test_worker_resource_pressure_throttling(
+        self, mock_provider, metrics, mock_guard
+    ):
         mock_guard.is_under_pressure.return_value = True
         worker = WorkerService(mock_provider, metrics, mock_guard)
         mock_provider.get_pending_tasks.return_value = []
@@ -79,7 +88,9 @@ class TestWorkerService:
         await task_loop
 
         mock_provider.update_task_status.assert_called_with(
-            "shed_me", TaskStatus.FAILED, error="Dropped due to system resource pressure"
+            "shed_me",
+            TaskStatus.FAILED,
+            error="Dropped due to system resource pressure",
         )
 
     @pytest.mark.asyncio
@@ -113,7 +124,10 @@ class TestWorkerService:
         await worker.stop()
         await task_loop
 
-        mock_provider.update_task_status.assert_any_call("t2", TaskStatus.COMPLETED, result=20)
+        mock_provider.update_task_status.assert_any_call(
+            "t2", TaskStatus.COMPLETED, result=20
+        )
+
 
 class TestRedisJobQueueProvider:
     @pytest.fixture
@@ -175,13 +189,14 @@ class TestRedisJobQueueProvider:
         assert updated_task.result == "ok"
         assert updated_task.completed_at is not None
 
+
 class TestBackgroundTaskModel:
     def test_model_serialization(self):
         task = BackgroundTask(
             task_id="123",
             name="test",
             priority=TaskPriority.HIGH,
-            payload={"key": "value"}
+            payload={"key": "value"},
         )
         json_data = task.model_dump_json()
         restored = BackgroundTask.model_validate_json(json_data)

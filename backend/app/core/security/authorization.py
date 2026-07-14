@@ -63,7 +63,7 @@ class AuthorizationService:
         return False
 
     def can_access_document(
-        self, user: User, document_metadata: Optional[Dict[str, Any]]
+        self, user: User, document_metadata: Dict[str, Any] | None
     ) -> bool:
         """
         Policy-based check for document access.

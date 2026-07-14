@@ -20,7 +20,7 @@ class MultiSourceSecretProvider(SecretProvider):
         self.secrets_dir = Path(secrets_dir)
         self._cache: Dict[str, str] = {}
 
-    def get_secret(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get_secret(self, key: str, default: str | None = None) -> str | None:
         # 1. Check Cache
         if key in self._cache:
             return self._cache[key]
@@ -58,7 +58,7 @@ class VaultSecretProvider(SecretProvider):
     This demonstrates readiness for enterprise-scale secret management.
     """
 
-    def get_secret(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get_secret(self, key: str, default: str | None = None) -> str | None:
         # In a real implementation, this would call the Vault API/SDK
         return default
 

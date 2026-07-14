@@ -4,7 +4,7 @@ import inspect
 import logging
 import time
 from datetime import datetime, timedelta
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any, Callable, Dict, Optional, TypeVar
 
 from app.core.observability.metrics import MetricsRegistry
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
-class CircuitState(str, Enum):
+class CircuitState(StrEnum):
     CLOSED = "closed"  # Normal operation
     OPEN = "open"  # Failing, traffic stopped
     HALF_OPEN = "half_open"  # Testing for recovery
@@ -31,7 +31,7 @@ class CircuitBreaker:
         name: str,
         failure_threshold: int = 5,
         recovery_timeout: int = 60,
-        metrics: Optional[MetricsRegistry] = None,
+        metrics: MetricsRegistry | None = None,
     ):
         self.name = name
         self.failure_threshold = failure_threshold
@@ -40,18 +40,20 @@ class CircuitBreaker:
 
         self.state = CircuitState.CLOSED
         self.failure_count = 0
-        self.last_failure_time: Optional[float] = None
+        self.last_failure_time: float | None = None
 
-    def __call__(self, func: Callable[..., T]) -> Callable[..., T]:
+    def __call__(self, func: Callable[..., Any]) -> Any:
         @functools.wraps(func)
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
             return await self.call(func, *args, **kwargs)
 
         return wrapper
 
     async def call(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         if self.state == CircuitState.OPEN:
-            if time.time() - self.last_failure_time > self.recovery_timeout:
+            if self.last_failure_time and (
+                time.time() - self.last_failure_time > self.recovery_timeout
+            ):
                 self.state = CircuitState.HALF_OPEN
                 logger.info(f"Circuit Breaker [{self.name}] moving to HALF_OPEN")
             else:

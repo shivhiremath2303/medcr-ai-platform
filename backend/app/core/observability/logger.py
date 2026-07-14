@@ -131,7 +131,8 @@ class EnterpriseJsonFormatter(EnterpriseLoggingFormatter):
         if record.exc_info:
             log_data["error.stack_trace"] = self.formatException(record.exc_info)
             log_data["error.message"] = str(record.exc_info[1])
-            log_data["error.type"] = record.exc_info[0].__name__
+            exc_type = record.exc_info[0]
+            log_data["error.type"] = exc_type.__name__ if exc_type else "UnknownError"
 
         # Merge extra data and mask it
         if hasattr(record, "extra_data") and isinstance(record.extra_data, dict):
@@ -229,6 +230,7 @@ def setup_logging(
 
     handler = logging.StreamHandler(sys.stdout)
 
+    formatter: EnterpriseLoggingFormatter
     if json_format or environment == "production":
         formatter = EnterpriseJsonFormatter(app_name, app_version, environment)
         # Apply sampling in production only for JSON logs

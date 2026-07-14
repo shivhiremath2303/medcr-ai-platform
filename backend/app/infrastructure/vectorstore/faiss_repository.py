@@ -36,7 +36,7 @@ class FAISSVectorRepository(VectorStoreRepository):
         self.index_name = index_name
         self.default_top_k = default_top_k
         self.limiter = limiter
-        self.vector_store: Optional[FAISS] = None
+        self.vector_store: FAISS | None = None
         self._is_ready = False
         self._lock = asyncio.Lock()
 
@@ -90,7 +90,7 @@ class FAISSVectorRepository(VectorStoreRepository):
         return texts, metadatas
 
     async def similarity_search(
-        self, query: str, k: Optional[int] = None
+        self, query: str, k: int | None = None
     ) -> List[SearchResult]:
         if not self._is_ready or self.vector_store is None:
             logger.warning("Search requested but index is not ready.")

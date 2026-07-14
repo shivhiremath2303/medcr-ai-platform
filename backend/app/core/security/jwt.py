@@ -30,8 +30,8 @@ class JWTManager:
     def create_access_token(
         self,
         data: Dict[str, Any],
-        expires_delta: Optional[timedelta] = None,
-        sid: Optional[str] = None,
+        expires_delta: timedelta | None = None,
+        sid: str | None = None,
     ) -> str:
         to_encode = data.copy()
         if expires_delta:
@@ -58,8 +58,8 @@ class JWTManager:
     def create_refresh_token(
         self,
         data: Dict[str, Any],
-        expires_delta: Optional[timedelta] = None,
-        sid: Optional[str] = None,
+        expires_delta: timedelta | None = None,
+        sid: str | None = None,
     ) -> str:
         to_encode = data.copy()
         if expires_delta:
@@ -84,9 +84,9 @@ class JWTManager:
     def create_token_pair(
         self,
         data: Dict[str, Any],
-        access_expires: Optional[timedelta] = None,
-        refresh_expires: Optional[timedelta] = None,
-        sid: Optional[str] = None,
+        access_expires: timedelta | None = None,
+        refresh_expires: timedelta | None = None,
+        sid: str | None = None,
     ) -> Tuple[str, str]:
         # Generate a session ID if not provided
         session_id = sid or str(uuid.uuid4())
@@ -94,26 +94,26 @@ class JWTManager:
         refresh_token = self.create_refresh_token(data, refresh_expires, sid=session_id)
         return access_token, refresh_token
 
-    def decode_token(self, token: str) -> Optional[Dict[str, Any]]:
+    def decode_token(self, token: str) -> Dict[str, Any] | None:
         try:
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
             return payload
         except jwt.PyJWTError:
             return None
 
-    def decode_access_token(self, token: str) -> Optional[Dict[str, Any]]:
+    def decode_access_token(self, token: str) -> Dict[str, Any] | None:
         payload = self.decode_token(token)
         if payload and payload.get("type") == TokenType.ACCESS:
             return payload
         return None
 
-    def decode_refresh_token(self, token: str) -> Optional[Dict[str, Any]]:
+    def decode_refresh_token(self, token: str) -> Dict[str, Any] | None:
         payload = self.decode_token(token)
         if payload and payload.get("type") == TokenType.REFRESH:
             return payload
         return None
 
-    def get_token_expiry(self, token: str) -> Optional[datetime]:
+    def get_token_expiry(self, token: str) -> datetime | None:
         payload = self.decode_token(token)
         if payload and "exp" in payload:
             return datetime.fromtimestamp(payload["exp"], tz=UTC)

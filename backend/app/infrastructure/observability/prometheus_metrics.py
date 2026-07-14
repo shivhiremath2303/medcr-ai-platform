@@ -11,13 +11,13 @@ class PrometheusMetricsProvider(MetricsProvider):
     Implements Milestone 10.2.2.
     """
 
-    def __init__(self, registry: Optional[CollectorRegistry] = None):
+    def __init__(self, registry: CollectorRegistry | None = None):
         # Use the global registry by default if none provided
         self.registry = registry if registry is not None else REGISTRY
         self.metrics: Dict[str, Any] = {}
 
     def _get_or_create_metric(
-        self, metric_type: type, name: str, labels: Optional[Dict[str, str]] = None
+        self, metric_type: type, name: str, labels: Dict[str, str] | None = None
     ) -> Any:
         if name not in self.metrics:
             label_names = list(labels.keys()) if labels else []
@@ -33,7 +33,7 @@ class PrometheusMetricsProvider(MetricsProvider):
         return self.metrics[name]
 
     def increment_counter(
-        self, name: str, labels: Optional[Dict[str, str]] = None, amount: float = 1.0
+        self, name: str, labels: Dict[str, str] | None = None, amount: float = 1.0
     ) -> None:
         counter = self._get_or_create_metric(Counter, name, labels)
         if labels:
@@ -42,7 +42,7 @@ class PrometheusMetricsProvider(MetricsProvider):
             counter.inc(amount)
 
     def observe_histogram(
-        self, name: str, value: float, labels: Optional[Dict[str, str]] = None
+        self, name: str, value: float, labels: Dict[str, str] | None = None
     ) -> None:
         histogram = self._get_or_create_metric(Histogram, name, labels)
         if labels:
@@ -51,7 +51,7 @@ class PrometheusMetricsProvider(MetricsProvider):
             histogram.observe(value)
 
     def set_gauge(
-        self, name: str, value: float, labels: Optional[Dict[str, str]] = None
+        self, name: str, value: float, labels: Dict[str, str] | None = None
     ) -> None:
         gauge = self._get_or_create_metric(Gauge, name, labels)
         if labels:

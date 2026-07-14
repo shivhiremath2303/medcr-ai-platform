@@ -15,7 +15,7 @@ class RedisClient:
     def __init__(self, redis_url: str, timeout: int = 5):
         self.redis_url = redis_url
         self.timeout = timeout
-        self._client: Optional[redis.Redis] = None
+        self._client: redis.Redis | None = None
 
     def connect(self) -> None:
         """Establish connection to Redis."""

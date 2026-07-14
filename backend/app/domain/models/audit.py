@@ -1,16 +1,16 @@
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field
 
 
-class AuditEventType(str, Enum):
+class AuditEventType(StrEnum):
     # Authentication
     LOGIN_SUCCESS = "auth.login.success"
     LOGIN_FAILURE = "auth.login.failure"
     LOGOUT = "auth.logout"
-    TOKEN_REFRESH = "auth.token_refresh"
-    TOKEN_REVOKE = "auth.token_revoke"
+    TOKEN_REFRESH = "auth.token_refresh"  # noqa: S105
+    TOKEN_REVOKE = "auth.token_revoke"  # noqa: S105
     ACCOUNT_LOCKOUT = "auth.account_lockout"
 
     # Authorization
@@ -38,11 +38,11 @@ class AuditEventType(str, Enum):
 
 class AuditEvent(BaseModel):
     event_type: AuditEventType
-    user_id: Optional[str] = None
-    username: Optional[str] = None
-    resource_id: Optional[str] = None
+    user_id: str | None = None
+    username: str | None = None
+    resource_id: str | None = None
     action: str
     status: str  # success, failure
     details: Dict[str, Any] = Field(default_factory=dict)
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
+    ip_address: str | None = None
+    user_agent: str | None = None

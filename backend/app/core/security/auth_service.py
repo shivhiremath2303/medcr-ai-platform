@@ -38,7 +38,7 @@ class AuthService:
         self.audit_service = audit_service
         self.metrics = metrics
 
-    def authenticate_user(self, username: str, password: str) -> Optional[User]:
+    def authenticate_user(self, username: str, password: str) -> User | None:
         # Check if account/username is locked out
         if self.revocation_repository.is_locked_out(username):
             self.audit_service.log(
@@ -115,7 +115,7 @@ class AuthService:
             "expires_in": self.jwt_manager.access_token_expire_minutes * 60,
         }
 
-    def refresh_access_token(self, refresh_token: str) -> Optional[Dict[str, Any]]:
+    def refresh_access_token(self, refresh_token: str) -> Dict[str, Any] | None:
         payload = self.jwt_manager.decode_refresh_token(refresh_token)
         if not payload:
             return None
@@ -228,7 +228,7 @@ class AuthService:
 
         return False
 
-    def get_user_from_token(self, token: str) -> Optional[User]:
+    def get_user_from_token(self, token: str) -> User | None:
         payload = self.jwt_manager.decode_access_token(token)
         if not payload or self.is_token_revoked(token):
             return None
@@ -241,7 +241,7 @@ class AuthService:
         )
 
     def _handle_failed_login(
-        self, username: str, reason: str, user_id: Optional[str] = None
+        self, username: str, reason: str, user_id: str | None = None
     ):
         """Track failures and enforce lockout."""
         count = self.revocation_repository.increment_failed_login(

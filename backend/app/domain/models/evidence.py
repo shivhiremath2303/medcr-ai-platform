@@ -14,6 +14,6 @@ class Evidence:
     chunk_id: str
     chunk_text: str
     retrieval_score: float
-    reranker_score: Optional[float] = None
+    reranker_score: float | None = None
     confidence: float = 0.0
     rank: int = 0

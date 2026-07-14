@@ -9,7 +9,7 @@ class SecretProvider(ABC):
     """
 
     @abstractmethod
-    def get_secret(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get_secret(self, key: str, default: str | None = None) -> str | None:
         """
         Fetch a secret by key.
         Returns the secret value or default if not found.

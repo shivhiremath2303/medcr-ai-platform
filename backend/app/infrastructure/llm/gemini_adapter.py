@@ -123,14 +123,15 @@ class GeminiLLMAdapter(LLMProvider):
         with tracer.start_as_current_span("gemini_stream_answer") as span:
             try:
                 # Streaming is harder to retry mid-stream, so we wrap the connection setup
-                async for chunk in self.client.aio.models.generate_content_stream(
+                response_stream = self.client.aio.models.generate_content_stream(
                     model=self.model_name,
                     contents=prompt,
                     config={
                         "temperature": self.temperature,
                         "max_output_tokens": self.max_tokens,
                     },
-                ):
+                )
+                async for chunk in response_stream:
                     if chunk.text:
                         yield chunk.text
             except Exception as e:

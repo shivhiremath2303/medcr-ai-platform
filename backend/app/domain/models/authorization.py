@@ -1,10 +1,10 @@
-from enum import Enum
-from typing import Dict, List, Set, Any
+from enum import Enum, StrEnum
+from typing import Any, Dict, List, Set
 
 from app.domain.models.user import UserRole
 
 
-class Permission(str, Enum):
+class Permission(StrEnum):
     # Document Permissions
     DOC_READ = "document:read"
     DOC_UPLOAD = "document:upload"
@@ -27,8 +27,9 @@ class Permission(str, Enum):
     ADMIN_CACHE_MANAGE = "admin:cache_manage"
 
 
-class Role(str, Enum):
+class Role(StrEnum):
     """Legacy Role model for backward compatibility with existing tests."""
+
     ADMIN = "admin"
     LAWYER = "lawyer"
     PARALEGAL = "paralegal"
@@ -38,6 +39,7 @@ class Role(str, Enum):
 
 class RolePermissions:
     """Helper for checking permissions (used by tests)."""
+
     @staticmethod
     def get_for_role(role: Any) -> Set[Permission]:
         return ROLE_PERMISSIONS.get(role, set())

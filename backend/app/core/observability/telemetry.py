@@ -27,7 +27,7 @@ def setup_telemetry(
     app: FastAPI,
     service_name: str,
     service_version: str = "1.0.0",
-    otel_endpoint: Optional[str] = None,
+    otel_endpoint: str | None = None,
     environment: str = "development",
     sample_rate: float = 1.0,
 ) -> None:
@@ -120,7 +120,7 @@ def get_tracer(name: str):
     return DummyTracer()
 
 
-def traced(span_name: Optional[str] = None, attributes: Optional[dict] = None):
+def traced(span_name: str | None = None, attributes: dict | None = None):
     """
     Decorator for automatic span creation and error recording.
     """

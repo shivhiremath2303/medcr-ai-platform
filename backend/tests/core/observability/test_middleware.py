@@ -74,6 +74,6 @@ def test_exception_is_propagated():
 
     try:
         client.get("/ping")
-        assert False, "Expected RuntimeError"
+        raise AssertionError("Expected RuntimeError")
     except RuntimeError as exc:
         assert str(exc) == "boom"

@@ -1,3 +1,7 @@
+from pathlib import Path
+
+from pydantic import SecretStr
+
 from app.core.config.base import BASE_DIR, Settings
 
 
@@ -11,18 +15,20 @@ class TestingSettings(Settings):
     log_level: str = "DEBUG"
 
     # Isolated storage for tests - relative to BASE_DIR
-    upload_dir: str = str(BASE_DIR / "tests" / "uploads")
-    faiss_dir: str = str(BASE_DIR / "tests" / "data" / "faiss")
-    metadata_dir: str = str(BASE_DIR / "tests" / "data" / "metadata")
-    log_directory: str = str(BASE_DIR / "tests" / "logs")
+    upload_dir: Path = BASE_DIR / "tests" / "uploads"
+    faiss_dir: Path = BASE_DIR / "tests" / "data" / "faiss"
+    metadata_dir: Path = BASE_DIR / "tests" / "data" / "metadata"
+    log_directory: Path = BASE_DIR / "tests" / "logs"
 
     # Speed up tests
     chunk_size: int = 500
     chunk_overlap: int = 50
 
     # Allow tests to run without real API key if they mock the provider
-    gemini_api_key: str = "test-key"
-    jwt_secret_key: str = "test-secret-key-for-testing-only"
+    gemini_api_key: SecretStr = SecretStr("test-key")
+    jwt_secret_key: SecretStr = SecretStr(
+        "test-secret-key-for-testing-only"
+    )  # noqa: S105
 
     # Test CORS
     cors_allowed_origins: list[str] = ["http://testserver", "http://localhost"]

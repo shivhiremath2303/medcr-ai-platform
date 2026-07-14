@@ -20,7 +20,7 @@ class BackgroundTaskProvider(ABC):
         """Enqueue a task for distributed execution."""
 
     @abstractmethod
-    async def get_task(self, task_id: str) -> Optional[BackgroundTask]:
+    async def get_task(self, task_id: str) -> BackgroundTask | None:
         """Retrieve task status and metadata."""
 
     @abstractmethod
@@ -28,8 +28,8 @@ class BackgroundTaskProvider(ABC):
         self,
         task_id: str,
         status: TaskStatus,
-        result: Optional[Any] = None,
-        error: Optional[str] = None,
+        result: Any | None = None,
+        error: str | None = None,
     ) -> None:
         """Update the state of a running task."""
 

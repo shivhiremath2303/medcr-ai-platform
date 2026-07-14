@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import List, Optional
 
 
-class AnswerStatus(str, Enum):
+class AnswerStatus(StrEnum):
     SUPPORTED = "supported"
     PARTIALLY_SUPPORTED = "partially_supported"
     INSUFFICIENT_EVIDENCE = "insufficient_evidence"
@@ -11,7 +11,7 @@ class AnswerStatus(str, Enum):
     OUTSIDE_SCOPE = "outside_scope"
 
 
-class SufficiencyLevel(str, Enum):
+class SufficiencyLevel(StrEnum):
     SUFFICIENT = "sufficient"
     PARTIAL = "partial"
     INSUFFICIENT = "insufficient"
@@ -29,4 +29,4 @@ class GroundingReport:
     missing_documents: List[str] = field(default_factory=list)
     contradictions: List[str] = field(default_factory=list)
     unsupported_statements: List[str] = field(default_factory=list)
-    reasoning_notes: Optional[str] = None
+    reasoning_notes: str | None = None

@@ -39,7 +39,7 @@ class DocumentService:
     async def ingest_document(
         self,
         file_path: str,
-        owner_id: Optional[str] = None,
+        owner_id: str | None = None,
     ) -> dict:
         """
         Parse, clean, chunk and incrementally index a document.

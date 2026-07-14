@@ -76,7 +76,7 @@ class PerformanceProfiler:
             return 0.0
 
     @staticmethod
-    def profile_function(name: Optional[str] = None, slow_threshold_ms: float = 1000):
+    def profile_function(name: str | None = None, slow_threshold_ms: float = 1000):
         """
         Decorator to profile a function.
         """
@@ -92,8 +92,6 @@ class PerformanceProfiler:
                 with PerformanceProfiler(name or func.__name__, slow_threshold_ms):
                     return func(*args, **kwargs)
 
-            return (
-                async_wrapper if inspect.iscoroutinefunction(func) else sync_wrapper
-            )
+            return async_wrapper if inspect.iscoroutinefunction(func) else sync_wrapper
 
         return decorator

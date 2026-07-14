@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import BackgroundTasks, Depends
 from google import genai
 
@@ -37,10 +39,10 @@ from app.domain.repositories.benchmark_repository import BenchmarkRepository
 from app.domain.repositories.context_builder import ContextBuilder as IContextBuilder
 from app.domain.repositories.query_rewriter import QueryRewriter as IQueryRewriter
 from app.domain.repositories.security.secret_provider import SecretProvider
-from app.infrastructure.background.redis_job_queue import RedisJobQueueProvider
 from app.infrastructure.background.fastapi_background_tasks import (
     FastAPIBackgroundTaskProvider,
 )
+from app.infrastructure.background.redis_job_queue import RedisJobQueueProvider
 from app.infrastructure.embeddings.huggingface_adapter import (
     HuggingFaceEmbeddingAdapter,
 )
@@ -140,6 +142,12 @@ if settings.redis_url:
 # --- Repositories & Adapters (Singletons) ---
 
 _jwt_manager = JWTManager(settings=settings)
+
+_user_repository: UserRepository
+_revocation_repository: RevocationRepository
+_conversation_repository: ConversationRepository
+_rate_limiter: RateLimiter
+_cache_provider: CacheProvider
 
 # Distributed Session & User Architecture (10.3.5)
 if _redis_client and _redis_client.is_available():
@@ -427,6 +435,7 @@ def get_cleanup_service() -> CleanupService:
 
 
 # Distributed Background Processing (10.3.2)
+_background_task_provider: BackgroundTaskProvider | None
 if _redis_client:
     _background_task_provider = RedisJobQueueProvider(
         redis_client=_redis_client, metrics=_metrics_registry
@@ -446,7 +455,7 @@ def get_background_task_provider(
     return FastAPIBackgroundTaskProvider(background_tasks)
 
 
-_worker_service = (
+_worker_service: WorkerService | None = (
     WorkerService(
         task_provider=_background_task_provider,
         metrics=_metrics_registry,
@@ -458,6 +467,8 @@ _worker_service = (
 
 
 def get_worker_service() -> WorkerService:
+    if not _worker_service:
+        raise RuntimeError("Worker service not initialized")
     return _worker_service
 
 

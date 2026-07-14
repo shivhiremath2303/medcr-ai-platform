@@ -6,4 +6,4 @@ from typing import Optional
 class Metadata:
     filename: str
     page_number: int
-    section: Optional[str] = None
+    section: str | None = None

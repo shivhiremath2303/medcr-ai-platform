@@ -25,8 +25,8 @@ class RateLimiterService:
     async def check_all(
         self,
         ip_address: str,
-        user_id: Optional[str] = None,
-        tenant_id: Optional[str] = None,
+        user_id: str | None = None,
+        tenant_id: str | None = None,
         path: str = "/",
         method: str = "GET",
     ) -> bool:

@@ -56,7 +56,7 @@ class RedisJobQueueProvider(BackgroundTaskProvider):
         )
         return task_id
 
-    async def get_task(self, task_id: str) -> Optional[BackgroundTask]:
+    async def get_task(self, task_id: str) -> BackgroundTask | None:
         data = self.redis.client.get(self._job_key(task_id))
         if data:
             return BackgroundTask.model_validate_json(data)
@@ -66,8 +66,8 @@ class RedisJobQueueProvider(BackgroundTaskProvider):
         self,
         task_id: str,
         status: TaskStatus,
-        result: Optional[Any] = None,
-        error: Optional[str] = None,
+        result: Any | None = None,
+        error: str | None = None,
     ) -> None:
         client = self.redis.client
         data = client.get(self._job_key(task_id))
@@ -102,10 +102,9 @@ class RedisJobQueueProvider(BackgroundTaskProvider):
         # Priority order: HIGH -> DEFAULT -> LOW
         for priority in [TaskPriority.HIGH, TaskPriority.DEFAULT, TaskPriority.LOW]:
             # Atomic RPOP from queue
-            task_id = client.rpop(self._queue_key(priority))
-            if task_id:
-                if isinstance(task_id, bytes):
-                    task_id = task_id.decode()
+            raw_id = client.rpop(self._queue_key(priority))
+            if raw_id:
+                task_id = raw_id.decode() if isinstance(raw_id, bytes) else str(raw_id)
 
                 task = await self.get_task(task_id)
                 if task:

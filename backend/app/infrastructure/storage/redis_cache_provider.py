@@ -28,7 +28,7 @@ class RedisCacheProvider(CacheProvider):
         self.default_ttl = default_ttl
         self.key_prefix = "cache:"
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         full_key = f"{self.key_prefix}{key}"
         with tracer.start_as_current_span("redis_cache_get") as span:
             span.set_attribute("cache.key", full_key)
@@ -54,7 +54,7 @@ class RedisCacheProvider(CacheProvider):
                 self.metrics.track_redis_op("get", status="error")
                 return None
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         full_key = f"{self.key_prefix}{key}"
         ttl = ttl or self.default_ttl
         try:
