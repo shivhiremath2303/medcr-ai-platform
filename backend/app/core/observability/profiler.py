@@ -1,5 +1,6 @@
 import cProfile
 import functools
+import inspect
 import io
 import logging
 import os
@@ -92,7 +93,7 @@ class PerformanceProfiler:
                     return func(*args, **kwargs)
 
             return (
-                async_wrapper if functools.iscoroutinefunction(func) else sync_wrapper
+                async_wrapper if inspect.iscoroutinefunction(func) else sync_wrapper
             )
 
         return decorator

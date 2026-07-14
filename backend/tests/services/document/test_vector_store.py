@@ -163,7 +163,8 @@ async def test_load_returns_false_when_index_does_not_exist(tmp_path: Path, limi
 
 
 @pytest.mark.asyncio
-async def test_save_raises_when_vector_store_not_created(tmp_path: Path, limiter):
+async def test_save_does_nothing_when_vector_store_not_created(tmp_path: Path, limiter):
+    # Updated: Implementation now returns early if None, no longer raises ValueError
     vector_store = FAISSVectorRepository(
         embedding_provider=FakeEmbeddingService(),
         faiss_dir=tmp_path,
@@ -172,15 +173,12 @@ async def test_save_raises_when_vector_store_not_created(tmp_path: Path, limiter
         limiter=limiter,
     )
 
-    with pytest.raises(
-        ValueError,
-        match="Vector store has not been created.",
-    ):
-        await vector_store.save()
+    await vector_store.save() # Should not raise
 
 
 @pytest.mark.asyncio
-async def test_similarity_search_raises_when_vector_store_not_created(tmp_path: Path, limiter):
+async def test_similarity_search_returns_empty_when_vector_store_not_created(tmp_path: Path, limiter):
+    # Updated: Implementation now returns empty list if not ready, no longer raises ValueError
     vector_store = FAISSVectorRepository(
         embedding_provider=FakeEmbeddingService(),
         faiss_dir=tmp_path,
@@ -189,17 +187,13 @@ async def test_similarity_search_raises_when_vector_store_not_created(tmp_path: 
         limiter=limiter,
     )
 
-    with pytest.raises(
-        ValueError,
-        match="Vector store has not been created.",
-    ):
-        await vector_store.similarity_search("contract")
+    results = await vector_store.similarity_search("contract")
+    assert results == []
 
 
 @pytest.mark.asyncio
-async def test_get_all_chunks_raises_when_vector_store_not_created(tmp_path: Path, limiter):
-    # Fixed: is_ready is checked now, and get_all_chunks returns empty list if not ready
-    # instead of raising ValueError (consistent with updated implementation)
+async def test_get_all_chunks_returns_empty_when_vector_store_not_created(tmp_path: Path, limiter):
+    # Updated: Implementation now returns empty list if None, no longer raises ValueError
     vector_store = FAISSVectorRepository(
         embedding_provider=FakeEmbeddingService(),
         faiss_dir=tmp_path,

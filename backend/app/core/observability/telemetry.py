@@ -1,4 +1,5 @@
 import functools
+import inspect
 import logging
 from typing import Any, Callable, Optional
 
@@ -14,6 +15,7 @@ try:
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
     from opentelemetry.sdk.trace.sampling import ParentBasedTraceIdRatio
+
     HAS_OTEL = True
 except ImportError:
     HAS_OTEL = False
@@ -93,11 +95,20 @@ def get_tracer(name: str):
 
     # Fallback to a dummy tracer-like object if OTel is missing
     class DummySpan:
-        def __enter__(self): return self
-        def __exit__(self, *args): pass
-        def set_attribute(self, *args): pass
-        def record_exception(self, *args): pass
-        def set_status(self, *args): pass
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def set_attribute(self, *args):
+            pass
+
+        def record_exception(self, *args):
+            pass
+
+        def set_status(self, *args):
+            pass
 
     class DummyTracer:
         def start_as_current_span(self, name, *args, **kwargs):
@@ -153,6 +164,6 @@ def traced(span_name: Optional[str] = None, attributes: Optional[dict] = None):
                     span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
                     raise
 
-        return async_wrapper if functools.iscoroutinefunction(func) else wrapper
+        return async_wrapper if inspect.iscoroutinefunction(func) else wrapper
 
     return decorator

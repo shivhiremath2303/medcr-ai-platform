@@ -35,6 +35,14 @@ class MetricsRegistry:
     def __init__(self, provider: MetricsProvider):
         self.provider = provider
 
+    def set_gauge(self, name: str, value: float, labels: Optional[Dict[str, str]] = None):
+        """Passthrough to the underlying provider."""
+        self.provider.set_gauge(name, value, labels)
+
+    def increment_counter(self, name: str, labels: Optional[Dict[str, str]] = None, amount: float = 1.0):
+        """Passthrough to the underlying provider."""
+        self.provider.increment_counter(name, labels, amount)
+
     # --- HTTP & API Metrics ---
 
     def track_http_request(

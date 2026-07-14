@@ -116,6 +116,25 @@ class FAISSVectorRepository(VectorStoreRepository):
             results.append(self._document_to_search_result(doc, score, rank))
         return results
 
+    def _document_to_search_result(
+        self, document: LangChainDocument, score: float, rank: int
+    ) -> SearchResult:
+        return SearchResult(
+            chunk=Chunk(
+                chunk_id=document.metadata["chunk_id"],
+                document_id=document.metadata["document_id"],
+                text=document.page_content,
+                metadata=Metadata(
+                    filename=document.metadata["filename"],
+                    page_number=document.metadata["page_number"],
+                    section=document.metadata.get("section"),
+                ),
+            ),
+            score=score,
+            rank=rank,
+            retrieval_score=score,
+        )
+
     async def save(self) -> None:
         async with self._lock:
             with tracer.start_as_current_span("faiss_save_index"):
