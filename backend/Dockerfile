@@ -52,8 +52,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # 4. Copy dependencies from builder
-COPY --from=builder /install/lib /usr/local/lib
-COPY --from=builder /install/bin /usr/local/bin
+COPY --from=builder /install /usr/local
 COPY --from=builder /install/cache/torch/sentence_transformers /app/data/cache/models
 
 # 5. Copy Application Source
