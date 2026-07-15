@@ -11,6 +11,9 @@ correlation_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
 user_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "user_id", default=None
 )
+tenant_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "tenant_id", default=None
+)
 
 
 def get_request_id() -> str | None:
@@ -35,3 +38,11 @@ def get_user_id() -> str | None:
 
 def set_user_id(user_id: str) -> None:
     user_id_var.set(user_id)
+
+
+def get_tenant_id() -> str | None:
+    return tenant_id_var.get()
+
+
+def set_tenant_id(tenant_id: str | None) -> None:
+    tenant_id_var.set(tenant_id)

@@ -27,5 +27,11 @@ class DocumentRepository(ABC):
         """Return documents with pagination support."""
 
     @abstractmethod
+    async def list_by_tenant(
+        self, tenant_id: str, limit: int = 100, offset: int = 0
+    ) -> List[Document]:
+        """Return documents belonging to a specific tenant."""
+
+    @abstractmethod
     async def delete(self, document_id: str) -> bool:
         """Remove a document and its metadata."""

@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 
-from app.core.observability.context import set_user_id
+from app.core.observability.context import set_tenant_id, set_user_id
 from app.core.observability.logger import get_logger
 from app.core.security.auth_service import AuthService
 from app.core.security.authorization import AuthorizationService
@@ -114,8 +114,10 @@ async def get_current_user(
         logger.warning("Authentication failed: Token missing subject")
         raise credentials_exception
 
-    # Set user_id in context for observability and persistence
+    # Set user_id and tenant_id in context for observability and persistence
     set_user_id(user_id)
+    if tenant_id:
+        set_tenant_id(str(tenant_id))
 
     user = user_repository.get_by_id(user_id)
     if user is None:

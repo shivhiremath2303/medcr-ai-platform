@@ -41,7 +41,11 @@ class AuthService:
         self.metrics = metrics
         self.membership_repository = membership_repository
 
-    def authenticate_user(self, username: str, password: str) -> User | None:
+    async def authenticate_user(self, username: str, password: str) -> User | None:
+        """
+        Authenticate a user by username and password.
+        Supports account lockout and auditing.
+        """
         # Check if account/username is locked out
         if self.revocation_repository.is_locked_out(username):
             self.audit_service.log(
@@ -53,6 +57,7 @@ class AuthService:
             )
             return None
 
+        # UserRepo is currently sync (Redis/Memory)
         user = self.user_repository.get_by_username(username)
         if not user:
             self._handle_failed_login(username, reason="user_not_found")
@@ -89,15 +94,15 @@ class AuthService:
         )
         return user
 
-    def create_tokens(self, user: User, tenant_id: str | None = None) -> Dict[str, Any]:
+    async def create_tokens(self, user: User, tenant_id: str | None = None) -> Dict[str, Any]:
         """
         Creates a token pair. If tenant_id is provided, it's included in the claims.
         If not provided, the user's primary tenant (if any) is used.
         """
-        # Multi-Tenant: Resolve tenant context
+        # Multi-Tenant: Resolve tenant context (Async SQL check)
         target_tenant_id = tenant_id
         if not target_tenant_id:
-            memberships = self.membership_repository.list_by_user(user.user_id)
+            memberships = await self.membership_repository.list_by_user(user.user_id)
             if memberships:
                 # Default to the first membership found for now
                 target_tenant_id = memberships[0].tenant_id
@@ -133,7 +138,11 @@ class AuthService:
             "tenant_id": target_tenant_id,
         }
 
-    def refresh_access_token(self, refresh_token: str) -> Dict[str, Any] | None:
+    async def refresh_access_token(self, refresh_token: str) -> Dict[str, Any] | None:
+        """
+        Rotates a refresh token and issues a new access/refresh pair.
+        Supports token reuse detection.
+        """
         payload = self.jwt_manager.decode_refresh_token(refresh_token)
         if not payload:
             return None
@@ -142,11 +151,7 @@ class AuthService:
         sid = payload.get("sid")
         user_id = payload.get("sub")
         tenant_id = payload.get("tenant_id")
-        if not isinstance(jti, str):
-            return None
-        if not isinstance(sid, str):
-            return None
-        if not isinstance(user_id, str):
+        if not isinstance(jti, str) or not isinstance(sid, str) or not isinstance(user_id, str):
             return None
 
         if self.revocation_repository.is_revoked(jti):

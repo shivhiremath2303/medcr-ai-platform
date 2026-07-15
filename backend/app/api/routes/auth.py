@@ -4,8 +4,13 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.core.observability.logger import get_logger
 from app.core.security.auth_service import AuthService
 from app.core.security.dependencies import CurrentUser, get_current_user, rate_limit
-from app.di import get_audit_service, get_auth_service
+from app.di import (
+    get_audit_service,
+    get_auth_service,
+    get_membership_repository,
+)
 from app.domain.models.audit import AuditEventType
+from app.domain.repositories.tenant_repository import MembershipRepository
 from app.services.audit.audit_service import AuditService
 
 router = APIRouter(
@@ -26,7 +31,7 @@ async def login(
 ):
     # Tiered rate limiting is handled by router-level dependency
 
-    user = auth_service.authenticate_user(form_data.username, form_data.password)
+    user = await auth_service.authenticate_user(form_data.username, form_data.password)
     if not user:
         # AuthService already logs failure
         raise HTTPException(
@@ -35,7 +40,7 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    tokens = auth_service.create_tokens(user)
+    tokens = await auth_service.create_tokens(user)
     return tokens
 
 
@@ -47,7 +52,7 @@ async def refresh_token(
 ):
     # Tiered rate limiting is handled by router-level dependency
 
-    refreshed = auth_service.refresh_access_token(refresh_token)
+    refreshed = await auth_service.refresh_access_token(refresh_token)
     if not refreshed:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -87,3 +92,45 @@ async def logout(
         details={"sid": current_user.sid},
     )
     return {"detail": "Successfully logged out"}
+
+
+@router.post("/switch-tenant", summary="Switch active tenant context")
+async def switch_tenant(
+    tenant_id: str,
+    current_user: CurrentUser = Depends(get_current_active_user),
+    auth_service: AuthService = Depends(get_auth_service),
+    membership_repo: MembershipRepository = Depends(get_membership_repository),
+    audit_service: AuditService = Depends(get_audit_service),
+):
+    """
+    Switch the active tenant context for the current session.
+    Verifies membership and re-issues tokens with the new tenant claim.
+    """
+    # 1. Verify user belongs to the target tenant
+    membership = await membership_repo.get(current_user.user_id, tenant_id)
+    if not membership or not membership.is_active:
+        audit_service.log(
+            AuditEventType.ACCESS_DENIED,
+            action="switch_tenant",
+            status="failure",
+            user_id=current_user.user_id,
+            details={"target_tenant_id": tenant_id, "reason": "no_membership"},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this tenant",
+        )
+
+    # 2. Re-issue tokens with the new tenant_id claim
+    # Note: to_user() returns a domain model without sensitive password data
+    tokens = await auth_service.create_tokens(current_user.to_user(), tenant_id=tenant_id)
+
+    audit_service.log(
+        AuditEventType.TOKEN_REFRESH,
+        action="switch_tenant",
+        status="success",
+        user_id=current_user.user_id,
+        details={"new_tenant_id": tenant_id},
+    )
+
+    return tokens

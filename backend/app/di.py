@@ -4,6 +4,7 @@ from typing import Optional
 
 from fastapi import BackgroundTasks, Depends
 from google import genai
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.observability.concurrency import ConcurrencyLimiter
@@ -74,11 +75,11 @@ from app.infrastructure.storage.memory_cache_provider import MemoryCacheProvider
 from app.infrastructure.storage.memory_conversation_repository import (
     MemoryConversationRepository,
 )
-from app.infrastructure.storage.memory_tenant_repository import (
-    MemoryMembershipRepository,
-    MemoryOrganizationRepository,
-    MemoryTenantRepository,
-    MemoryWorkspaceRepository,
+from app.infrastructure.storage.sql_tenant_repository import (
+    SQLMembershipRepository,
+    SQLOrganizationRepository,
+    SQLTenantRepository,
+    SQLWorkspaceRepository,
 )
 from app.infrastructure.storage.memory_user_repository import MemoryUserRepository
 from app.infrastructure.storage.multi_level_cache_provider import (
@@ -158,10 +159,9 @@ _conversation_repository: ConversationRepository
 _rate_limiter: RateLimiter
 _cache_provider: CacheProvider
 
-_membership_repository = MemoryMembershipRepository()
-_tenant_repository = MemoryTenantRepository()
-_organization_repository = MemoryOrganizationRepository()
-_workspace_repository = MemoryWorkspaceRepository()
+# SQL Repositories are provided via dependencies to manage session lifecycle
+# but we keep these here for background tasks/startup logic if needed.
+# Note: For production, always use the dependency injection version with get_db_session.
 
 # Distributed Session & User Architecture (10.3.5)
 if _redis_client and _redis_client.is_available():
@@ -199,15 +199,6 @@ else:
 _cache_warming_service = CacheWarmingService(cache_provider=_cache_provider)
 
 _audit_service = AuditService()
-
-_auth_service = AuthService(
-    user_repository=_user_repository,
-    jwt_manager=_jwt_manager,
-    revocation_repository=_revocation_repository,
-    audit_service=_audit_service,
-    metrics=_metrics_registry,
-    membership_repository=_membership_repository,
-)
 
 _authorization_service = AuthorizationService(audit_service=_audit_service)
 
@@ -425,8 +416,44 @@ def get_jwt_manager() -> JWTManager:
     return _jwt_manager
 
 
-def get_auth_service() -> AuthService:
-    return _auth_service
+def get_membership_repository(
+    session: AsyncSession = Depends(get_db_session_provider()),
+) -> MembershipRepository:
+    return SQLMembershipRepository(session)
+
+
+def get_tenant_repository(
+    session: AsyncSession = Depends(get_db_session_provider()),
+) -> TenantRepository:
+    return SQLTenantRepository(session)
+
+
+def get_organization_repository(
+    session: AsyncSession = Depends(get_db_session_provider()),
+) -> OrganizationRepository:
+    return SQLOrganizationRepository(session)
+
+
+def get_workspace_repository(
+    session: AsyncSession = Depends(get_db_session_provider()),
+) -> WorkspaceRepository:
+    return SQLWorkspaceRepository(session)
+
+
+def get_auth_service(
+    user_repo: UserRepository = Depends(get_user_repository),
+    revocation_repo: RevocationRepository = Depends(get_revocation_repository),
+    audit_service: AuditService = Depends(get_audit_service),
+    membership_repo: MembershipRepository = Depends(get_membership_repository),
+) -> AuthService:
+    return AuthService(
+        user_repository=user_repo,
+        jwt_manager=_jwt_manager,
+        revocation_repository=revocation_repo,
+        audit_service=audit_service,
+        metrics=_metrics_registry,
+        membership_repository=membership_repo,
+    )
 
 
 def get_authorization_service() -> AuthorizationService:
@@ -519,48 +546,55 @@ def get_rag_service(
 # --- Lifecycle Management ---
 
 
-def init_dev_user():
+async def init_dev_user():
     # Initialize Multi-Tenant Defaults (10.4)
-    if not _organization_repository.get_by_id("org-default"):
-        org = Organization(
-            organization_id="org-default",
-            name="Default Organization",
-            slug="default-org",
-        )
-        _organization_repository.save(org)
+    from app.infrastructure.storage.database_foundation import AsyncSessionLocal
 
-    if not _tenant_repository.get_by_id("tenant-default"):
-        tenant = Tenant(
-            tenant_id="tenant-default",
-            organization_id="org-default",
-            name="Default Tenant",
-            slug="default-tenant",
-        )
-        _tenant_repository.save(tenant)
+    async with AsyncSessionLocal() as session:
+        org_repo = SQLOrganizationRepository(session)
+        tenant_repo = SQLTenantRepository(session)
+        membership_repo = SQLMembershipRepository(session)
 
-    if not _user_repository.get_by_username("admin"):
-        admin_user = User(
-            user_id="admin-001",
-            username="admin",
-            email="admin@medcr.ai",
-            hashed_password=PasswordHasher.hash("admin-password"),
-            role=UserRole.ADMIN,
-            full_name="System Administrator",
-        )
-        _user_repository.save(admin_user)
-
-        # Link admin to default tenant
-        _membership_repository.save(
-            Membership(
-                user_id=admin_user.user_id,
-                tenant_id="tenant-default",
-                role=TenantRole.OWNER,
+        if not await org_repo.get_by_id("org-default"):
+            org = Organization(
+                organization_id="org-default",
+                name="Default Organization",
+                slug="default-org",
             )
-        )
+            await org_repo.save(org)
+
+        if not await tenant_repo.get_by_id("tenant-default"):
+            tenant = Tenant(
+                tenant_id="tenant-default",
+                organization_id="org-default",
+                name="Default Tenant",
+                slug="default-tenant",
+            )
+            await tenant_repo.save(tenant)
+
+        if not _user_repository.get_by_username("admin"):
+            admin_user = User(
+                user_id="admin-001",
+                username="admin",
+                email="admin@medcr.ai",
+                hashed_password=PasswordHasher.hash("admin-password"),
+                role=UserRole.ADMIN,
+                full_name="System Administrator",
+            )
+            _user_repository.save(admin_user)
+
+            # Link admin to default tenant
+            await membership_repo.save(
+                Membership(
+                    user_id=admin_user.user_id,
+                    tenant_id="tenant-default",
+                    role=TenantRole.OWNER,
+                )
+            )
 
 
 async def init_vector_store() -> bool:
-    init_dev_user()
+    await init_dev_user()
     return await _vector_repository.load()
 
 

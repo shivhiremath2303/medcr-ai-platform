@@ -116,15 +116,13 @@ class DocumentService:
         return await self.document_repository.get_by_id(document_id)
 
     async def list_documents(
-        self,
-        limit: int = 100,
-        offset: int = 0,
-        tenant_id: str | None = None
+        self, limit: int = 100, offset: int = 0, tenant_id: str | None = None
     ) -> list[Document]:
         """
         Return documents with pagination and tenant filtering support.
         """
-        all_docs = await self.document_repository.list_all(limit=limit, offset=offset)
         if tenant_id:
-            return [d for d in all_docs if getattr(d, "tenant_id", None) == tenant_id]
-        return all_docs
+            return await self.document_repository.list_by_tenant(
+                tenant_id=tenant_id, limit=limit, offset=offset
+            )
+        return await self.document_repository.list_all(limit=limit, offset=offset)
