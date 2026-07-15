@@ -128,7 +128,8 @@ class Settings(BaseSettings):
     embedding_batch_size: int = Field(32, description="Batch size for embedding")
 
     # --- AI - LLM ---
-    gemini_model: str = Field("gemini-2.0-flash", description="Gemini model name")
+    gemini_model: str = Field("gemini-2.0-flash", description="Primary Gemini model name")
+    gemini_pro_model: str = Field("gemini-1.5-pro", description="Complex reasoning model")
     llm_temperature: float = Field(0.1, description="LLM temperature")
     llm_max_tokens: int = Field(2048, description="Maximum tokens for LLM response")
     llm_retry_count: int = Field(3, description="Number of retries for LLM calls")
@@ -141,10 +142,18 @@ class Settings(BaseSettings):
     reranker_top_k: int = Field(
         5, description="Number of results to keep after reranking"
     )
+    adaptive_rerank_threshold: float = Field(
+        0.9, description="Score threshold to skip reranking if initial results are very strong"
+    )
 
     # --- AI - Chunking ---
+    chunk_strategy: str = Field("recursive", description="Chunking strategy (recursive, semantic)")
     chunk_size: int = Field(1000, description="Size of document chunks")
     chunk_overlap: int = Field(200, description="Overlap between chunks")
+
+    # Semantic Chunking Parameters
+    semantic_chunk_buffer_size: int = Field(1, description="Number of sentences to buffer for semantic context")
+    semantic_chunk_breakpoint_percentile: float = Field(95.0, description="Percentile threshold for semantic breaks")
 
     # --- AI - Retrieval ---
     default_top_k: int = Field(

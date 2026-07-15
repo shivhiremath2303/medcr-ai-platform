@@ -1,74 +1,62 @@
-# Implementation Plan: Phase 10.4 Enterprise Multi-Tenant Architecture
+# Implementation Plan: Phase 10.5 Enterprise AI Platform Optimization
 
-This phase evolves the platform into a SaaS-ready architecture with strict tenant isolation, scalable repository patterns, and tenant-aware AI pipelines.
+This phase focuses on improving the quality, latency, and cost-efficiency of the AI platform while maintaining its stable Clean Architecture.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **Database Transition**: This phase will transition from Memory-based Tenant/Organization repositories to Persistent SQL-based repositories (PostgreSQL/SQLite). Existing "default" data will be migrated to the database.
+> **Performance Improvements**: We are introducing **Parallel Analytics** and **Semantic Caching**. This will significantly reduce perceived latency but will increase Redis memory usage for the cache.
 
 > [!WARNING]
-> **Cache Invalidation**: Deployment of multi-tenant cache isolation will invalidate current global caches to prevent data leakage.
+> **Chunking Evolution**: Switching to **Semantic Chunking** will require re-indexing existing documents to take advantage of improved retrieval coherence.
 
 ## Proposed Changes
 
-### [Component] Tenant Domain & Persistence
-Migrate Tenant models to SQLAlchemy and implement persistent repositories.
+### [Component] Retrieval & Chunking
+Improve retrieval coherence and accuracy.
 
-#### [MODIFY] [tenant.py](file:///C:/Users/LENOVO/medcr-ai-platform/backend/app/domain/models/tenant.py)
-- Refine Pydantic models for persistence.
+#### [MODIFY] [document_service.py](file:///C:/Users/LENOVO/medcr-ai-platform/backend/app/services/document/document_service.py)
+- Integrate **Semantic Chunking** using semantic boundaries instead of fixed character counts.
 
-#### [NEW] [tenant_sql.py](file:///C:/Users/LENOVO/medcr-ai-platform/backend/app/database/models/tenant_sql.py)
-- SQLAlchemy models for Organization, Tenant, Workspace, Membership.
-
-#### [NEW] [sql_tenant_repository.py](file:///C:/Users/LENOVO/medcr-ai-platform/backend/app/infrastructure/storage/sql_tenant_repository.py)
-- Production-ready implementation of `TenantRepository`, `OrganizationRepository`, etc.
+#### [NEW] [semantic_chunker.py](file:///C:/Users/LENOVO/medcr-ai-platform/backend/app/infrastructure/parser/semantic_chunker.py)
+- Implementation of a chunker that uses embedding distances to find natural breaks in legal text.
 
 ---
 
-### [Component] Authentication & Authorization
-Enhance JWT claims and session management to support multi-tenant context.
-
-#### [MODIFY] [auth_service.py](file:///C:/Users/LENOVO/medcr-ai-platform/backend/app/core/security/auth_service.py)
-- Support tenant validation during login.
-- Support switching active tenant context for users with multiple memberships.
-
-#### [MODIFY] [dependencies.py](file:///C:/Users/LENOVO/medcr-ai-platform/backend/app/core/security/dependencies.py)
-- Strict `tenant_id` validation in `get_current_user`.
-
----
-
-### [Component] Tenant-aware AI Pipeline
-Isolate retrieval and caching by tenant context.
-
-#### [MODIFY] [faiss_repository.py](file:///C:/Users/LENOVO/medcr-ai-platform/backend/app/infrastructure/vectorstore/faiss_repository.py)
-- Prepare for index sharding (One FAISS index per tenant or strict metadata partitioning).
+### [Component] Latency & Pipeline
+Parallelize non-dependent steps and introduce intelligent caching.
 
 #### [MODIFY] [rag_service.py](file:///C:/Users/LENOVO/medcr-ai-platform/backend/app/services/rag/rag_service.py)
-- Inject `tenant_id` into all cache key generation logic.
+- Implement **Parallel Analytics Extraction**: Extract grounding and reasoning concurrently with the final response construction.
+- Introduce **Semantic Retrieval Cache**: Cache retrieval results based on query embedding similarity to handle variations of the same question.
+
+#### [MODIFY] [retrieval_service.py](file:///C:/Users/LENOVO/medcr-ai-platform/backend/app/services/retrieval/retrieval_service.py)
+- Implement **Adaptive Reranking**: Skip the heavy CrossEncoder step if initial retrieval confidence is extremely high (e.g., > 0.9).
 
 ---
 
-### [Component] Infrastructure & Integration
-Wire new repositories and update initialization logic.
+### [Component] Context & Prompt
+Optimize token usage and LLM efficiency.
 
-#### [MODIFY] [di.py](file:///C:/Users/LENOVO/medcr-ai-platform/backend/app/di.py)
-- Switch from `MemoryTenantRepository` to `SQLTenantRepository`.
+#### [MODIFY] [context_builder.py](file:///C:/Users/LENOVO/medcr-ai-platform/backend/app/services/retrieval/context_builder.py)
+- Implement **Dynamic Context Pruning**: Use a lightweight model or heuristic to remove "noise" from chunks before injecting into the main prompt.
+
+#### [MODIFY] [gemini_adapter.py](file:///C:/Users/LENOVO/medcr-ai-platform/backend/app/infrastructure/llm/gemini_adapter.py)
+- Support **Model Routing**: Dynamically switch between Gemini 2.0 Flash and Gemini 1.5 Pro based on query complexity.
 
 ## Verification Plan
 
 ### Automated Tests
-- `pytest tests/tenant_isolation/`: New test suite to verify no data leakage between `tenant_a` and `tenant_b`.
-- `pytest tests/persistence/`: Verify Tenant/Organization CRUD in SQL.
+- `pytest tests/performance/`: Benchmark latency before and after optimizations.
+- `pytest tests/retrieval/`: Compare nDCG scores between static and semantic chunking.
 
 ### Manual Verification
-- Login as a user belonging to two organizations and verify ability to switch contexts.
-- Upload documents to Tenant A and verify they are invisible to Tenant B's RAG queries.
+- Monitor Prometheus metrics for `ai_latency_seconds` and `ai_tokens_consumed`.
+- Verify that "Lost-in-the-middle" issues are mitigated by checking relevance of citations for long contexts.
 
 ## Milestones
-- **10.4.1**: Tenant Domain & SQL Models
-- **10.4.2**: SQL Repositories Implementation
-- **10.4.3**: Tenant-aware Authentication
-- **10.4.4**: Metadata & File Isolation
-- **10.4.5**: Vector & Cache Isolation
-- **10.4.6**: Multi-Tenant Integration & Testing
+- **10.5.1**: Retrieval Optimization (Semantic Chunking)
+- **10.5.2**: Latency Optimization (Parallel Analytics & Adaptive Reranking)
+- **10.5.3**: Context Compression & Prompt Pruning
+- **10.5.4**: Semantic Caching & Model Routing
+- **10.5.5**: Enterprise Benchmarking & Calibration
