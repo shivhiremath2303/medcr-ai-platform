@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, SecretStr, field_validator
 
 from app.core.config.base import Settings
 
@@ -14,9 +14,23 @@ class ProductionSettings(Settings):
     log_level: str = "WARNING"
 
     # In production, we require these to be set.
-    # Field(..., min_length=1) ensures they are provided and not empty.
-    gemini_api_key: str = Field(..., min_length=1, description="Google Gemini API Key")
-    jwt_secret_key: str = Field(..., min_length=1, description="JWT Secret Key")
+    # We use field_validators to ensure they are not empty and meet entropy requirements.
+    gemini_api_key: SecretStr = Field(..., description="Google Gemini API Key")
+    jwt_secret_key: SecretStr = Field(..., description="JWT Secret Key")
+
+    @field_validator("gemini_api_key", "jwt_secret_key")
+    @classmethod
+    def validate_secret_not_empty(cls, v: SecretStr):
+        if not v.get_secret_value() or len(v.get_secret_value()) < 1:
+            raise ValueError("Secret cannot be empty in production")
+        return v
+
+    @field_validator("jwt_secret_key")
+    @classmethod
+    def validate_jwt_secret_entropy(cls, v: SecretStr):
+        if len(v.get_secret_value()) < 32:
+            raise ValueError("JWT secret must be at least 32 characters for HS256")
+        return v
 
     # Must be a valid JSON list when set via environment variable.
     # e.g., CORS_ALLOWED_ORIGINS=["https://app.medcr.ai"]

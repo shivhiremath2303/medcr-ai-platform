@@ -1,0 +1,25 @@
+{
+  "title": "API Service Health",
+  "uid": "api-service-health",
+  "tags": ["API", "Service", "Traffic"],
+  "panels": [
+    {
+      "title": "HTTP Traffic (RPS)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "sum(rate(api_requests_total[1m])) by (method, path)" }]
+    },
+    {
+      "title": "HTTP Error Rate (4xx/5xx)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "sum(rate(api_requests_total{status=~'[45]..'}[1m])) by (status)" }]
+    },
+    {
+      "title": "API Latency Heatmap",
+      "type": "heatmap",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "targets": [{ "expr": "sum(rate(api_request_duration_seconds_bucket[5m])) by (le)" }]
+    }
+  ]
+}

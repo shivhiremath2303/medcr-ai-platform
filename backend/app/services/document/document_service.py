@@ -1,4 +1,6 @@
+import asyncio
 from pathlib import Path
+from typing import Optional
 
 from app.core.observability.logger import get_logger
 from app.core.observability.metrics import MetricsRegistry
@@ -16,7 +18,8 @@ tracer = get_tracer(__name__)
 
 class DocumentService:
     """
-    Coordinates the complete document ingestion pipeline.
+    Coordinates the complete document ingestion pipeline with Operational Analytics and Scaling.
+    Enhanced with Multi-Tenant support (10.4.4).
     """
 
     def __init__(
@@ -33,97 +36,93 @@ class DocumentService:
         self.document_repository = document_repository
         self.metrics = metrics
 
-        loaded = self.vector_store.load()
-        if loaded:
-            logger.info("Loaded existing vector index.")
-        else:
-            logger.info("No existing vector index found. A new index will be created.")
-
-    def ingest_document(
+    async def ingest_document(
         self,
         file_path: str,
+        owner_id: str | None = None,
+        tenant_id: str | None = None,
     ) -> dict:
         """
-        Parse, clean, chunk and index a document.
+        Parse, clean, chunk and incrementally index a document.
+        Ensures tenant isolation throughout the pipeline.
         """
         extension = Path(file_path).suffix.lower()
-        logger.info("Starting document ingestion: %s", file_path)
+        logger.info("Starting document ingestion: %s (Tenant: %s)", file_path, tenant_id)
 
         with tracer.start_as_current_span("document_ingestion") as span:
             span.set_attribute("doc.path", file_path)
+            if owner_id:
+                span.set_attribute("doc.owner_id", owner_id)
+            if tenant_id:
+                span.set_attribute("tenant.id", tenant_id)
+
             try:
-                # Parse into the domain model.
+                # 1. Parse
                 document: Document = self.parser.parse_document(file_path)
+                document.owner_id = owner_id
+                document.tenant_id = tenant_id
 
-                logger.info(
-                    "Parsed document '%s' (%d pages).",
-                    document.filename,
-                    document.page_count,
-                )
-
-                # Clean every page independently.
+                # 2. Clean
                 for page in document.pages:
                     page.text = TextCleaner.clean(page.text)
 
-                logger.info("Document cleaned successfully.")
-
-                # Produce metadata-aware domain chunks.
+                # 3. Chunk (Preserves tenant_id via Chunker implementation)
                 chunks = self.chunker.split_document(document)
 
-                logger.info(
-                    "Created %d chunks from document.",
-                    len(chunks),
+                # 4. Incremental Indexing (10.3.4)
+                # Chunks now carry tenant_id in metadata for logical partitioning.
+                await self.vector_store.add_chunks(chunks)
+                await self.vector_store.save()
+
+                # 5. Metadata persistence
+                await self.document_repository.save(document)
+
+                # Operational Analytics
+                self.metrics.track_document_processed(
+                    extension=extension, pages=document.page_count
                 )
 
-                # Create / update the vector index.
-                self.vector_store.create(chunks)
-
-                logger.info("Vector index created.")
-
-                # Persist the index.
-                self.vector_store.save()
-
-                logger.info("Vector index saved successfully.")
-
-                # Persist document metadata.
-                self.document_repository.save(document)
-
-                logger.info(
-                    "Completed ingestion of '%s'.",
-                    document.filename,
+                # Infrastructure Analytics (Async)
+                all_chunks = await self.vector_store.get_all_chunks()
+                self.metrics.track_vector_store_size(
+                    index_name="legal_documents", count=len(all_chunks)
                 )
-
-                self.metrics.track_document_upload(extension, "success")
 
                 return {
                     "document_id": document.document_id,
                     "filename": document.filename,
                     "page_count": document.page_count,
                     "chunk_count": len(chunks),
+                    "tenant_id": tenant_id,
                 }
             except Exception as e:
-                self.metrics.track_document_upload(extension, "error")
                 logger.error(f"Failed to ingest document {file_path}: {str(e)}")
                 span.record_exception(e)
                 raise
 
-    def search(
+    async def search(
         self,
         query: str,
         k: int = 3,
     ):
-        logger.info(
-            "Executing similarity search (k=%d).",
-            k,
-        )
-
-        return self.vector_store.similarity_search(
+        """Perform similarity search on the vector store."""
+        # Note: Vector search needs tenant-aware filtering in 10.4.6
+        return await self.vector_store.similarity_search(
             query=query,
             k=k,
         )
 
-    def get_document(self, document_id: str) -> Document | None:
-        return self.document_repository.get_by_id(document_id)
+    async def get_document(self, document_id: str) -> Document | None:
+        return await self.document_repository.get_by_id(document_id)
 
-    def list_documents(self) -> list[Document]:
-        return self.document_repository.list_all()
+    async def list_documents(
+        self, limit: int = 100, offset: int = 0, tenant_id: str | None = None
+    ) -> list[Document]:
+        """
+        Return documents with pagination and tenant filtering support.
+        """
+        if tenant_id:
+            return await self.document_repository.list_by_tenant(
+                tenant_id=tenant_id, limit=limit, offset=offset
+            )
+        return await self.document_repository.list_all(limit=limit, offset=offset)

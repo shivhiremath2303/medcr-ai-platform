@@ -14,7 +14,7 @@ class EvidenceSchema(BaseModel):
     chunk_id: str
     chunk_text: str
     retrieval_score: float
-    reranker_score: Optional[float] = None
+    reranker_score: float | None = None
     confidence: float
     rank: int
 
@@ -61,6 +61,7 @@ class SourceResponse(BaseModel):
 class EvaluationSchema(BaseModel):
     retrieval_ndcg: float
     grounding_score: float
+    citation_accuracy: float
     reasoning_consistency: float
     hallucination_rate: float
     overall_score: float
@@ -73,7 +74,7 @@ class AnswerResponse(BaseModel):
     """
 
     answer: str
-    summary: Optional[str] = None
+    summary: str | None = None
     citations: List[str] = []
     evidence: List[EvidenceSchema] = []
     confidence: float = 0.0
@@ -81,8 +82,8 @@ class AnswerResponse(BaseModel):
     answer_status: str = "supported"
     missing_documents: List[str] = []
     contradictions: List[str] = []
-    reasoning_notes: Optional[str] = None
-    reasoning_metadata: Optional[ReasoningMetadataSchema] = None
-    evaluation: Optional[EvaluationSchema] = None
+    reasoning_notes: str | None = None
+    reasoning_metadata: ReasoningMetadataSchema | None = None
+    evaluation: EvaluationSchema | None = None
     sources: List[SourceResponse] = []
-    retrieval_diagnostics: Optional[Dict[str, Any]] = None
+    retrieval_diagnostics: Dict[str, Any] | None = None

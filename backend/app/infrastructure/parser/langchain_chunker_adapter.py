@@ -9,6 +9,7 @@ from app.domain.repositories.chunker import Chunker
 class LangChainChunkerAdapter(Chunker):
     """
     Adapter for LangChain's RecursiveCharacterTextSplitter.
+    Enhanced with Multi-Tenant awareness (10.4.4).
     """
 
     def __init__(
@@ -38,6 +39,7 @@ class LangChainChunkerAdapter(Chunker):
                             filename=document.filename,
                             page_number=page.page_number,
                             section=None,
+                            tenant_id=document.tenant_id, # Preserve isolation (10.4.4)
                         ),
                     )
                 )

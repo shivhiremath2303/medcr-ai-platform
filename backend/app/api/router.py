@@ -1,17 +1,22 @@
 from fastapi import APIRouter
 
+from app.api.routes.auth import router as auth_router
 from app.api.routes.documents import router as document_router
 from app.api.routes.rag import router as rag_router
+from app.api.routes.tasks import router as task_router
 
-router = APIRouter()
+# Unified API Router (v1)
+api_router = APIRouter()
 
-router.include_router(document_router)
-router.include_router(rag_router)
+api_router.include_router(auth_router)
+api_router.include_router(document_router)
+api_router.include_router(rag_router)
+api_router.include_router(task_router)
 
 
-@router.get("/")
-def home():
+@api_router.get("/status")
+def status():
     return {
-        "message": "Welcome to MedCR AI Platform",
-        "status": "Backend is running successfully!",
+        "message": "Legal AI Platform API v1",
+        "status": "ready",
     }

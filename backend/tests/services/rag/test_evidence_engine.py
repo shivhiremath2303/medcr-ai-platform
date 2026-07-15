@@ -1,10 +1,13 @@
 import pytest
 
+from app.core.observability.concurrency import ConcurrencyLimiter
 from app.core.observability.metrics import MetricsRegistry, NoOpMetricsProvider
+from app.core.observability.resource_guard import ResourceGuard
 from app.domain.models.search_result import SearchResult
 from app.infrastructure.storage.memory_benchmark_repository import (
     MemoryBenchmarkRepository,
 )
+from app.infrastructure.storage.memory_cache_provider import MemoryCacheProvider
 from app.infrastructure.storage.memory_conversation_repository import (
     MemoryConversationRepository,
 )
@@ -19,7 +22,8 @@ from tests.fixtures.fake_hybrid_retriever import FakeHybridRetriever
 from tests.fixtures.fake_llm_provider import FakeLLMProvider
 
 
-def test_rag_service_returns_structured_evidence():
+@pytest.mark.asyncio
+async def test_rag_service_returns_structured_evidence():
     # Setup
     chunk = make_chunk("chunk-1", "Evidence text about liability.")
     results = [SearchResult(chunk=chunk, score=0.9, rank=1, retrieval_score=0.9)]
@@ -58,10 +62,12 @@ liable.
         evaluation_engine=evaluation_engine,
         benchmark_repo=benchmark_repo,
         metrics=metrics,
+        cache=MemoryCacheProvider(),
+        limiter=ConcurrencyLimiter(ResourceGuard(metrics)),
     )
 
     # Execute
-    response = service.answer_question("Is there liability?", k=1)
+    response = await service.answer_question("Is there liability?", k=1)
 
     # Assert
     assert "answer" in response
@@ -75,7 +81,8 @@ liable.
     assert response["sources"][0]["filename"] == "contract.pdf"
 
 
-def test_rag_service_handles_missing_evidence():
+@pytest.mark.asyncio
+async def test_rag_service_handles_missing_evidence():
     # Setup
     retriever = FakeHybridRetriever(results=[])
     llm = FakeLLMProvider()
@@ -99,10 +106,12 @@ def test_rag_service_handles_missing_evidence():
         evaluation_engine=evaluation_engine,
         benchmark_repo=benchmark_repo,
         metrics=metrics,
+        cache=MemoryCacheProvider(),
+        limiter=ConcurrencyLimiter(ResourceGuard(metrics)),
     )
 
     # Execute
-    response = service.answer_question("Where is the gold?", k=1)
+    response = await service.answer_question("Where is the gold?", k=1)
 
     # Assert
     assert "No supporting evidence" in response["answer"]

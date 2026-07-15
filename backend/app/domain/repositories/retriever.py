@@ -1,16 +1,24 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
-from app.domain.models import Chunk, SearchResult
+from app.domain.models import SearchResult
 
 
 class Retriever(ABC):
     """
-    Interface for retrieval operations.
+    Enterprise Interface for retrieval operations.
+    Updated for Multi-Tenant Isolation (10.4.6).
     """
 
     @abstractmethod
-    def retrieve(
-        self, query: str, k: int = 5, params: Optional[Dict[str, Any]] = None
-    ) -> list[SearchResult]:
-        """Retrieve relevant results for a query."""
+    async def retrieve(
+        self,
+        query: str,
+        k: int = 5,
+        params: Dict[str, Any] | None = None,
+        tenant_id: Optional[str] = None
+    ) -> List[SearchResult]:
+        """
+        Retrieve relevant results for a query.
+        Strictly filters by tenant_id if provided.
+        """

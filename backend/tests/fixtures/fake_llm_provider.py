@@ -1,3 +1,5 @@
+from typing import AsyncGenerator
+
 from app.domain.repositories.llm_provider import LLMProvider
 
 
@@ -7,10 +9,15 @@ class FakeLLMProvider(LLMProvider):
         self.received_questions = []
         self.received_contexts = []
 
-    def generate_answer(self, question: str, context: str) -> str:
+    async def generate_answer(self, question: str, context: str) -> str:
         self.received_questions.append(question)
         self.received_contexts.append(context)
         return self.answer
 
-    def rewrite_question(self, question: str, conversation_context: str) -> str:
+    async def rewrite_question(self, question: str, conversation_context: str) -> str:
         return question
+
+    async def stream_answer(
+        self, question: str, context: str
+    ) -> AsyncGenerator[str, None]:
+        yield self.answer

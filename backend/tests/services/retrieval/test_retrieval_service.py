@@ -1,3 +1,5 @@
+import pytest
+
 from app.core.observability.metrics import MetricsRegistry, NoOpMetricsProvider
 from app.domain.models.search_result import SearchResult
 from app.services.retrieval.retrieval_service import RetrievalService
@@ -6,7 +8,8 @@ from tests.fixtures.fake_hybrid_retriever import FakeHybridRetriever
 from tests.fixtures.fake_reranker import FakeReranker
 
 
-def test_retrieve_delegates_to_retriever_and_reranker():
+@pytest.mark.asyncio
+async def test_retrieve_delegates_to_retriever_and_reranker():
     chunk_1 = make_chunk(
         "chunk-1",
         "The plaintiff signed the agreement.",
@@ -53,7 +56,7 @@ def test_retrieve_delegates_to_retriever_and_reranker():
         candidate_multiplier=4,
     )
 
-    results = service.retrieve(
+    results = await service.retrieve(
         query="contract breach",
         k=5,
     )

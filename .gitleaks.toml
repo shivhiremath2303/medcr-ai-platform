@@ -1,0 +1,16 @@
+[allowlist]
+    description = "Allow dummy secrets and dynamic keys in specific files"
+    regexes = [
+        'JWT_SECRET_KEY',
+        'development-secret-key',
+        'dummy',
+        'test-key',
+        'test-secret'
+    ]
+    paths = [
+        '.github/workflows/docker.yml',
+        'backend/app/core/config/base.py',
+        'backend/app/core/config/testing.py',
+        'backend/requirements.txt',
+        'backend/requirements-dev.txt'
+    ]

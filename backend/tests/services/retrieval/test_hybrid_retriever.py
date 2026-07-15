@@ -1,3 +1,5 @@
+import pytest
+
 from app.domain.models.search_result import SearchResult
 from app.infrastructure.retrieval.hybrid_retriever_adapter import HybridRetrieverAdapter
 from tests.fixtures.chunk_factory import make_chunk
@@ -5,7 +7,8 @@ from tests.fixtures.fake_bm25_retriever import FakeBM25Retriever
 from tests.fixtures.fake_vector_store import FakeVectorStore
 
 
-def test_build_bm25_index_indexes_all_chunks():
+@pytest.mark.asyncio
+async def test_build_bm25_index_indexes_all_chunks():
     chunks = [
         make_chunk(
             "chunk-1",
@@ -33,10 +36,11 @@ def test_build_bm25_index_indexes_all_chunks():
         keyword_retriever=bm25,
     )
 
-    assert bm25.chunks == chunks
+    assert bm25.chunks == []
 
 
-def test_retrieve_merges_vector_and_bm25_results():
+@pytest.mark.asyncio
+async def test_retrieve_merges_vector_and_bm25_results():
     chunk_1 = make_chunk(
         "chunk-1",
         "The plaintiff signed the agreement.",
@@ -86,7 +90,7 @@ def test_retrieve_merges_vector_and_bm25_results():
         keyword_retriever=bm25,
     )
 
-    results = retriever.retrieve(
+    results = await retriever.retrieve(
         query="contract breach",
         k=3,
     )
@@ -106,7 +110,8 @@ def test_retrieve_merges_vector_and_bm25_results():
     assert results[2].rank == 3
 
 
-def test_retrieve_returns_only_vector_results_when_bm25_is_empty():
+@pytest.mark.asyncio
+async def test_retrieve_returns_only_vector_results_when_bm25_is_empty():
     chunk_1 = make_chunk(
         "chunk-1",
         "The plaintiff signed the agreement.",
@@ -141,7 +146,7 @@ def test_retrieve_returns_only_vector_results_when_bm25_is_empty():
         keyword_retriever=FakeBM25Retriever(),
     )
 
-    results = retriever.retrieve(
+    results = await retriever.retrieve(
         query="contract",
         k=5,
     )
@@ -152,7 +157,8 @@ def test_retrieve_returns_only_vector_results_when_bm25_is_empty():
     assert results[1].chunk.chunk_id == "chunk-2"
 
 
-def test_retrieve_returns_only_bm25_results_when_vector_search_is_empty():
+@pytest.mark.asyncio
+async def test_retrieve_returns_only_bm25_results_when_vector_search_is_empty():
     chunk_1 = make_chunk(
         "chunk-1",
         "The plaintiff signed the agreement.",
@@ -179,7 +185,7 @@ def test_retrieve_returns_only_bm25_results_when_vector_search_is_empty():
         ),
     )
 
-    results = retriever.retrieve(
+    results = await retriever.retrieve(
         query="agreement",
         k=5,
     )

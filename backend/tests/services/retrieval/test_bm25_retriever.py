@@ -1,8 +1,11 @@
+import pytest
+
 from app.infrastructure.retrieval.bm25_adapter import BM25Adapter
 from tests.fixtures.chunk_factory import make_chunk
 
 
-def test_index_builds_bm25_index():
+@pytest.mark.asyncio
+async def test_index_builds_bm25_index():
     retriever = BM25Adapter()
 
     chunks = [
@@ -20,13 +23,14 @@ def test_index_builds_bm25_index():
         ),
     ]
 
-    retriever.index(chunks)
+    await retriever.index(chunks)
 
     assert retriever.bm25 is not None
     assert retriever.chunks == chunks
 
 
-def test_search_returns_matching_chunks():
+@pytest.mark.asyncio
+async def test_search_returns_matching_chunks():
     retriever = BM25Adapter()
 
     chunk_1 = make_chunk(
@@ -44,7 +48,7 @@ def test_search_returns_matching_chunks():
         "Damages were awarded by the court.",
     )
 
-    retriever.index(
+    await retriever.index(
         [
             chunk_1,
             chunk_2,
@@ -52,7 +56,7 @@ def test_search_returns_matching_chunks():
         ]
     )
 
-    results = retriever.search(
+    results = await retriever.search(
         query="breached contract",
         k=2,
     )
@@ -64,10 +68,11 @@ def test_search_returns_matching_chunks():
     assert "chunk-2" in result_ids
 
 
-def test_search_returns_empty_when_not_indexed():
+@pytest.mark.asyncio
+async def test_search_returns_empty_when_not_indexed():
     retriever = BM25Adapter()
 
-    results = retriever.search(
+    results = await retriever.search(
         query="contract",
         k=5,
     )
@@ -75,7 +80,8 @@ def test_search_returns_empty_when_not_indexed():
     assert results == []
 
 
-def test_search_respects_k_limit():
+@pytest.mark.asyncio
+async def test_search_respects_k_limit():
     retriever = BM25Adapter()
 
     chunks = [
@@ -93,9 +99,9 @@ def test_search_respects_k_limit():
         ),
     ]
 
-    retriever.index(chunks)
+    await retriever.index(chunks)
 
-    results = retriever.search(
+    results = await retriever.search(
         query="contract",
         k=2,
     )
@@ -103,7 +109,8 @@ def test_search_respects_k_limit():
     assert len(results) <= 2
 
 
-def test_search_returns_empty_when_no_match():
+@pytest.mark.asyncio
+async def test_search_returns_empty_when_no_match():
     retriever = BM25Adapter()
 
     chunks = [
@@ -117,9 +124,9 @@ def test_search_returns_empty_when_no_match():
         ),
     ]
 
-    retriever.index(chunks)
+    await retriever.index(chunks)
 
-    results = retriever.search(
+    results = await retriever.search(
         query="astronomy galaxy telescope",
         k=5,
     )

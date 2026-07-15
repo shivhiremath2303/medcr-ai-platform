@@ -8,11 +8,11 @@ class CacheProvider(ABC):
     """
 
     @abstractmethod
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Retrieve a value from the cache."""
 
     @abstractmethod
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         """Store a value in the cache with an optional TTL."""
 
     @abstractmethod

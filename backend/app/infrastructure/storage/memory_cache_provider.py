@@ -12,7 +12,7 @@ class MemoryCacheProvider(CacheProvider):
     def __init__(self):
         self._cache: Dict[str, Dict[str, Any]] = {}
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         if key not in self._cache:
             return None
 
@@ -23,7 +23,7 @@ class MemoryCacheProvider(CacheProvider):
 
         return item["value"]
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         expiry = time.time() + ttl if ttl else None
         self._cache[key] = {"value": value, "expiry": expiry}
 

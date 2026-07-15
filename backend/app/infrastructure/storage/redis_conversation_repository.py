@@ -1,7 +1,7 @@
 import json
 from typing import Dict, List, Optional
 
-from app.core.observability.context import get_user_id
+from app.core.observability.context import get_tenant_id, get_user_id
 from app.domain.repositories.conversation_repository import ConversationRepository
 from app.infrastructure.storage.redis_client import RedisClient
 
@@ -9,7 +9,7 @@ from app.infrastructure.storage.redis_client import RedisClient
 class RedisConversationRepository(ConversationRepository):
     """
     Redis implementation of conversation history.
-    Each user has their own message list in Redis.
+    Each user has their own message list in Redis, isolated by tenant (10.4.5).
     """
 
     def __init__(
@@ -22,7 +22,8 @@ class RedisConversationRepository(ConversationRepository):
 
     def _get_key(self) -> str:
         user_id = get_user_id() or "anonymous"
-        return f"{self.key_prefix}{user_id}"
+        tenant_id = get_tenant_id() or "global"
+        return f"{self.key_prefix}{tenant_id}:{user_id}"
 
     def add_message(self, role: str, content: str) -> None:
         key = self._get_key()

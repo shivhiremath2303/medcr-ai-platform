@@ -1,0 +1,64 @@
+global:
+  resolve_timeout: 5m
+  # Enterprise standard: integration with Slack and Opsgenie/PagerDuty
+  # (Credentials should be injected via K8s Secrets)
+  slack_api_url: 'http://hooks.slack.com/services/REDACTED'
+
+route:
+  group_by: ['alertname', 'category']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: 'default-receiver'
+  
+  routes:
+    # Route Security Alerts to a dedicated high-priority channel
+    - match:
+        category: security
+      receiver: 'security-team-receiver'
+      group_wait: 0s
+      
+    # Route critical AI/API failures to SRE on-call
+    - match:
+        severity: critical
+      receiver: 'sre-oncall-receiver'
+      
+    # Route non-critical AI quality drops to data science team
+    - match:
+        category: ai
+        severity: warning
+      receiver: 'ai-quality-receiver'
+
+receivers:
+  - name: 'default-receiver'
+    slack_configs:
+      - channel: '#alerts-legal-ai-gen'
+        send_resolved: true
+
+  - name: 'security-team-receiver'
+    slack_configs:
+      - channel: '#security-critical'
+        send_resolved: true
+    # Opsgenie configuration for high-priority security events
+    # opsgenie_configs:
+    #   - api_key: 'REDACTED'
+    #     teams: ['Security']
+
+  - name: 'sre-oncall-receiver'
+    slack_configs:
+      - channel: '#sre-oncall'
+        send_resolved: true
+    # pagerduty_configs:
+    #   - service_key: 'REDACTED'
+
+  - name: 'ai-quality-receiver'
+    slack_configs:
+      - channel: '#ai-quality-monitoring'
+        send_resolved: true
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']

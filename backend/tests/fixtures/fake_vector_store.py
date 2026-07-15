@@ -16,17 +16,27 @@ class FakeVectorStore(VectorStoreRepository):
         self._chunks = chunks if chunks is not None else []
         self._search_results = search_results if search_results is not None else []
 
-    def create(self, chunks: list[Chunk]) -> None:
+    async def create(self, chunks: list[Chunk]) -> None:
         self._chunks = chunks
 
-    def save(self) -> None:
+    async def add_chunks(self, chunks: list[Chunk]) -> None:
+        self._chunks.extend(chunks)
+
+    async def save(self) -> None:
         pass
 
-    def load(self) -> bool:
+    async def load(self) -> bool:
         return True
 
-    def get_all_chunks(self) -> list[Chunk]:
+    async def get_all_chunks(self) -> list[Chunk]:
         return self._chunks
 
-    def similarity_search(self, query: str, k: int = 3) -> list[SearchResult]:
+    async def similarity_search(self, query: str, k: int = 3) -> list[SearchResult]:
         return self._search_results[:k]
+
+    async def optimize(self) -> None:
+        pass
+
+    @property
+    def is_ready(self) -> bool:
+        return True

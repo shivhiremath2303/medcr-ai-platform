@@ -17,6 +17,12 @@ from .reranker import Reranker
 from .retriever import Retriever
 from .revocation_repository import RevocationRepository
 from .storage_provider import StorageProvider
+from .tenant_repository import (
+    MembershipRepository,
+    OrganizationRepository,
+    TenantRepository,
+    WorkspaceRepository,
+)
 from .user_repository import UserRepository
 from .vector_store_repository import VectorStoreRepository
 
@@ -40,4 +46,8 @@ __all__ = [
     "StorageProvider",
     "UserRepository",
     "VectorStoreRepository",
+    "MembershipRepository",
+    "OrganizationRepository",
+    "TenantRepository",
+    "WorkspaceRepository",
 ]

@@ -1,4 +1,5 @@
-from typing import Any, Dict, Optional
+import asyncio
+from typing import Any, Dict, List, Optional
 
 from app.domain.models import SearchResult
 from app.domain.repositories.keyword_retriever import KeywordRetriever
@@ -9,7 +10,7 @@ from app.domain.repositories.vector_store_repository import VectorStoreRepositor
 class HybridRetrieverAdapter(Retriever):
     """
     Adapter that combines vector search and BM25 keyword search.
-    Supports dynamic weights via params.
+    Enhanced with Multi-Tenant Isolation (10.4.6).
     """
 
     def __init__(
@@ -23,32 +24,32 @@ class HybridRetrieverAdapter(Retriever):
         self.keyword_retriever = keyword_retriever
         self.vector_weight = vector_weight
         self.similarity_threshold = similarity_threshold
-        self._build_keyword_index()
 
-    def _build_keyword_index(self) -> None:
+    async def retrieve(
+        self,
+        query: str,
+        k: int = 5,
+        params: Dict[str, Any] | None = None,
+        tenant_id: Optional[str] = None
+    ) -> List[SearchResult]:
         """
-        Build the keyword index using all indexed chunks.
+        Retrieve using both vector search and BM25 in parallel (10.3.3).
+        Enforces logical isolation via tenant_id.
         """
-        chunks = self.vector_store.get_all_chunks()
-        if chunks:
-            self.keyword_retriever.index(chunks)
-
-    def retrieve(
-        self, query: str, k: int = 5, params: Optional[Dict[str, Any]] = None
-    ) -> list[SearchResult]:
-        """
-        Retrieve using both vector search and BM25.
-        """
-
-        vector_results = self.vector_store.similarity_search(
+        # Execute vector and keyword search concurrently with tenant filters
+        vector_task = self.vector_store.similarity_search(
             query=query,
             k=k,
+            tenant_id=tenant_id
         )
 
-        bm25_chunks = self.keyword_retriever.search(
+        bm25_task = self.keyword_retriever.search(
             query=query,
             k=k,
+            tenant_id=tenant_id
         )
+
+        vector_results, bm25_chunks = await asyncio.gather(vector_task, bm25_task)
 
         merged_results = list(vector_results)
         existing_chunk_ids = {result.chunk.chunk_id for result in merged_results}
@@ -68,7 +69,6 @@ class HybridRetrieverAdapter(Retriever):
             existing_chunk_ids.add(chunk.chunk_id)
             next_rank += 1
 
-        # Filter by threshold
         if self.similarity_threshold > 0:
             merged_results = [
                 r for r in merged_results if r.score >= self.similarity_threshold

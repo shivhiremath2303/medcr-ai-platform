@@ -1,9 +1,9 @@
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import List, Optional
 
 
-class UserRole(str, Enum):
+class UserRole(StrEnum):
     ADMIN = "admin"
     LAWYER = "lawyer"
     PARALEGAL = "paralegal"
@@ -19,4 +19,4 @@ class User:
     hashed_password: str
     role: UserRole
     is_active: bool = True
-    full_name: Optional[str] = None
+    full_name: str | None = None

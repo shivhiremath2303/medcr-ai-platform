@@ -1,10 +1,13 @@
 import pytest
 
+from app.core.observability.concurrency import ConcurrencyLimiter
 from app.core.observability.metrics import MetricsRegistry, NoOpMetricsProvider
+from app.core.observability.resource_guard import ResourceGuard
 from app.domain.models.search_result import SearchResult
 from app.infrastructure.storage.memory_benchmark_repository import (
     MemoryBenchmarkRepository,
 )
+from app.infrastructure.storage.memory_cache_provider import MemoryCacheProvider
 from app.infrastructure.storage.memory_conversation_repository import (
     MemoryConversationRepository,
 )
@@ -19,7 +22,8 @@ from tests.fixtures.fake_hybrid_retriever import FakeHybridRetriever
 from tests.fixtures.fake_llm_provider import FakeLLMProvider
 
 
-def test_rag_service_extracts_legal_issues():
+@pytest.mark.asyncio
+async def test_rag_service_extracts_legal_issues():
     # Setup
     chunk = make_chunk("chunk-1", "Liability clause details.")
     results = [SearchResult(chunk=chunk, score=0.9, rank=1, retrieval_score=0.9)]
@@ -64,10 +68,12 @@ The user is liable.
         evaluation_engine=evaluation_engine,
         benchmark_repo=benchmark_repo,
         metrics=metrics,
+        cache=MemoryCacheProvider(),
+        limiter=ConcurrencyLimiter(ResourceGuard(metrics)),
     )
 
     # Execute
-    response = service.answer_question("What are the risks?", k=1)
+    response = await service.answer_question("What are the risks?", k=1)
 
     # Assert
     assert "reasoning_metadata" in response

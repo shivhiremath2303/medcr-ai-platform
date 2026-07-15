@@ -1,0 +1,25 @@
+{
+  "title": "Infrastructure & Caching",
+  "uid": "infra-cache",
+  "tags": ["Infra", "Redis", "VectorDB"],
+  "panels": [
+    {
+      "title": "Redis Operation Throughput",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "sum(rate(infra_redis_operations_total[1m])) by (operation, status)" }]
+    },
+    {
+      "title": "Cache Hit Ratio",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "sum(rate(infra_cache_requests_total{status='hit'}[5m])) / sum(rate(infra_cache_requests_total[5m]))" }]
+    },
+    {
+      "title": "Vector Store Documents Count",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "targets": [{ "expr": "infra_vector_store_documents_total" }]
+    }
+  ]
+}

@@ -16,7 +16,7 @@ class FakeReranker:
         self.received_results: list[list[SearchResult]] = []
         self.k_values: list[int] = []
 
-    def rerank(
+    async def rerank(
         self,
         query: str,
         results: list[SearchResult],

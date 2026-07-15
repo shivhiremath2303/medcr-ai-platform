@@ -1,23 +1,35 @@
 from abc import ABC, abstractmethod
+from typing import AsyncGenerator, Optional
 
 
 class LLMProvider(ABC):
     """
-    Interface for Large Language Model interactions.
+    Enterprise Interface for Large Language Model interactions.
+    Updated to support async horizontal scaling and streaming (10.3.7).
     """
 
     @abstractmethod
-    def generate_answer(
+    async def generate_answer(
         self,
         question: str,
         context: str,
     ) -> str:
         """
-        Generate an answer using the provided context.
+        Generate a full answer using the provided context.
         """
 
     @abstractmethod
-    def rewrite_question(
+    def stream_answer(
+        self,
+        question: str,
+        context: str,
+    ) -> AsyncGenerator[str, None]:
+        """
+        Stream an answer using the provided context (10.3.7).
+        """
+
+    @abstractmethod
+    async def rewrite_question(
         self,
         question: str,
         conversation_context: str,
