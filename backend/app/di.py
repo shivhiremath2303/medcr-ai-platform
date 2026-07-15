@@ -60,6 +60,7 @@ from app.infrastructure.observability.storage_health import StorageHealthCheck
 from app.infrastructure.observability.vector_store_health import VectorStoreHealthCheck
 from app.infrastructure.parser.document_parser_adapter import DocumentParserAdapter
 from app.infrastructure.parser.langchain_chunker_adapter import LangChainChunkerAdapter
+from app.infrastructure.parser.semantic_chunker import SemanticChunkerAdapter
 from app.infrastructure.retrieval.bm25_adapter import BM25Adapter
 from app.infrastructure.retrieval.cross_encoder_adapter import CrossEncoderAdapter
 from app.infrastructure.retrieval.hybrid_retriever_adapter import HybridRetrieverAdapter
@@ -231,9 +232,18 @@ _llm_provider = GeminiLLMAdapter(
 _storage_provider = LocalStorageAdapter(upload_dir=settings.upload_dir)
 _document_repository = FilesystemDocumentRepository(storage_dir=settings.metadata_dir)
 _parser = DocumentParserAdapter(supported_extensions=settings.supported_extensions)
-_chunker = LangChainChunkerAdapter(
-    chunk_size=settings.chunk_size, chunk_overlap=settings.chunk_overlap
-)
+
+if settings.chunk_strategy == "semantic":
+    _chunker = SemanticChunkerAdapter(
+        embedding_provider=_embedding_provider,
+        buffer_size=settings.semantic_chunk_buffer_size,
+        breakpoint_percentile_threshold=settings.semantic_chunk_breakpoint_percentile,
+    )
+else:
+    _chunker = LangChainChunkerAdapter(
+        chunk_size=settings.chunk_size, chunk_overlap=settings.chunk_overlap
+    )
+
 _keyword_retriever = BM25Adapter()
 _reranker = CrossEncoderAdapter(
     model_name=settings.reranker_model,
@@ -288,6 +298,7 @@ _rag_service = RAGService(
     metrics=_metrics_registry,
     cache=_cache_provider,
     limiter=_concurrency_limiter,
+    embedding_provider=_embedding_provider,
 )
 
 

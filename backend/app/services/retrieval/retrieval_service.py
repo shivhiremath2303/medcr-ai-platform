@@ -1,6 +1,7 @@
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
+from app.core.config import get_settings
 from app.core.observability.metrics import MetricsRegistry
 from app.core.observability.telemetry import get_tracer
 from app.domain.models import Chunk, SearchResult
@@ -13,12 +14,13 @@ from app.domain.repositories.reranker import Reranker
 from app.domain.repositories.retriever import Retriever
 
 tracer = get_tracer(__name__)
+settings = get_settings()
 
 
 class RetrievalService(Retriever):
     """
-    Advanced Retrieval Service with dynamic strategies and diagnostics.
-    Enhanced with Multi-Tenant Isolation (10.4.6).
+    Advanced Retrieval Service with dynamic strategies, Adaptive Reranking, and diagnostics.
+    Optimized for Latency and Throughput (10.5.2).
     """
 
     def __init__(
@@ -63,7 +65,7 @@ class RetrievalService(Retriever):
         tenant_id: Optional[str] = None
     ) -> List[SearchResult]:
         """
-        Perform retrieval based on query understanding.
+        Perform retrieval based on query understanding with Adaptive Reranking (10.5.2).
         """
         start_time = time.perf_counter()
         with tracer.start_as_current_span("retrieve_intelligent") as span:
@@ -84,7 +86,7 @@ class RetrievalService(Retriever):
                 dynamic_k * self.candidate_multiplier, self.min_candidates
             )
 
-            # Parallelize or at least await retriever
+            # 1. First-stage retrieval (Hybrid: Vector + BM25)
             candidates = await self.retriever.retrieve(
                 query=expanded_query,
                 k=candidate_count,
@@ -92,12 +94,27 @@ class RetrievalService(Retriever):
                 tenant_id=tenant_id
             )
 
-            # Reranker is now async (10.3.3)
-            reranked_results = await self.reranker.rerank(
-                query=understanding.original_query,
-                results=candidates,
-                k=dynamic_k,
-            )
+            if not candidates:
+                return []
+
+            # 2. Adaptive Reranking: Check if first-stage is strong enough to skip CrossEncoder
+            # Skip reranking if the top result has a very high retrieval score (10.5.2)
+            skip_rerank = candidates[0].score >= settings.adaptive_rerank_threshold
+            rerank_needed = not skip_rerank
+            span.set_attribute("retrieval.rerank_skipped", skip_rerank)
+
+            if rerank_needed:
+                # Heavy CrossEncoder Reranking
+                reranked_results = await self.reranker.rerank(
+                    query=understanding.original_query,
+                    results=candidates,
+                    k=dynamic_k,
+                )
+            else:
+                # Fast bypass
+                reranked_results = candidates[:dynamic_k]
+                for i, r in enumerate(reranked_results, start=1):
+                    r.rank = i
 
             filtered_results = self._remove_duplicates(reranked_results)
             final_results = filtered_results[:k]
@@ -134,6 +151,10 @@ class RetrievalService(Retriever):
             k=k * self.candidate_multiplier,
             tenant_id=tenant_id
         )
+        # Check for adaptive skip here too
+        if candidates and candidates[0].score >= settings.adaptive_rerank_threshold:
+            return candidates[:k]
+
         return await self.reranker.rerank(query=query, results=candidates, k=k)
 
     def _calculate_dynamic_top_k(

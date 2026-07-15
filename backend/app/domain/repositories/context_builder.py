@@ -12,9 +12,11 @@ class ContextBuilder(ABC):
     def build(
         self,
         results: list[SearchResult],
+        query: str | None = None,
     ) -> str:
         """
         Convert retrieval results into a context string.
+        Optionally uses the query for dynamic pruning (10.5.3).
         """
 
     @abstractmethod
