@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document as LangChainDocument
@@ -20,7 +20,7 @@ class FAISSVectorRepository(VectorStoreRepository):
     """
     Advanced FAISS implementation with Incremental Indexing and Scaling.
     Supports asynchronous operations, background loading, and index sharding.
-    Implements Milestone 10.3.4.
+    Enhanced with Multi-Tenant logical isolation (10.4.6).
     """
 
     def __init__(
@@ -85,13 +85,17 @@ class FAISSVectorRepository(VectorStoreRepository):
                 "filename": chunk.metadata.filename,
                 "page_number": chunk.metadata.page_number,
                 "section": chunk.metadata.section,
+                "tenant_id": chunk.metadata.tenant_id, # Isolation (10.4.6)
             }
             for chunk in chunks
         ]
         return texts, metadatas
 
     async def similarity_search(
-        self, query: str, k: int | None = None
+        self,
+        query: str,
+        k: int | None = None,
+        tenant_id: Optional[str] = None
     ) -> List[SearchResult]:
         if not self._is_ready or self.vector_store is None:
             logger.warning("Search requested but index is not ready.")
@@ -100,18 +104,25 @@ class FAISSVectorRepository(VectorStoreRepository):
         with tracer.start_as_current_span("faiss_similarity_search") as span:
             k = k or self.default_top_k
             span.set_attribute("vector_store.k", k)
+            if tenant_id:
+                span.set_attribute("tenant.id", tenant_id)
 
-            results = await self.limiter.run_in_thread(self._search_sync, query, k)
+            results = await self.limiter.run_in_thread(self._search_sync, query, k, tenant_id)
             span.set_attribute("vector_store.results_count", len(results))
             return results
 
-    def _search_sync(self, query: str, k: int) -> List[SearchResult]:
+    def _search_sync(self, query: str, k: int, tenant_id: Optional[str] = None) -> List[SearchResult]:
         if not self.vector_store:
             return []
-        # relevance scores in FAISS are distances (lower is better, but LangChain normalizes some)
+
+        # Apply tenant filter if provided (10.4.6)
+        # LangChain FAISS implementation supports a 'filter' dict
+        filter_dict = {"tenant_id": tenant_id} if tenant_id else None
+
         docs_and_scores = self.vector_store.similarity_search_with_relevance_scores(
             query=query,
             k=k,
+            filter=filter_dict
         )
 
         results = []
@@ -131,6 +142,7 @@ class FAISSVectorRepository(VectorStoreRepository):
                     filename=document.metadata["filename"],
                     page_number=document.metadata["page_number"],
                     section=document.metadata.get("section"),
+                    tenant_id=document.metadata.get("tenant_id"), # Isolation (10.4.6)
                 ),
             ),
             score=score,
@@ -173,12 +185,12 @@ class FAISSVectorRepository(VectorStoreRepository):
                 self._is_ready = False
                 return False
 
-    async def get_all_chunks(self) -> List[Chunk]:
+    async def get_all_chunks(self, tenant_id: Optional[str] = None) -> List[Chunk]:
         if not self.vector_store:
             return []
-        return await self.limiter.run_in_thread(self._get_all_chunks_sync)
+        return await self.limiter.run_in_thread(self._get_all_chunks_sync, tenant_id)
 
-    def _get_all_chunks_sync(self) -> List[Chunk]:
+    def _get_all_chunks_sync(self, tenant_id: Optional[str] = None) -> List[Chunk]:
         if not self.vector_store:
             return []
         chunks = []
@@ -186,6 +198,10 @@ class FAISSVectorRepository(VectorStoreRepository):
         for doc_id in self.vector_store.index_to_docstore_id.values():
             doc = docstore.search(doc_id)
             if isinstance(doc, LangChainDocument):
+                # Filter by tenant if requested (10.4.6)
+                if tenant_id and doc.metadata.get("tenant_id") != tenant_id:
+                    continue
+
                 chunks.append(
                     Chunk(
                         chunk_id=doc.metadata["chunk_id"],
@@ -195,6 +211,7 @@ class FAISSVectorRepository(VectorStoreRepository):
                             filename=doc.metadata["filename"],
                             page_number=doc.metadata["page_number"],
                             section=doc.metadata.get("section"),
+                            tenant_id=doc.metadata.get("tenant_id"),
                         ),
                     )
                 )
@@ -202,7 +219,6 @@ class FAISSVectorRepository(VectorStoreRepository):
 
     async def optimize(self) -> None:
         """Optimization/Compaction (10.3.4). In FAISS, this can involve re-indexing or merging shards."""
-        # For a single-file index, we just trigger a save to ensure persistence integrity
         await self.save()
         logger.info("Vector store optimization complete.")
 

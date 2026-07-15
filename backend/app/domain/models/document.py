@@ -10,6 +10,7 @@ class Document:
     filename: str
     pages: List[Page]
     owner_id: str | None = None  # Enterprise Hardening: Resource ownership
+    tenant_id: str | None = None # Multi-Tenant Isolation (10.4.4)
 
     @property
     def page_count(self) -> int:

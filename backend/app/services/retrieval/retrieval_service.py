@@ -18,7 +18,7 @@ tracer = get_tracer(__name__)
 class RetrievalService(Retriever):
     """
     Advanced Retrieval Service with dynamic strategies and diagnostics.
-    Updated to support async horizontal scaling (10.3.3).
+    Enhanced with Multi-Tenant Isolation (10.4.6).
     """
 
     def __init__(
@@ -37,19 +37,30 @@ class RetrievalService(Retriever):
         self.last_diagnostics: RetrievalDiagnostics | None = None
 
     async def retrieve(
-        self, query: str, k: int = 5, params: Dict[str, Any] | None = None
+        self,
+        query: str,
+        k: int = 5,
+        params: Dict[str, Any] | None = None,
+        tenant_id: Optional[str] = None
     ) -> List[SearchResult]:
         """
         Implementation for general Retriever interface.
         """
         if params and "understanding" in params:
-            return await self.retrieve_intelligent(params["understanding"], k)
+            return await self.retrieve_intelligent(
+                params["understanding"],
+                k,
+                tenant_id=tenant_id
+            )
 
         # Fallback to standard retrieval
-        return await self._retrieve_standard(query, k)
+        return await self._retrieve_standard(query, k, tenant_id=tenant_id)
 
     async def retrieve_intelligent(
-        self, understanding: QueryUnderstanding, k: int = 5
+        self,
+        understanding: QueryUnderstanding,
+        k: int = 5,
+        tenant_id: Optional[str] = None
     ) -> List[SearchResult]:
         """
         Perform retrieval based on query understanding.
@@ -58,6 +69,8 @@ class RetrievalService(Retriever):
         with tracer.start_as_current_span("retrieve_intelligent") as span:
             span.set_attribute("retrieval.query", understanding.original_query)
             span.set_attribute("retrieval.intent", understanding.intent.value)
+            if tenant_id:
+                span.set_attribute("tenant.id", tenant_id)
 
             dynamic_k = self._calculate_dynamic_top_k(understanding, k)
             strategy, weights = self._determine_strategy(understanding)
@@ -76,6 +89,7 @@ class RetrievalService(Retriever):
                 query=expanded_query,
                 k=candidate_count,
                 params={"vector_weight": weights.get("vector", 0.7)},
+                tenant_id=tenant_id
             )
 
             # Reranker is now async (10.3.3)
@@ -109,9 +123,16 @@ class RetrievalService(Retriever):
 
             return final_results
 
-    async def _retrieve_standard(self, query: str, k: int) -> List[SearchResult]:
+    async def _retrieve_standard(
+        self,
+        query: str,
+        k: int,
+        tenant_id: Optional[str] = None
+    ) -> List[SearchResult]:
         candidates = await self.retriever.retrieve(
-            query=query, k=k * self.candidate_multiplier
+            query=query,
+            k=k * self.candidate_multiplier,
+            tenant_id=tenant_id
         )
         return await self.reranker.rerank(query=query, results=candidates, k=k)
 

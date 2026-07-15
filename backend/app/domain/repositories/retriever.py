@@ -7,11 +7,18 @@ from app.domain.models import SearchResult
 class Retriever(ABC):
     """
     Enterprise Interface for retrieval operations.
-    Updated to support async for horizontal scaling (10.3.3).
+    Updated for Multi-Tenant Isolation (10.4.6).
     """
 
     @abstractmethod
     async def retrieve(
-        self, query: str, k: int = 5, params: Dict[str, Any] | None = None
+        self,
+        query: str,
+        k: int = 5,
+        params: Dict[str, Any] | None = None,
+        tenant_id: Optional[str] = None
     ) -> List[SearchResult]:
-        """Retrieve relevant results for a query."""
+        """
+        Retrieve relevant results for a query.
+        Strictly filters by tenant_id if provided.
+        """

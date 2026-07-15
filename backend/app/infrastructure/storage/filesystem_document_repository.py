@@ -11,7 +11,7 @@ from app.domain.repositories.document_repository import DocumentRepository
 class FilesystemDocumentRepository(DocumentRepository):
     """
     Filesystem implementation of DocumentRepository using JSON for persistence.
-    Updated for Async/Batch operations and scalability (10.3.6).
+    Updated for Multi-Tenancy (10.4.4).
     """
 
     def __init__(self, storage_dir: Path):
@@ -27,7 +27,6 @@ class FilesystemDocumentRepository(DocumentRepository):
             file_path = self.storage_dir / f"{document.document_id}.json"
             data = asdict(document)
 
-            # Note: In high-scale prod, this would use aiofiles
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
 
@@ -35,7 +34,6 @@ class FilesystemDocumentRepository(DocumentRepository):
 
     async def save_batch(self, documents: List[Document]) -> None:
         """Optimized batch save (10.3.6)."""
-        # Execute individual saves concurrently within this implementation
         tasks = [self.save(doc) for doc in documents]
         await asyncio.gather(*tasks)
 
@@ -81,7 +79,9 @@ class FilesystemDocumentRepository(DocumentRepository):
         doc = Document(
             document_id=data["document_id"], filename=data["filename"], pages=pages
         )
-        # Handle optional owner_id from newer schema
+        # Handle optional fields from newer schema
         if "owner_id" in data:
             doc.owner_id = data["owner_id"]
+        if "tenant_id" in data:
+            doc.tenant_id = data["tenant_id"]
         return doc

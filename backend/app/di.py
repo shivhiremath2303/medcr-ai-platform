@@ -31,8 +31,11 @@ from app.domain.repositories import (
     Retriever,
     RevocationRepository,
     StorageProvider,
+    TenantRepository,
     UserRepository,
     VectorStoreRepository,
+    WorkspaceRepository,
+    MembershipRepository,
 )
 from app.domain.repositories.background_tasks import BackgroundTaskProvider
 from app.domain.repositories.benchmark_repository import BenchmarkRepository
@@ -70,6 +73,12 @@ from app.infrastructure.storage.memory_benchmark_repository import (
 from app.infrastructure.storage.memory_cache_provider import MemoryCacheProvider
 from app.infrastructure.storage.memory_conversation_repository import (
     MemoryConversationRepository,
+)
+from app.infrastructure.storage.memory_tenant_repository import (
+    MemoryMembershipRepository,
+    MemoryOrganizationRepository,
+    MemoryTenantRepository,
+    MemoryWorkspaceRepository,
 )
 from app.infrastructure.storage.memory_user_repository import MemoryUserRepository
 from app.infrastructure.storage.multi_level_cache_provider import (
@@ -149,6 +158,11 @@ _conversation_repository: ConversationRepository
 _rate_limiter: RateLimiter
 _cache_provider: CacheProvider
 
+_membership_repository = MemoryMembershipRepository()
+_tenant_repository = MemoryTenantRepository()
+_organization_repository = MemoryOrganizationRepository()
+_workspace_repository = MemoryWorkspaceRepository()
+
 # Distributed Session & User Architecture (10.3.5)
 if _redis_client and _redis_client.is_available():
     _user_repository = RedisUserRepository(redis_client=_redis_client)
@@ -192,6 +206,7 @@ _auth_service = AuthService(
     revocation_repository=_revocation_repository,
     audit_service=_audit_service,
     metrics=_metrics_registry,
+    membership_repository=_membership_repository,
 )
 
 _authorization_service = AuthorizationService(audit_service=_audit_service)
@@ -505,15 +520,41 @@ def get_rag_service(
 
 
 def init_dev_user():
+    # Initialize Multi-Tenant Defaults (10.4)
+    if not _organization_repository.get_by_id("org-default"):
+        org = Organization(
+            organization_id="org-default",
+            name="Default Organization",
+            slug="default-org",
+        )
+        _organization_repository.save(org)
+
+    if not _tenant_repository.get_by_id("tenant-default"):
+        tenant = Tenant(
+            tenant_id="tenant-default",
+            organization_id="org-default",
+            name="Default Tenant",
+            slug="default-tenant",
+        )
+        _tenant_repository.save(tenant)
+
     if not _user_repository.get_by_username("admin"):
-        _user_repository.save(
-            User(
-                user_id="admin-001",
-                username="admin",
-                email="admin@medcr.ai",
-                hashed_password=PasswordHasher.hash("admin-password"),
-                role=UserRole.ADMIN,
-                full_name="System Administrator",
+        admin_user = User(
+            user_id="admin-001",
+            username="admin",
+            email="admin@medcr.ai",
+            hashed_password=PasswordHasher.hash("admin-password"),
+            role=UserRole.ADMIN,
+            full_name="System Administrator",
+        )
+        _user_repository.save(admin_user)
+
+        # Link admin to default tenant
+        _membership_repository.save(
+            Membership(
+                user_id=admin_user.user_id,
+                tenant_id="tenant-default",
+                role=TenantRole.OWNER,
             )
         )
 

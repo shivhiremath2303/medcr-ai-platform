@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 class AuthorizationService:
     """
     Evaluates authorization policies for users and resources.
-    Implements fine-grained permission checks and resource ownership validation.
+    Enhanced with Multi-Tenant isolation and resource ownership validation (10.4.4).
     """
 
     def __init__(self, audit_service: AuditService):
@@ -62,11 +62,36 @@ class AuthorizationService:
         )
         return False
 
+    def verify_tenant_access(
+        self, user_tenant_id: str | None, resource_tenant_id: str | None
+    ) -> bool:
+        """
+        Enforce strict tenant isolation.
+        Resources without a tenant_id are considered global/legacy and accessible by all (for now).
+        """
+        # If both are None, it's a legacy or global resource
+        if user_tenant_id is None and resource_tenant_id is None:
+            return True
+
+        # If resource has a tenant, user MUST be in that tenant
+        if resource_tenant_id and user_tenant_id != resource_tenant_id:
+            logger.warning(
+                f"Tenant isolation violation: User tenant {user_tenant_id} "
+                f"attempted to access resource in tenant {resource_tenant_id}"
+            )
+            return False
+
+        return True
+
     def can_access_document(
-        self, user: User, document_metadata: Dict[str, Any] | None
+        self,
+        user: User,
+        document_metadata: Dict[str, Any] | None,
+        user_tenant_id: str | None = None
     ) -> bool:
         """
         Policy-based check for document access.
+        Combined Permission + Tenant + Ownership check.
         """
         if not self.has_permission(user, Permission.DOC_READ):
             return False
@@ -74,6 +99,23 @@ class AuthorizationService:
         if not document_metadata:
             return True
 
+        # 1. Tenant Isolation Check
+        resource_tenant_id = document_metadata.get("tenant_id")
+        if not self.verify_tenant_access(user_tenant_id, resource_tenant_id):
+            self.audit_service.log(
+                AuditEventType.ACCESS_DENIED,
+                action="document_access",
+                status="failure",
+                user_id=user.user_id,
+                details={
+                    "reason": "tenant_mismatch",
+                    "user_tenant": user_tenant_id,
+                    "resource_tenant": resource_tenant_id,
+                },
+            )
+            return False
+
+        # 2. Individual Ownership Check (if applicable)
         owner_id = document_metadata.get("owner_id")
         if owner_id:
             return self.is_resource_owner(user, owner_id)

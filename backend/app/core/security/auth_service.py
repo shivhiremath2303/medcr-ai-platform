@@ -1,6 +1,6 @@
 import time
 from datetime import UTC, datetime, timedelta
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.config import get_settings
 from app.core.observability.logger import get_logger
@@ -10,6 +10,7 @@ from app.core.security.password import PasswordHasher
 from app.domain.models.audit import AuditEventType
 from app.domain.models.user import User
 from app.domain.repositories.revocation_repository import RevocationRepository
+from app.domain.repositories.tenant_repository import MembershipRepository
 from app.domain.repositories.user_repository import UserRepository
 from app.services.audit.audit_service import AuditService
 
@@ -21,7 +22,7 @@ class AuthService:
     """
     Coordinates authentication operations with enterprise hardening, auditing, and analytics.
     Supports token rotation, session management, and account lockout.
-    Implements Milestone 10.2.9: User Activity Analytics.
+    Now enhanced with Multi-Tenant awareness (10.4.3).
     """
 
     def __init__(
@@ -31,12 +32,14 @@ class AuthService:
         revocation_repository: RevocationRepository,
         audit_service: AuditService,
         metrics: MetricsRegistry,
+        membership_repository: MembershipRepository,
     ):
         self.user_repository = user_repository
         self.jwt_manager = jwt_manager
         self.revocation_repository = revocation_repository
         self.audit_service = audit_service
         self.metrics = metrics
+        self.membership_repository = membership_repository
 
     def authenticate_user(self, username: str, password: str) -> User | None:
         # Check if account/username is locked out
@@ -86,19 +89,33 @@ class AuthService:
         )
         return user
 
-    def create_tokens(self, user: User) -> Dict[str, Any]:
+    def create_tokens(self, user: User, tenant_id: str | None = None) -> Dict[str, Any]:
+        """
+        Creates a token pair. If tenant_id is provided, it's included in the claims.
+        If not provided, the user's primary tenant (if any) is used.
+        """
+        # Multi-Tenant: Resolve tenant context
+        target_tenant_id = tenant_id
+        if not target_tenant_id:
+            memberships = self.membership_repository.list_by_user(user.user_id)
+            if memberships:
+                # Default to the first membership found for now
+                target_tenant_id = memberships[0].tenant_id
+
         # Check concurrent session limit
         active_sessions = self.revocation_repository.get_user_sessions(user.user_id)
         if len(active_sessions) >= settings.auth_max_sessions:
             logger.warning(f"Session limit reached for user {user.user_id}.")
 
-        access_token, refresh_token = self.jwt_manager.create_token_pair(
-            data={
-                "sub": user.user_id,
-                "role": user.role.value,
-                "username": user.username,
-            }
-        )
+        token_data = {
+            "sub": user.user_id,
+            "role": user.role.value,
+            "username": user.username,
+        }
+        if target_tenant_id:
+            token_data["tenant_id"] = target_tenant_id
+
+        access_token, refresh_token = self.jwt_manager.create_token_pair(data=token_data)
 
         payload = self.jwt_manager.decode_token(access_token)
         sid = payload.get("sid") if payload else None
@@ -113,6 +130,7 @@ class AuthService:
             "refresh_token": refresh_token,
             "token_type": "bearer",
             "expires_in": self.jwt_manager.access_token_expire_minutes * 60,
+            "tenant_id": target_tenant_id,
         }
 
     def refresh_access_token(self, refresh_token: str) -> Dict[str, Any] | None:
@@ -123,6 +141,7 @@ class AuthService:
         jti = payload.get("jti")
         sid = payload.get("sid")
         user_id = payload.get("sub")
+        tenant_id = payload.get("tenant_id")
         if not isinstance(jti, str):
             return None
         if not isinstance(sid, str):
@@ -154,12 +173,16 @@ class AuthService:
             if ttl > 0:
                 self.revocation_repository.revoke(jti, ttl)
 
+        token_data = {
+            "sub": user.user_id,
+            "role": user.role.value,
+            "username": user.username,
+        }
+        if tenant_id:
+            token_data["tenant_id"] = tenant_id
+
         new_access_token, new_refresh_token = self.jwt_manager.create_token_pair(
-            data={
-                "sub": user.user_id,
-                "role": user.role.value,
-                "username": user.username,
-            },
+            data=token_data,
             sid=sid,
         )
 
@@ -167,7 +190,7 @@ class AuthService:
             AuditEventType.TOKEN_REFRESH,
             action="token_rotation",
             user_id=user.user_id,
-            details={"sid": sid},
+            details={"sid": sid, "tenant_id": tenant_id},
         )
 
         # Operational Analytics (10.2.9)
@@ -178,6 +201,7 @@ class AuthService:
             "refresh_token": new_refresh_token,
             "token_type": "bearer",
             "expires_in": self.jwt_manager.access_token_expire_minutes * 60,
+            "tenant_id": tenant_id,
         }
 
     def revoke_token(self, token: str) -> bool:

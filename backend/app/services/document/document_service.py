@@ -19,7 +19,7 @@ tracer = get_tracer(__name__)
 class DocumentService:
     """
     Coordinates the complete document ingestion pipeline with Operational Analytics and Scaling.
-    Implements Milestone 10.3.3 and 10.3.4.
+    Enhanced with Multi-Tenant support (10.4.4).
     """
 
     def __init__(
@@ -40,32 +40,37 @@ class DocumentService:
         self,
         file_path: str,
         owner_id: str | None = None,
+        tenant_id: str | None = None,
     ) -> dict:
         """
         Parse, clean, chunk and incrementally index a document.
+        Ensures tenant isolation throughout the pipeline.
         """
         extension = Path(file_path).suffix.lower()
-        logger.info("Starting document ingestion: %s", file_path)
+        logger.info("Starting document ingestion: %s (Tenant: %s)", file_path, tenant_id)
 
         with tracer.start_as_current_span("document_ingestion") as span:
             span.set_attribute("doc.path", file_path)
             if owner_id:
                 span.set_attribute("doc.owner_id", owner_id)
+            if tenant_id:
+                span.set_attribute("tenant.id", tenant_id)
 
             try:
                 # 1. Parse
                 document: Document = self.parser.parse_document(file_path)
                 document.owner_id = owner_id
+                document.tenant_id = tenant_id
 
                 # 2. Clean
                 for page in document.pages:
                     page.text = TextCleaner.clean(page.text)
 
-                # 3. Chunk
+                # 3. Chunk (Preserves tenant_id via Chunker implementation)
                 chunks = self.chunker.split_document(document)
 
                 # 4. Incremental Indexing (10.3.4)
-                # We use add_chunks instead of create to support large-scale ingestion.
+                # Chunks now carry tenant_id in metadata for logical partitioning.
                 await self.vector_store.add_chunks(chunks)
                 await self.vector_store.save()
 
@@ -88,6 +93,7 @@ class DocumentService:
                     "filename": document.filename,
                     "page_count": document.page_count,
                     "chunk_count": len(chunks),
+                    "tenant_id": tenant_id,
                 }
             except Exception as e:
                 logger.error(f"Failed to ingest document {file_path}: {str(e)}")
@@ -100,6 +106,7 @@ class DocumentService:
         k: int = 3,
     ):
         """Perform similarity search on the vector store."""
+        # Note: Vector search needs tenant-aware filtering in 10.4.6
         return await self.vector_store.similarity_search(
             query=query,
             k=k,
@@ -108,6 +115,16 @@ class DocumentService:
     async def get_document(self, document_id: str) -> Document | None:
         return await self.document_repository.get_by_id(document_id)
 
-    async def list_documents(self, limit: int = 100, offset: int = 0) -> list[Document]:
-        """Return documents with pagination support (10.3.7)."""
-        return await self.document_repository.list_all(limit=limit, offset=offset)
+    async def list_documents(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        tenant_id: str | None = None
+    ) -> list[Document]:
+        """
+        Return documents with pagination and tenant filtering support.
+        """
+        all_docs = await self.document_repository.list_all(limit=limit, offset=offset)
+        if tenant_id:
+            return [d for d in all_docs if getattr(d, "tenant_id", None) == tenant_id]
+        return all_docs

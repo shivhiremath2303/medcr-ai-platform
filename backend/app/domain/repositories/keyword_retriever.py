@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
 
 from app.domain.models import Chunk
 
@@ -7,7 +7,7 @@ from app.domain.models import Chunk
 class KeywordRetriever(ABC):
     """
     Enterprise Interface for keyword-based retrieval.
-    Updated for horizontal scaling (10.3.3).
+    Updated for Multi-Tenant Isolation (10.4.6).
     """
 
     @abstractmethod
@@ -15,5 +15,13 @@ class KeywordRetriever(ABC):
         """Index the provided chunks."""
 
     @abstractmethod
-    async def search(self, query: str, k: int = 5) -> List[Chunk]:
-        """Search the indexed chunks."""
+    async def search(
+        self,
+        query: str,
+        k: int = 5,
+        tenant_id: Optional[str] = None
+    ) -> List[Chunk]:
+        """
+        Search the indexed chunks.
+        Strictly filters by tenant_id if provided.
+        """

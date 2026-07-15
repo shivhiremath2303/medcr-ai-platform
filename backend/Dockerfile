@@ -21,8 +21,8 @@ WORKDIR /build
 
 # Install dependencies into a specific directory for easy transfer
 COPY requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install --prefix=/install --no-warn-script-location -r requirements.txt
+RUN python -m pip install --upgrade pip && \
+    python -m pip install --prefix=/install --no-warn-script-location -r requirements.txt
 
 # Pre-download ML models to builder cache
 # We use a temp home to ensure the builder's environment doesn't leak into the install prefix

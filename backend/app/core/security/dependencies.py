@@ -36,6 +36,7 @@ class CurrentUser:
     """
     CurrentUser abstraction for dependency injection.
     Application services receive this instead of raw JWT details.
+    Now enhanced with Multi-Tenant context (10.4.3).
     """
 
     user_id: str
@@ -43,17 +44,19 @@ class CurrentUser:
     email: str
     role: UserRole
     is_active: bool
+    tenant_id: str | None = None  # Multi-Tenant context
     full_name: str | None = None
     sid: str | None = None  # Track session ID
 
     @classmethod
-    def from_user(cls, user: User, sid: str | None = None) -> "CurrentUser":
+    def from_user(cls, user: User, sid: str | None = None, tenant_id: str | None = None) -> "CurrentUser":
         return cls(
             user_id=user.user_id,
             username=user.username,
             email=user.email,
             role=user.role,
             is_active=user.is_active,
+            tenant_id=tenant_id,
             full_name=user.full_name,
             sid=sid,
         )
@@ -106,6 +109,7 @@ async def get_current_user(
 
     user_id = str(payload.get("sub", ""))
     sid = str(payload.get("sid", ""))
+    tenant_id = payload.get("tenant_id")
     if not user_id or user_id == "None":
         logger.warning("Authentication failed: Token missing subject")
         raise credentials_exception
@@ -122,7 +126,7 @@ async def get_current_user(
         logger.warning(f"Authentication failed: User {user_id} is inactive")
         raise HTTPException(status_code=400, detail="Inactive user")
 
-    return CurrentUser.from_user(user, sid=sid)
+    return CurrentUser.from_user(user, sid=sid, tenant_id=tenant_id)
 
 
 async def get_current_active_user(
@@ -142,8 +146,7 @@ async def rate_limit(
     Tiered rate limiting dependency.
     """
     user_id = current_user.user_id if current_user else None
-    # For now tenant_id is None as we don't have multi-tenancy models yet
-    tenant_id = None
+    tenant_id = current_user.tenant_id if current_user else None
 
     ip_address = request.client.host if request.client else "127.0.0.1"
 

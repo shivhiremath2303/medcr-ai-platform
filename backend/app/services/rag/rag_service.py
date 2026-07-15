@@ -29,7 +29,7 @@ tracer = get_tracer(__name__)
 class RAGService:
     """
     Coordinates the advanced Retrieval-Augmented Generation workflow with scientific evaluation.
-    Integrated with Enterprise AI Observability, Distributed Caching, and API Scaling (Milestone 10.3.7).
+    Enhanced with Multi-Tenant Isolation (10.4.6).
     """
 
     def __init__(
@@ -64,19 +64,26 @@ class RAGService:
         name="rag_answer_question", slow_threshold_ms=8000
     )
     async def answer_question(
-        self, question: str, k: int = 3, enable_evaluation: bool = True
+        self,
+        question: str,
+        k: int = 3,
+        enable_evaluation: bool = True,
+        tenant_id: Optional[str] = None # Multi-Tenant Isolation
     ) -> dict:
         """
         Retrieve context, generate an answer, and perform scientific evaluation.
+        Ensures tenant isolation throughout the pipeline.
         """
         overall_start = time.perf_counter()
         with tracer.start_as_current_span("rag_workflow") as span:
             span.set_attribute("rag.question", question)
+            if tenant_id:
+                span.set_attribute("tenant.id", tenant_id)
 
-            # 1. Distributed Caching Check
+            # 1. Distributed Caching Check (Namespace by tenant)
             memory_context = self.memory.get_context()
             context_hash = self._generate_cache_key(
-                "answer", question, memory_context, k
+                "answer", tenant_id or "global", question, memory_context, k
             )
 
             cached_answer = self.cache.get(context_hash)
@@ -95,7 +102,7 @@ class RAGService:
                 )
 
             retrieval_cache_key = self._generate_cache_key(
-                "retrieval", understanding.original_query, k
+                "retrieval", tenant_id or "global", understanding.original_query, k
             )
             results = self.cache.get(retrieval_cache_key)
 
@@ -110,6 +117,7 @@ class RAGService:
                         query=understanding.original_query,
                         k=k,
                         params={"understanding": understanding},
+                        tenant_id=tenant_id
                     )
                 retrieval_ms = (time.perf_counter() - retrieval_start) * 1000
                 self.cache.set(retrieval_cache_key, results, ttl=CacheTTL.MEDIUM)
@@ -133,7 +141,6 @@ class RAGService:
                     context=context,
                 )
             except Exception as e:
-                # 10.3.8: Graceful Degradation / Fallback
                 logger.error(
                     f"AI Generation failed. Serving fallback response. Error: {e}"
                 )
@@ -187,15 +194,17 @@ class RAGService:
             return response_data
 
     async def stream_answer(
-        self, question: str, k: int = 3
+        self,
+        question: str,
+        k: int = 3,
+        tenant_id: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
         """
         Streamed RAG response for API Scalability (10.3.7).
-        Yields partial text chunks.
+        Enhanced with tenant_id isolation (10.4.6).
         """
         memory_context = self.memory.get_context()
 
-        # Note: Understanding and Retrieval are still sequential (they are the context needed for LLM)
         understanding = await self.query_rewriter.understand_query(
             question=question,
             conversation_context=memory_context,
@@ -205,6 +214,7 @@ class RAGService:
             query=understanding.original_query,
             k=k,
             params={"understanding": understanding},
+            tenant_id=tenant_id
         )
 
         context = self.context_builder.build(results)

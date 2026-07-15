@@ -10,7 +10,7 @@ from app.domain.repositories.vector_store_repository import VectorStoreRepositor
 class HybridRetrieverAdapter(Retriever):
     """
     Adapter that combines vector search and BM25 keyword search.
-    Updated to support async horizontal scaling (10.3.3).
+    Enhanced with Multi-Tenant Isolation (10.4.6).
     """
 
     def __init__(
@@ -24,28 +24,32 @@ class HybridRetrieverAdapter(Retriever):
         self.keyword_retriever = keyword_retriever
         self.vector_weight = vector_weight
         self.similarity_threshold = similarity_threshold
-        # Note: Indexing happens in background via Worker in Phase 10.3.2
-        # but we need initial sync for simple deployments.
 
     async def retrieve(
-        self, query: str, k: int = 5, params: Dict[str, Any] | None = None
+        self,
+        query: str,
+        k: int = 5,
+        params: Dict[str, Any] | None = None,
+        tenant_id: Optional[str] = None
     ) -> List[SearchResult]:
         """
         Retrieve using both vector search and BM25 in parallel (10.3.3).
+        Enforces logical isolation via tenant_id.
         """
-        # Execute vector and keyword search concurrently
-        vector_task = self.vector_store.similarity_search(query=query, k=k)
+        # Execute vector and keyword search concurrently with tenant filters
+        vector_task = self.vector_store.similarity_search(
+            query=query,
+            k=k,
+            tenant_id=tenant_id
+        )
 
-        # Keyword retriever might be sync, so wrap in task if needed or await
-        # Assuming BM25 is fast and CPU-bound, but for consistency we'll await
-        bm25_task = self.keyword_retriever.search(query=query, k=k)
+        bm25_task = self.keyword_retriever.search(
+            query=query,
+            k=k,
+            tenant_id=tenant_id
+        )
 
-        # In a real async implementation, keyword_retriever would also be async
-        if asyncio.iscoroutine(bm25_task):
-            vector_results, bm25_chunks = await asyncio.gather(vector_task, bm25_task)
-        else:
-            vector_results = await vector_task
-            bm25_chunks = bm25_task
+        vector_results, bm25_chunks = await asyncio.gather(vector_task, bm25_task)
 
         merged_results = list(vector_results)
         existing_chunk_ids = {result.chunk.chunk_id for result in merged_results}

@@ -15,11 +15,9 @@ types-requests==2.32.0.20241016
 types-PyYAML==6.0.12.20241221
 types-passlib==1.7.7.20241221
 types-psutil==6.1.0.20241221
-types-PyJWT==1.8.0
-types-redis==4.6.0.20241004
-
+types-lxml==2024.8.7
 # Security & Supply Chain
 pip-audit==2.7.3
 cyclonedx-bom==4.4.1
 bandit==1.8.2
-safety==3.2.1
+safety==3.8.1

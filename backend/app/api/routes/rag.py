@@ -39,13 +39,14 @@ async def ask_question(
 ):
     """
     Ask a question about the uploaded legal documents.
-    Supports traditional request-response for stable clients.
+    Enforces Multi-Tenant isolation (10.4.6).
     """
 
     try:
         answer_data = await rag_service.answer_question(
             question=question_request.question,
             k=question_request.k,
+            tenant_id=current_user.tenant_id
         )
 
         audit_service.log(
@@ -58,6 +59,7 @@ async def ask_question(
                 "question_len": len(question_request.question),
                 "grounding_score": answer_data.get("grounding_score"),
                 "evidence_count": len(answer_data.get("evidence", [])),
+                "tenant_id": current_user.tenant_id
             },
         )
 
@@ -69,7 +71,11 @@ async def ask_question(
             action="rag_ask",
             status="failure",
             user_id=current_user.user_id,
-            details={"reason": "internal_error", "error": str(e)},
+            details={
+                "reason": "internal_error",
+                "error": str(e),
+                "tenant_id": current_user.tenant_id
+            },
         )
         logger.error(f"RAG error: {str(e)}", exc_info=True)
         raise HTTPException(
@@ -86,20 +92,22 @@ async def stream_question(
     _permission: CurrentUser = Depends(require_permission(Permission.CHAT_ASK)),
 ):
     """
-    Streamed version of the RAG endpoint for faster TTFB.
-    Returns chunks of the answer as they are generated.
+    Streamed version of the RAG endpoint.
+    Enforces Multi-Tenant isolation (10.4.6).
     """
 
     async def event_generator():
         try:
             async for chunk in rag_service.stream_answer(
-                question=question_request.question, k=question_request.k
+                question=question_request.question,
+                k=question_request.k,
+                tenant_id=current_user.tenant_id
             ):
                 # Standard SSE format
                 yield f"data: {chunk}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as e:
-            logger.error(f"Streaming error: {e}", exc_info=True)
+            logger.error(f"Streaming error for tenant {current_user.tenant_id}: {e}", exc_info=True)
             yield f"data: [ERROR] {str(e)}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

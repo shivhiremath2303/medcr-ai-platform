@@ -46,17 +46,23 @@ async def upload_document(
 ):
     """
     Upload and index a legal document in the background.
-    Requires Permission.DOC_UPLOAD.
+    Requires Permission.DOC_UPLOAD and a valid Tenant context.
+    Ensures physical file isolation (10.4.5).
     """
 
     try:
-        # 1. Synchronous validation and saving to storage
-        saved_path = storage.save(file)
+        # 1. Synchronous validation and saving to tenant-isolated storage
+        saved_path = storage.save(file, tenant_id=current_user.tenant_id)
 
         # 2. Enqueue Ingestion for background processing (10.3.2)
+        # Enhanced with tenant_id for isolation (10.4.4)
         task_id = await background_tasks.enqueue(
             name="ingest_document",
-            payload={"file_path": str(saved_path), "owner_id": current_user.user_id},
+            payload={
+                "file_path": str(saved_path),
+                "owner_id": current_user.user_id,
+                "tenant_id": current_user.tenant_id
+            },
             priority=TaskPriority.DEFAULT,
         )
 
@@ -65,13 +71,19 @@ async def upload_document(
             action="upload_document_async",
             status="success",
             user_id=current_user.user_id,
-            details={"filename": file.filename, "task_id": task_id},
+            details={
+                "filename": file.filename,
+                "task_id": task_id,
+                "tenant_id": current_user.tenant_id,
+                "isolated_path": str(saved_path)
+            },
         )
 
         return {
             "message": "Document upload accepted and processing started",
             "filename": file.filename,
             "task_id": task_id,
+            "tenant_id": current_user.tenant_id
         }
 
     except ValueError as e:
@@ -117,17 +129,23 @@ async def get_document(
 ):
     """
     Retrieve document metadata.
-    Validates granular permissions and resource ownership.
+    Validates granular permissions, Tenant isolation, and resource ownership.
     """
     document = await document_service.get_document(document_id)
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    # Policy Check: Ownership or Admin
-    if not document.owner_id or not authz_service.is_resource_owner(
-        current_user.to_user(), document.owner_id
+    # Policy Check: Tenant Isolation + Ownership or Admin
+    doc_meta = {
+        "owner_id": document.owner_id,
+        "tenant_id": document.tenant_id
+    }
+
+    if not authz_service.can_access_document(
+        user=current_user.to_user(),
+        document_metadata=doc_meta,
+        user_tenant_id=current_user.tenant_id
     ):
-        # Service already logs ownership failure
         raise HTTPException(
             status_code=403, detail="Access denied to this specific resource"
         )
@@ -144,6 +162,7 @@ async def get_document(
         "filename": document.filename,
         "page_count": document.page_count,
         "owner_id": document.owner_id,
+        "tenant_id": document.tenant_id,
     }
 
 
@@ -156,13 +175,16 @@ async def list_documents(
     _permission: CurrentUser = Depends(require_permission(Permission.DOC_READ)),
 ):
     """
-    List all documents accessible to the user with pagination support (10.3.7).
+    List all documents accessible to the user in their tenant (10.4.4).
     """
-    documents = await document_service.list_documents(limit=limit, offset=offset)
+    documents = await document_service.list_documents(
+        limit=limit,
+        offset=offset,
+        tenant_id=current_user.tenant_id
+    )
 
-    # In a full implementation, we would filter by owner_id here or in the repo
     return {
-        "total": len(documents),  # Simplified for 10.3.7
+        "total": len(documents),
         "limit": limit,
         "offset": offset,
         "items": [
@@ -170,7 +192,8 @@ async def list_documents(
                 "document_id": doc.document_id,
                 "filename": doc.filename,
                 "page_count": doc.page_count,
-                "owner_id": getattr(doc, "owner_id", None),
+                "owner_id": doc.owner_id,
+                "tenant_id": doc.tenant_id,
             }
             for doc in documents
         ],

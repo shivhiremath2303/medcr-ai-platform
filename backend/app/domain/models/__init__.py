@@ -25,6 +25,7 @@ from .reasoning import (
     TimelineEvent,
 )
 from .search_result import SearchResult
+from .tenant import Membership, Organization, Tenant, TenantRole, TenantStatus, Workspace
 from .user import User, UserRole
 
 __all__ = [
@@ -54,4 +55,10 @@ __all__ = [
     "SearchResult",
     "User",
     "UserRole",
+    "Membership",
+    "Organization",
+    "Tenant",
+    "TenantRole",
+    "TenantStatus",
+    "Workspace",
 ]
