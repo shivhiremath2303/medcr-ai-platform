@@ -16,8 +16,8 @@ from app.core.security.authorization import AuthorizationService
 from app.core.security.jwt import JWTManager
 from app.core.security.password import PasswordHasher
 from app.core.security.rate_limiter import RateLimiterService
+from app.domain.models.tenant import Membership, Organization, Tenant, TenantRole
 from app.domain.models.user import User, UserRole
-from app.domain.models.tenant import Organization, Tenant, Membership, TenantRole
 from app.domain.repositories import (
     CacheProvider,
     Chunker,

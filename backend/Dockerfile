@@ -30,8 +30,8 @@ ENV SENTENCE_TRANSFORMERS_HOME=/install/cache/torch/sentence_transformers
 ENV PYTHONPATH=/install/lib/python3.12/site-packages
 ENV HF_HUB_DOWNLOAD_TIMEOUT=60
 RUN mkdir -p $SENTENCE_TRANSFORMERS_HOME && \
-    python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', cache_folder='$SENTENCE_TRANSFORMERS_HOME')" && \
-    python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2', cache_folder='$SENTENCE_TRANSFORMERS_HOME')"
+    python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')" && \
+    python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
 
 # --- Stage 2: Production Hardening ---
 FROM python:3.12-slim-bookworm as runtime
