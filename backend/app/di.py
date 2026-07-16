@@ -529,16 +529,12 @@ def get_context_builder() -> IContextBuilder:
     return _context_builder
 
 
-def get_query_rewriter(
-    query_rewriter: IQueryRewriter = _query_rewriter,
-) -> IQueryRewriter:
-    return query_rewriter
+def get_query_rewriter() -> IQueryRewriter:
+    return _query_rewriter
 
 
-def get_rag_service(
-    rag_service: RAGService = _rag_service,
-) -> RAGService:
-    return rag_service
+def get_rag_service() -> RAGService:
+    return _rag_service
 
 
 # --- Lifecycle Management ---
