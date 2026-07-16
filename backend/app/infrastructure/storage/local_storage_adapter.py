@@ -59,7 +59,9 @@ class LocalStorageAdapter(StorageProvider):
                         break
                     buffer.write(chunk)
 
-            logger.info(f"File saved successfully to {target_path} (Tenant: {tenant_id})")
+            logger.info(
+                f"File saved successfully to {target_path} (Tenant: {tenant_id})"
+            )
             return target_path
 
         except Exception as e:

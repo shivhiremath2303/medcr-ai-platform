@@ -68,7 +68,7 @@ class RAGService:
         question: str,
         k: int = 3,
         enable_evaluation: bool = True,
-        tenant_id: Optional[str] = None # Multi-Tenant Isolation
+        tenant_id: Optional[str] = None,  # Multi-Tenant Isolation
     ) -> dict:
         """
         Retrieve context, generate an answer, and perform scientific evaluation.
@@ -117,7 +117,7 @@ class RAGService:
                         query=understanding.original_query,
                         k=k,
                         params={"understanding": understanding},
-                        tenant_id=tenant_id
+                        tenant_id=tenant_id,
                     )
                 retrieval_ms = (time.perf_counter() - retrieval_start) * 1000
                 self.cache.set(retrieval_cache_key, results, ttl=CacheTTL.MEDIUM)
@@ -194,10 +194,7 @@ class RAGService:
             return response_data
 
     async def stream_answer(
-        self,
-        question: str,
-        k: int = 3,
-        tenant_id: Optional[str] = None
+        self, question: str, k: int = 3, tenant_id: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
         """
         Streamed RAG response for API Scalability (10.3.7).
@@ -214,7 +211,7 @@ class RAGService:
             query=understanding.original_query,
             k=k,
             params={"understanding": understanding},
-            tenant_id=tenant_id
+            tenant_id=tenant_id,
         )
 
         context = self.context_builder.build(results)

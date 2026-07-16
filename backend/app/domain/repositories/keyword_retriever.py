@@ -16,10 +16,7 @@ class KeywordRetriever(ABC):
 
     @abstractmethod
     async def search(
-        self,
-        query: str,
-        k: int = 5,
-        tenant_id: Optional[str] = None
+        self, query: str, k: int = 5, tenant_id: Optional[str] = None
     ) -> List[Chunk]:
         """
         Search the indexed chunks.

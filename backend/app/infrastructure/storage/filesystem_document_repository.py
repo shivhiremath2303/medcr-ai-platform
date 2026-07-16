@@ -76,7 +76,9 @@ class FilesystemDocumentRepository(DocumentRepository):
                 documents.append(self._map_to_domain(data))
         return documents
 
-    async def list_by_tenant(self, tenant_id: str, limit: int = 100, offset: int = 0) -> List[Document]:
+    async def list_by_tenant(
+        self, tenant_id: str, limit: int = 100, offset: int = 0
+    ) -> List[Document]:
         """
         List documents for a specific tenant.
         """

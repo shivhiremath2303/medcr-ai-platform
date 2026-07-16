@@ -24,10 +24,7 @@ class BM25Adapter(KeywordRetriever):
         self.bm25 = BM25Okapi(tokenized_documents)
 
     async def search(
-        self,
-        query: str,
-        k: int = 5,
-        tenant_id: Optional[str] = None
+        self, query: str, k: int = 5, tenant_id: Optional[str] = None
     ) -> List[Chunk]:
         if self.bm25 is None:
             return []
@@ -37,7 +34,8 @@ class BM25Adapter(KeywordRetriever):
         target_chunks = self.chunks
         if tenant_id:
             target_chunks = [
-                c for c in self.chunks
+                c
+                for c in self.chunks
                 if getattr(c.metadata, "tenant_id", None) == tenant_id
             ]
 

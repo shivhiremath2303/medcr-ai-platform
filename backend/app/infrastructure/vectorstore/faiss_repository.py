@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document as LangChainDocument
@@ -85,17 +85,14 @@ class FAISSVectorRepository(VectorStoreRepository):
                 "filename": chunk.metadata.filename,
                 "page_number": chunk.metadata.page_number,
                 "section": chunk.metadata.section,
-                "tenant_id": chunk.metadata.tenant_id, # Isolation (10.4.6)
+                "tenant_id": chunk.metadata.tenant_id,  # Isolation (10.4.6)
             }
             for chunk in chunks
         ]
         return texts, metadatas
 
     async def similarity_search(
-        self,
-        query: str,
-        k: int | None = None,
-        tenant_id: Optional[str] = None
+        self, query: str, k: int | None = None, tenant_id: Optional[str] = None
     ) -> List[SearchResult]:
         if not self._is_ready or self.vector_store is None:
             logger.warning("Search requested but index is not ready.")
@@ -107,11 +104,15 @@ class FAISSVectorRepository(VectorStoreRepository):
             if tenant_id:
                 span.set_attribute("tenant.id", tenant_id)
 
-            results = await self.limiter.run_in_thread(self._search_sync, query, k, tenant_id)
+            results = await self.limiter.run_in_thread(
+                self._search_sync, query, k, tenant_id
+            )
             span.set_attribute("vector_store.results_count", len(results))
             return results
 
-    def _search_sync(self, query: str, k: int, tenant_id: Optional[str] = None) -> List[SearchResult]:
+    def _search_sync(
+        self, query: str, k: int, tenant_id: Optional[str] = None
+    ) -> List[SearchResult]:
         if not self.vector_store:
             return []
 
@@ -120,9 +121,7 @@ class FAISSVectorRepository(VectorStoreRepository):
         filter_dict = {"tenant_id": tenant_id} if tenant_id else None
 
         docs_and_scores = self.vector_store.similarity_search_with_relevance_scores(
-            query=query,
-            k=k,
-            filter=filter_dict
+            query=query, k=k, filter=filter_dict
         )
 
         results = []
@@ -142,7 +141,7 @@ class FAISSVectorRepository(VectorStoreRepository):
                     filename=document.metadata["filename"],
                     page_number=document.metadata["page_number"],
                     section=document.metadata.get("section"),
-                    tenant_id=document.metadata.get("tenant_id"), # Isolation (10.4.6)
+                    tenant_id=document.metadata.get("tenant_id"),  # Isolation (10.4.6)
                 ),
             ),
             score=score,

@@ -24,6 +24,7 @@ class Organization(BaseModel):
     Top-level legal entity for billing and account management.
     An Organization can own multiple Tenants.
     """
+
     organization_id: str
     name: str
     slug: str
@@ -37,6 +38,7 @@ class Tenant(BaseModel):
     Primary unit of data isolation.
     All resources (documents, vectors, cache) are siloed by tenant_id.
     """
+
     tenant_id: str
     organization_id: str
     name: str
@@ -57,6 +59,7 @@ class Workspace(BaseModel):
     Logical grouping within a Tenant (e.g., a specific case or department).
     Provides a second layer of organization within the tenant.
     """
+
     workspace_id: str
     tenant_id: str
     name: str
@@ -72,6 +75,7 @@ class Membership(BaseModel):
     Relationship between a User and a Tenant.
     Users can belong to multiple tenants with different roles.
     """
+
     user_id: str
     tenant_id: str
     role: TenantRole

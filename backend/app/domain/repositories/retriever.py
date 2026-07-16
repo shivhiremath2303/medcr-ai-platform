@@ -16,7 +16,7 @@ class Retriever(ABC):
         query: str,
         k: int = 5,
         params: Dict[str, Any] | None = None,
-        tenant_id: Optional[str] = None
+        tenant_id: Optional[str] = None,
     ) -> List[SearchResult]:
         """
         Retrieve relevant results for a query.

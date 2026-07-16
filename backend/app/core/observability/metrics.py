@@ -57,7 +57,7 @@ class MetricsRegistry:
         self, name: str, value: float, labels: Dict[str, str] | None = None
     ):
         """Passthrough to the underlying provider with tenant awareness."""
-        self.provider.observe_histogram(name, self._inject_tenant(labels), value)
+        self.provider.observe_histogram(name, value, self._inject_tenant(labels))
 
     # --- HTTP & API Metrics ---
 
@@ -146,7 +146,9 @@ class MetricsRegistry:
     def track_conversation_turn(self, model: str, message_len: int):
         labels = {"model": model}
         self.increment_counter("business_conversation_turns_total", labels)
-        self.observe_histogram("business_message_length_chars", float(message_len), labels)
+        self.observe_histogram(
+            "business_message_length_chars", float(message_len), labels
+        )
 
     def track_pipeline_step(self, step: str, duration: float, status: str = "success"):
         labels = {"step": step, "status": status}

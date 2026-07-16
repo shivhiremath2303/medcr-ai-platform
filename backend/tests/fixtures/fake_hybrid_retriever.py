@@ -19,7 +19,11 @@ class FakeHybridRetriever:
         self.params_received: list[Dict[str, Any] | None] = []
 
     async def retrieve(
-        self, query: str, k: int, params: Dict[str, Any] | None = None
+        self,
+        query: str,
+        k: int,
+        params: Dict[str, Any] | None = None,
+        tenant_id: Optional[str] = None,
     ) -> list[SearchResult]:
         self.queries.append(query)
         self.k_values.append(k)

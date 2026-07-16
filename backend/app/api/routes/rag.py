@@ -46,7 +46,7 @@ async def ask_question(
         answer_data = await rag_service.answer_question(
             question=question_request.question,
             k=question_request.k,
-            tenant_id=current_user.tenant_id
+            tenant_id=current_user.tenant_id,
         )
 
         audit_service.log(
@@ -59,7 +59,7 @@ async def ask_question(
                 "question_len": len(question_request.question),
                 "grounding_score": answer_data.get("grounding_score"),
                 "evidence_count": len(answer_data.get("evidence", [])),
-                "tenant_id": current_user.tenant_id
+                "tenant_id": current_user.tenant_id,
             },
         )
 
@@ -74,7 +74,7 @@ async def ask_question(
             details={
                 "reason": "internal_error",
                 "error": str(e),
-                "tenant_id": current_user.tenant_id
+                "tenant_id": current_user.tenant_id,
             },
         )
         logger.error(f"RAG error: {str(e)}", exc_info=True)
@@ -101,13 +101,16 @@ async def stream_question(
             async for chunk in rag_service.stream_answer(
                 question=question_request.question,
                 k=question_request.k,
-                tenant_id=current_user.tenant_id
+                tenant_id=current_user.tenant_id,
             ):
                 # Standard SSE format
                 yield f"data: {chunk}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as e:
-            logger.error(f"Streaming error for tenant {current_user.tenant_id}: {e}", exc_info=True)
+            logger.error(
+                f"Streaming error for tenant {current_user.tenant_id}: {e}",
+                exc_info=True,
+            )
             yield f"data: [ERROR] {str(e)}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

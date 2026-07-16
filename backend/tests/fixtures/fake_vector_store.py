@@ -28,10 +28,10 @@ class FakeVectorStore(VectorStoreRepository):
     async def load(self) -> bool:
         return True
 
-    async def get_all_chunks(self) -> list[Chunk]:
+    async def get_all_chunks(self, tenant_id: str | None = None) -> list[Chunk]:
         return self._chunks
 
-    async def similarity_search(self, query: str, k: int = 3) -> list[SearchResult]:
+    async def similarity_search(self, query: str, k: int = 3, tenant_id: str | None = None) -> list[SearchResult]:
         return self._search_results[:k]
 
     async def optimize(self) -> None:

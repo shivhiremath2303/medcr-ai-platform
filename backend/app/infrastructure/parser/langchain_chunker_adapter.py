@@ -39,7 +39,7 @@ class LangChainChunkerAdapter(Chunker):
                             filename=document.filename,
                             page_number=page.page_number,
                             section=None,
-                            tenant_id=document.tenant_id, # Preserve isolation (10.4.4)
+                            tenant_id=document.tenant_id,  # Preserve isolation (10.4.4)
                         ),
                     )
                 )

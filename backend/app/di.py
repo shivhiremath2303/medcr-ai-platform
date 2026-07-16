@@ -17,6 +17,7 @@ from app.core.security.jwt import JWTManager
 from app.core.security.password import PasswordHasher
 from app.core.security.rate_limiter import RateLimiterService
 from app.domain.models.user import User, UserRole
+from app.domain.models.tenant import Organization, Tenant, Membership, TenantRole
 from app.domain.repositories import (
     CacheProvider,
     Chunker,
@@ -26,7 +27,9 @@ from app.domain.repositories import (
     EmbeddingRepository,
     KeywordRetriever,
     LLMProvider,
+    MembershipRepository,
     MetricsProvider,
+    OrganizationRepository,
     RateLimiter,
     Reranker,
     Retriever,
@@ -36,7 +39,6 @@ from app.domain.repositories import (
     UserRepository,
     VectorStoreRepository,
     WorkspaceRepository,
-    MembershipRepository,
 )
 from app.domain.repositories.background_tasks import BackgroundTaskProvider
 from app.domain.repositories.benchmark_repository import BenchmarkRepository
@@ -75,12 +77,6 @@ from app.infrastructure.storage.memory_cache_provider import MemoryCacheProvider
 from app.infrastructure.storage.memory_conversation_repository import (
     MemoryConversationRepository,
 )
-from app.infrastructure.storage.sql_tenant_repository import (
-    SQLMembershipRepository,
-    SQLOrganizationRepository,
-    SQLTenantRepository,
-    SQLWorkspaceRepository,
-)
 from app.infrastructure.storage.memory_user_repository import MemoryUserRepository
 from app.infrastructure.storage.multi_level_cache_provider import (
     MultiLevelCacheProvider,
@@ -96,6 +92,12 @@ from app.infrastructure.storage.redis_revocation_repository import (
     RedisRevocationRepository,
 )
 from app.infrastructure.storage.redis_user_repository import RedisUserRepository
+from app.infrastructure.storage.sql_tenant_repository import (
+    SQLMembershipRepository,
+    SQLOrganizationRepository,
+    SQLTenantRepository,
+    SQLWorkspaceRepository,
+)
 from app.infrastructure.vectorstore.faiss_repository import FAISSVectorRepository
 from app.services.audit.audit_service import AuditService
 from app.services.background.worker_service import WorkerService
@@ -440,6 +442,10 @@ def get_workspace_repository(
     return SQLWorkspaceRepository(session)
 
 
+def get_audit_service() -> AuditService:
+    return _audit_service
+
+
 def get_auth_service(
     user_repo: UserRepository = Depends(get_user_repository),
     revocation_repo: RevocationRepository = Depends(get_revocation_repository),
@@ -458,10 +464,6 @@ def get_auth_service(
 
 def get_authorization_service() -> AuthorizationService:
     return _authorization_service
-
-
-def get_audit_service() -> AuditService:
-    return _audit_service
 
 
 def get_rate_limiter_service(
