@@ -517,16 +517,12 @@ def get_worker_service() -> WorkerService | None:
 # --- Application Services ---
 
 
-def get_document_service(
-    doc_service: DocumentService = _document_service,
-) -> DocumentService:
-    return doc_service
+def get_document_service() -> DocumentService:
+    return _document_service
 
 
-def get_retrieval_service(
-    retrieval_service: Retriever = _retrieval_service,
-) -> Retriever:
-    return retrieval_service
+def get_retrieval_service() -> Retriever:
+    return _retrieval_service
 
 
 def get_context_builder() -> IContextBuilder:
