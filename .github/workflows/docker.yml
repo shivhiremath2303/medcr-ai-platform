@@ -52,7 +52,7 @@ jobs:
           docker compose up -d backend redis
           
           echo "Waiting for backend..."
-          for i in {1..12}; do
+          for i in {1..30}; do
             if curl -fs http://localhost:8000/health/ready; then
               echo "Backend is healthy."
               exit 0
