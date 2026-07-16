@@ -33,14 +33,15 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Backend Image
-        uses: docker/build-push-action@v7
+        run: |
+          docker build --progress=plain -t legal-ai-backend:latest ./backend > docker_build.log 2>&1
+
+      - name: Upload Docker Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          context: ./backend
-          push: false
-          tags: legal-ai-backend:latest
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          name: docker-build-log
+          path: docker_build.log
 
       - name: Docker Compose Validation
         run: docker compose config
