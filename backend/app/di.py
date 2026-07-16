@@ -131,11 +131,6 @@ def get_retrieval_service() -> RetrievalService:
     return _retrieval_service_singleton
 
 
-def get_vector_store() -> VectorStoreService:
-    """Return the singleton VectorStoreService."""
-    return _vector_store_singleton
-
-
 def get_rag_service() -> RAGService:
     """Request-scoped RAGService.
 
