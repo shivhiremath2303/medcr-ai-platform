@@ -49,7 +49,9 @@ class CurrentUser:
     sid: str | None = None  # Track session ID
 
     @classmethod
-    def from_user(cls, user: User, sid: str | None = None, tenant_id: str | None = None) -> "CurrentUser":
+    def from_user(
+        cls, user: User, sid: str | None = None, tenant_id: str | None = None
+    ) -> "CurrentUser":
         return cls(
             user_id=user.user_id,
             username=user.username,

@@ -28,10 +28,7 @@ class VectorStoreRepository(ABC):
 
     @abstractmethod
     async def similarity_search(
-        self,
-        query: str,
-        k: int = 3,
-        tenant_id: Optional[str] = None
+        self, query: str, k: int = 3, tenant_id: Optional[str] = None
     ) -> List[SearchResult]:
         """
         Search the vector index for the most similar chunks.

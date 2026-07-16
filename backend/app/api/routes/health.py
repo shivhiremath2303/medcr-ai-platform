@@ -9,14 +9,16 @@ from app.domain.models.authorization import Permission
 router = APIRouter(
     prefix="/health",
     tags=["Observability"],
-    dependencies=[Depends(rate_limit)],
 )
 
 
 @router.get(
     "",
     summary="Full health report",
-    dependencies=[Depends(require_permission(Permission.ADMIN_SYSTEM_HEALTH))],
+    dependencies=[
+        Depends(require_permission(Permission.ADMIN_SYSTEM_HEALTH)),
+        Depends(rate_limit),
+    ],
 )
 async def health(health_service: HealthService = Depends(get_health_service)):
     """
@@ -24,7 +26,7 @@ async def health(health_service: HealthService = Depends(get_health_service)):
     Requires Permission.ADMIN_SYSTEM_HEALTH.
     """
     report = await health_service.get_health()
-    status_code = 200 if report["status"] == "up" else 503
+    status_code = 200 if report["status"] in ["up", "degraded"] else 503
     return JSONResponse(content=report, status_code=status_code)
 
 
@@ -38,5 +40,5 @@ async def live(health_service: HealthService = Depends(get_health_service)):
 async def ready(health_service: HealthService = Depends(get_health_service)):
     """Public probe for Kubernetes readiness checks."""
     report = await health_service.get_readiness()
-    status_code = 200 if report["status"] == "up" else 503
+    status_code = 200 if report["status"] in ["up", "degraded"] else 503
     return JSONResponse(content=report, status_code=status_code)

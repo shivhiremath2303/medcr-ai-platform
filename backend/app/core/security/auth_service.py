@@ -94,7 +94,9 @@ class AuthService:
         )
         return user
 
-    async def create_tokens(self, user: User, tenant_id: str | None = None) -> Dict[str, Any]:
+    async def create_tokens(
+        self, user: User, tenant_id: str | None = None
+    ) -> Dict[str, Any]:
         """
         Creates a token pair. If tenant_id is provided, it's included in the claims.
         If not provided, the user's primary tenant (if any) is used.
@@ -120,7 +122,9 @@ class AuthService:
         if target_tenant_id:
             token_data["tenant_id"] = target_tenant_id
 
-        access_token, refresh_token = self.jwt_manager.create_token_pair(data=token_data)
+        access_token, refresh_token = self.jwt_manager.create_token_pair(
+            data=token_data
+        )
 
         payload = self.jwt_manager.decode_token(access_token)
         sid = payload.get("sid") if payload else None
@@ -151,7 +155,11 @@ class AuthService:
         sid = payload.get("sid")
         user_id = payload.get("sub")
         tenant_id = payload.get("tenant_id")
-        if not isinstance(jti, str) or not isinstance(sid, str) or not isinstance(user_id, str):
+        if (
+            not isinstance(jti, str)
+            or not isinstance(sid, str)
+            or not isinstance(user_id, str)
+        ):
             return None
 
         if self.revocation_repository.is_revoked(jti):

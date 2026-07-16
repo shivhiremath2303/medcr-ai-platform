@@ -1,7 +1,4 @@
-from app.core.observability.metrics import (
-    MetricsRegistry,
-    NoOpMetricsProvider,
-)
+from app.core.observability.metrics import MetricsRegistry, NoOpMetricsProvider
 from app.core.observability.resource_guard import ResourceGuard
 
 

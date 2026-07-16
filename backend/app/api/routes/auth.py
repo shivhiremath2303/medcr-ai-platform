@@ -3,12 +3,13 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.core.observability.logger import get_logger
 from app.core.security.auth_service import AuthService
-from app.core.security.dependencies import CurrentUser, get_current_user, rate_limit
-from app.di import (
-    get_audit_service,
-    get_auth_service,
-    get_membership_repository,
+from app.core.security.dependencies import (
+    CurrentUser,
+    get_current_active_user,
+    get_current_user,
+    rate_limit,
 )
+from app.di import get_audit_service, get_auth_service, get_membership_repository
 from app.domain.models.audit import AuditEventType
 from app.domain.repositories.tenant_repository import MembershipRepository
 from app.services.audit.audit_service import AuditService
@@ -123,7 +124,9 @@ async def switch_tenant(
 
     # 2. Re-issue tokens with the new tenant_id claim
     # Note: to_user() returns a domain model without sensitive password data
-    tokens = await auth_service.create_tokens(current_user.to_user(), tenant_id=tenant_id)
+    tokens = await auth_service.create_tokens(
+        current_user.to_user(), tenant_id=tenant_id
+    )
 
     audit_service.log(
         AuditEventType.TOKEN_REFRESH,

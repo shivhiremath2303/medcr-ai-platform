@@ -27,9 +27,11 @@ RUN python -m pip install --upgrade pip && \
 # Pre-download ML models to builder cache
 # We use a temp home to ensure the builder's environment doesn't leak into the install prefix
 ENV SENTENCE_TRANSFORMERS_HOME=/install/cache/torch/sentence_transformers
+ENV PYTHONPATH=/install/lib/python3.12/site-packages
+ENV HF_HUB_DOWNLOAD_TIMEOUT=60
 RUN mkdir -p $SENTENCE_TRANSFORMERS_HOME && \
-    python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', cache_folder='$SENTENCE_TRANSFORMERS_HOME')" && \
-    python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2', cache_folder='$SENTENCE_TRANSFORMERS_HOME')"
+    python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')" && \
+    python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
 
 # --- Stage 2: Production Hardening ---
 FROM python:3.12-slim-bookworm as runtime
@@ -90,4 +92,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 # 10. Execution
 # We use uvicorn directly. In high-security environments, consider a process manager like gunicorn with UvicornWorker.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "warning"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]

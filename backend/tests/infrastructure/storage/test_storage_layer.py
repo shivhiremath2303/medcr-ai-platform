@@ -94,8 +94,9 @@ class TestFilesystemDocumentRepository:
 
     @pytest.mark.asyncio
     async def test_corrupted_json(self, repo, tmp_path):
-        # Create a corrupted file
-        file_path = tmp_path / "corrupt.json"
+        # Create a corrupted file in the tenant subdirectory
+        tenant_dir = repo._get_tenant_dir(None)
+        file_path = tenant_dir / "corrupt.json"
         file_path.write_text("invalid json")
 
         with pytest.raises(json.JSONDecodeError):

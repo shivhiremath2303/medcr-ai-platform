@@ -41,16 +41,14 @@ class RetrievalService(Retriever):
         query: str,
         k: int = 5,
         params: Dict[str, Any] | None = None,
-        tenant_id: Optional[str] = None
+        tenant_id: Optional[str] = None,
     ) -> List[SearchResult]:
         """
         Implementation for general Retriever interface.
         """
         if params and "understanding" in params:
             return await self.retrieve_intelligent(
-                params["understanding"],
-                k,
-                tenant_id=tenant_id
+                params["understanding"], k, tenant_id=tenant_id
             )
 
         # Fallback to standard retrieval
@@ -60,7 +58,7 @@ class RetrievalService(Retriever):
         self,
         understanding: QueryUnderstanding,
         k: int = 5,
-        tenant_id: Optional[str] = None
+        tenant_id: Optional[str] = None,
     ) -> List[SearchResult]:
         """
         Perform retrieval based on query understanding.
@@ -89,7 +87,7 @@ class RetrievalService(Retriever):
                 query=expanded_query,
                 k=candidate_count,
                 params={"vector_weight": weights.get("vector", 0.7)},
-                tenant_id=tenant_id
+                tenant_id=tenant_id,
             )
 
             # Reranker is now async (10.3.3)
@@ -124,15 +122,10 @@ class RetrievalService(Retriever):
             return final_results
 
     async def _retrieve_standard(
-        self,
-        query: str,
-        k: int,
-        tenant_id: Optional[str] = None
+        self, query: str, k: int, tenant_id: Optional[str] = None
     ) -> List[SearchResult]:
         candidates = await self.retriever.retrieve(
-            query=query,
-            k=k * self.candidate_multiplier,
-            tenant_id=tenant_id
+            query=query, k=k * self.candidate_multiplier, tenant_id=tenant_id
         )
         return await self.reranker.rerank(query=query, results=candidates, k=k)
 

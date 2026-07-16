@@ -24,7 +24,9 @@ class SQLOrganizationRepository(OrganizationRepository):
 
     async def get_by_id(self, organization_id: str) -> Optional[Organization]:
         result = await self.session.execute(
-            select(SQLOrganization).where(SQLOrganization.organization_id == organization_id)
+            select(SQLOrganization).where(
+                SQLOrganization.organization_id == organization_id
+            )
         )
         sql_org = result.scalar_one_or_none()
         return self._map_to_domain(sql_org) if sql_org else None
@@ -211,8 +213,7 @@ class SQLMembershipRepository(MembershipRepository):
     async def get(self, user_id: str, tenant_id: str) -> Optional[Membership]:
         result = await self.session.execute(
             select(SQLMembership).where(
-                SQLMembership.user_id == user_id,
-                SQLMembership.tenant_id == tenant_id
+                SQLMembership.user_id == user_id, SQLMembership.tenant_id == tenant_id
             )
         )
         sql_m = result.scalar_one_or_none()
@@ -231,7 +232,9 @@ class SQLMembershipRepository(MembershipRepository):
         return [self._map_to_domain(m) for m in result.scalars().all()]
 
     async def save(self, membership: Membership) -> Membership:
-        sql_m = await self.session.get(SQLMembership, (membership.user_id, membership.tenant_id))
+        sql_m = await self.session.get(
+            SQLMembership, (membership.user_id, membership.tenant_id)
+        )
         if sql_m:
             sql_m.role = membership.role
             sql_m.is_active = membership.is_active

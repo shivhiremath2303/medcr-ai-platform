@@ -30,7 +30,7 @@ class HybridRetrieverAdapter(Retriever):
         query: str,
         k: int = 5,
         params: Dict[str, Any] | None = None,
-        tenant_id: Optional[str] = None
+        tenant_id: Optional[str] = None,
     ) -> List[SearchResult]:
         """
         Retrieve using both vector search and BM25 in parallel (10.3.3).
@@ -38,16 +38,10 @@ class HybridRetrieverAdapter(Retriever):
         """
         # Execute vector and keyword search concurrently with tenant filters
         vector_task = self.vector_store.similarity_search(
-            query=query,
-            k=k,
-            tenant_id=tenant_id
+            query=query, k=k, tenant_id=tenant_id
         )
 
-        bm25_task = self.keyword_retriever.search(
-            query=query,
-            k=k,
-            tenant_id=tenant_id
-        )
+        bm25_task = self.keyword_retriever.search(query=query, k=k, tenant_id=tenant_id)
 
         vector_results, bm25_chunks = await asyncio.gather(vector_task, bm25_task)
 

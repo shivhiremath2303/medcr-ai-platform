@@ -47,7 +47,9 @@ class DocumentService:
         Ensures tenant isolation throughout the pipeline.
         """
         extension = Path(file_path).suffix.lower()
-        logger.info("Starting document ingestion: %s (Tenant: %s)", file_path, tenant_id)
+        logger.info(
+            "Starting document ingestion: %s (Tenant: %s)", file_path, tenant_id
+        )
 
         with tracer.start_as_current_span("document_ingestion") as span:
             span.set_attribute("doc.path", file_path)

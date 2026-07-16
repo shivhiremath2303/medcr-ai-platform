@@ -25,6 +25,7 @@ class FakeBM25Retriever(KeywordRetriever):
         self,
         query: str,
         k: int = 5,
+        tenant_id: str | None = None,
     ) -> list[Chunk]:
         self.search_queries.append(query)
         return self._search_results[:k]

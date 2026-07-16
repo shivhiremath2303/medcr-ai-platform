@@ -61,7 +61,7 @@ async def upload_document(
             payload={
                 "file_path": str(saved_path),
                 "owner_id": current_user.user_id,
-                "tenant_id": current_user.tenant_id
+                "tenant_id": current_user.tenant_id,
             },
             priority=TaskPriority.DEFAULT,
         )
@@ -75,7 +75,7 @@ async def upload_document(
                 "filename": file.filename,
                 "task_id": task_id,
                 "tenant_id": current_user.tenant_id,
-                "isolated_path": str(saved_path)
+                "isolated_path": str(saved_path),
             },
         )
 
@@ -83,7 +83,7 @@ async def upload_document(
             "message": "Document upload accepted and processing started",
             "filename": file.filename,
             "task_id": task_id,
-            "tenant_id": current_user.tenant_id
+            "tenant_id": current_user.tenant_id,
         }
 
     except ValueError as e:
@@ -136,15 +136,12 @@ async def get_document(
         raise HTTPException(status_code=404, detail="Document not found")
 
     # Policy Check: Tenant Isolation + Ownership or Admin
-    doc_meta = {
-        "owner_id": document.owner_id,
-        "tenant_id": document.tenant_id
-    }
+    doc_meta = {"owner_id": document.owner_id, "tenant_id": document.tenant_id}
 
     if not authz_service.can_access_document(
         user=current_user.to_user(),
         document_metadata=doc_meta,
-        user_tenant_id=current_user.tenant_id
+        user_tenant_id=current_user.tenant_id,
     ):
         raise HTTPException(
             status_code=403, detail="Access denied to this specific resource"
@@ -178,9 +175,7 @@ async def list_documents(
     List all documents accessible to the user in their tenant (10.4.4).
     """
     documents = await document_service.list_documents(
-        limit=limit,
-        offset=offset,
-        tenant_id=current_user.tenant_id
+        limit=limit, offset=offset, tenant_id=current_user.tenant_id
     )
 
     return {

@@ -17,13 +17,17 @@ Base = declarative_base()
 # In production, this would point to a PostgreSQL URL via settings.
 DB_URL = settings.database_url or "sqlite+aiosqlite:///./data/legal_ai.db"
 
-engine = create_async_engine(
-    DB_URL,
-    pool_size=settings.database_pool_size,
-    max_overflow=settings.database_max_overflow,
-    pool_recycle=3600,
-    echo=settings.database_echo,
-)
+engine_kwargs = {
+    "pool_recycle": 3600,
+    "echo": settings.database_echo,
+}
+
+# SQLite dialect doesn't support pool_size or max_overflow
+if not DB_URL.startswith("sqlite"):
+    engine_kwargs["pool_size"] = settings.database_pool_size
+    engine_kwargs["max_overflow"] = settings.database_max_overflow
+
+engine = create_async_engine(DB_URL, **engine_kwargs)
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,

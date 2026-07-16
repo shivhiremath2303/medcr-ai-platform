@@ -87,7 +87,7 @@ class AuthorizationService:
         self,
         user: User,
         document_metadata: Dict[str, Any] | None,
-        user_tenant_id: str | None = None
+        user_tenant_id: str | None = None,
     ) -> bool:
         """
         Policy-based check for document access.
