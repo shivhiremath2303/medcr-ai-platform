@@ -66,10 +66,10 @@ datasets/processed/
 # --------------------------
 # Models
 # --------------------------
-models/
+/models/
 
 # Keep folder structure
-!models/.gitkeep
+!/models/.gitkeep
 
 # Allow domain-level models directory (domain model dataclasses) to be tracked
 !backend/app/domain/models/
