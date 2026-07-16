@@ -9,14 +9,16 @@ from app.domain.models.authorization import Permission
 router = APIRouter(
     prefix="/health",
     tags=["Observability"],
-    dependencies=[Depends(rate_limit)],
 )
 
 
 @router.get(
     "",
     summary="Full health report",
-    dependencies=[Depends(require_permission(Permission.ADMIN_SYSTEM_HEALTH))],
+    dependencies=[
+        Depends(require_permission(Permission.ADMIN_SYSTEM_HEALTH)),
+        Depends(rate_limit),
+    ],
 )
 async def health(health_service: HealthService = Depends(get_health_service)):
     """
