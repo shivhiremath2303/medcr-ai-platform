@@ -27,6 +27,7 @@ RUN python -m pip install --upgrade pip && \
 # Pre-download ML models to builder cache
 # We use a temp home to ensure the builder's environment doesn't leak into the install prefix
 ENV SENTENCE_TRANSFORMERS_HOME=/install/cache/torch/sentence_transformers
+ENV PYTHONPATH=/install/lib/python3.12/site-packages
 RUN mkdir -p $SENTENCE_TRANSFORMERS_HOME && \
     python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', cache_folder='$SENTENCE_TRANSFORMERS_HOME')" && \
     python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2', cache_folder='$SENTENCE_TRANSFORMERS_HOME')"
