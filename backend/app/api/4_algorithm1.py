@@ -8,7 +8,6 @@ Original file is located at
 """
 
 # Install required libraries in Colab
-!pip install torch TorchCRF xgboost scikit-learn pandas numpy spacy
 
 # Verify GPU availability
 import torch
@@ -19,79 +18,12 @@ if torch.cuda.is_available():
 import json
 import spacy
 
-# 1. Load directly from the Colab file path
-file_path = "/content/ultimate_model_ready_ner_data.json"
-
-try:
-    with open(file_path, 'r', encoding='utf-8') as f:
-        raw_dataset = json.load(f)
-    print(f"Successfully loaded {len(raw_dataset)} raw cases from file!")
-except FileNotFoundError:
-    print(f"ERROR: Could not find file at {file_path}. Make sure 'ultimate_model_ready_ner_data.json' is uploaded to Colab files!")
-    raw_dataset = []
-
-nlp = spacy.blank("en")
-
-processed_sentences = []
-processed_tags = []
-
-all_words = set(["PAD", "UNK"])
-all_tags = set(["PAD", "O"])
-
-print("Processing dataset and aligning BIO tags...")
-
-for case_idx, item in enumerate(raw_dataset):
-    text = item[0]
-    entity_dict = item[1]
-    entities = entity_dict.get("entities", [])
-
-    doc = nlp(text)
-    tags = ["O"] * len(doc)
-
-    # Safe alignment using character spans
-    for start, end, label in entities:
-        if start < len(text) and end <= len(text) and start < end:
-            span = doc.char_span(start, end, label=label, alignment_mode="expand")
-            if span is not None:
-                for i, token in enumerate(span):
-                    if i == 0:
-                        tags[token.i] = f"B-{label}"
-                    else:
-                        tags[token.i] = f"I-{label}"
-
-    tokens = [token.text for token in doc]
-
-    for w in tokens:
-        all_words.add(w)
-    for t in tags:
-        all_tags.add(t)
-
-    processed_sentences.append(tokens)
-    processed_tags.append(tags)
-
-# 2. Build Index Dictionaries
-word2idx = {w: i for i, w in enumerate(sorted(list(all_words)))}
-tag2idx = {t: i for i, t in enumerate(sorted(list(all_tags)))}
-
-# 3. Save Dictionaries to Colab Storage
-with open('/content/word2idx.json', 'w', encoding='utf-8') as f:
-    json.dump(word2idx, f)
-
-with open('/content/tag2idx.json', 'w', encoding='utf-8') as f:
-    json.dump(tag2idx, f)
-
-print(f"\n--- SUCCESS ---")
-print(f"Total Processed Documents: {len(processed_sentences)}")
-print(f"Total Unique Words (Vocab Size): {len(word2idx)}")
-print(f"Total Unique BIO Tags: {len(tag2idx)}")
-print("Tag Mapping:", tag2idx)
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 
-!pip install pytorch-crf
+
 from torchcrf import CRF
 
 from sklearn.model_selection import train_test_split
@@ -145,136 +77,10 @@ class BiLSTM_CRF(nn.Module):
         emissions = self.forward(x)
         return self.crf.decode(emissions, mask=mask)
 
-# Split Train & Test Datasets
-X_train, X_test, y_train, y_test = train_test_split(processed_sentences, processed_tags, test_size=0.2, random_state=42)
-
-train_loader = DataLoader(LegalNERDataset(X_train, y_train, word2idx, tag2idx), batch_size=8, shuffle=True)
-test_loader = DataLoader(LegalNERDataset(X_test, y_test, word2idx, tag2idx), batch_size=8, shuffle=False)
-
-# Model Training
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = BiLSTM_CRF(len(word2idx), tag2idx).to(device)
-optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-print(f"Training BiLSTM-CRF Model on {device}...")
-model.train()
-for epoch in range(10):
-    total_loss = 0
-    for x_batch, y_batch in train_loader:
-        x_batch, y_batch = x_batch.to(device), y_batch.to(device)
-        mask = (x_batch != word2idx.get("PAD", 0)).to(torch.uint8)
-
-        model.zero_grad()
-        loss = model.loss(x_batch, y_batch, mask=mask)
-        loss.backward()
-        optimizer.step()
-        total_loss += loss.item()
-    print(f"Epoch {epoch+1}/10 - Loss: {total_loss:.4f}")
-
-# Save PyTorch Model
-torch.save(model.state_dict(), "/content/bilstm_crf_model.pth")
-print("\nBiLSTM-CRF Model Saved to /content/bilstm_crf_model.pth")
-
-# Evaluation
-model.eval()
-all_preds, all_labels = [], []
-
-with torch.no_grad():
-    for x_batch, y_batch in test_loader:
-        x_batch, y_batch = x_batch.to(device), y_batch.to(device)
-        mask = (x_batch != word2idx.get("PAD", 0)).to(torch.uint8)
-
-        preds = model.predict(x_batch, mask=mask)
-        for i in range(len(preds)):
-            all_preds.extend(preds[i])
-            all_labels.extend(y_batch[i][:len(preds[i])].cpu().numpy())
-
-true_tags = [idx2tag[i] for i in all_labels if idx2tag[i] != "PAD"]
-pred_tags = [idx2tag[i] for i in all_preds[:len(true_tags)]]
-
-print("\n--- BiLSTM-CRF Classification Report ---")
-print(classification_report(true_tags, pred_tags, zero_division=0))
-
-from sklearn.metrics import accuracy_score
-
-# True tags vs Predicted tags
-exact_accuracy = accuracy_score(true_tags, pred_tags) * 100
-print(f"Exact BiLSTM-CRF Token Classification Accuracy: {exact_accuracy:.2f}%")
 
 import pandas as pd
 import xgboost as xgb
 from sklearn.metrics import accuracy_score, classification_report
-
-# Extract Tabular Metadata Features from your Legal Dataset
-feature_rows = []
-
-for text, entity_dict in raw_dataset:
-    ents = entity_dict.get("entities", [])
-    labels = [e[2] for e in ents]
-
-    petitioner_count = labels.count("PETITIONER")
-    respondent_count = labels.count("RESPONDENT")
-    judge_count = labels.count("JUDGE")
-    lawyer_count = labels.count("LAWYER")
-
-    # Feature Metrics
-    doc_length = len(text)
-    total_entities = len(ents)
-    entity_density = total_entities / (doc_length + 1)
-    party_imbalance = abs(petitioner_count - respondent_count)
-
-    # Anomaly Definition (Flag cases with extreme entity imbalance or missing key roles)
-    is_anomaly = 1 if (judge_count == 0 or total_entities < 2 or party_imbalance > 5) else 0
-
-    feature_rows.append({
-        'doc_length': doc_length,
-        'total_entities': total_entities,
-        'entity_density': entity_density,
-        'petitioner_count': petitioner_count,
-        'respondent_count': respondent_count,
-        'judge_count': judge_count,
-        'lawyer_count': lawyer_count,
-        'party_imbalance': party_imbalance,
-        'is_anomaly': is_anomaly
-    })
-
-df = pd.DataFrame(feature_rows)
-
-X = df.drop(columns=['is_anomaly'])
-y = df['is_anomaly']
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Initialize & Train XGBoost
-xgb_model = xgb.XGBClassifier(
-    n_estimators=100,
-    max_depth=3,
-    learning_rate=0.05,
-    eval_metric='logloss',
-    random_state=42
-)
-
-print("Training XGBoost Anomaly Model...")
-xgb_model.fit(X_train, y_train)
-
-# Save XGBoost Model
-xgb_model.save_model("/content/xgboost_anomaly_model.json")
-print("XGBoost Model Saved to /content/xgboost_anomaly_model.json")
-
-# Evaluate XGBoost
-y_pred = xgb_model.predict(X_test)
-print(f"\n--- XGBoost Model Accuracy: {accuracy_score(y_test, y_pred) * 100:.2f}% ---")
-print(classification_report(y_test, y_pred, zero_division=0))
-
-from google.colab import files
-
-# Download trained model weights and mapping files
-files.download('/content/bilstm_crf_model.pth')
-files.download('/content/xgboost_anomaly_model.json')
-files.download('/content/word2idx.json')
-files.download('/content/tag2idx.json')
-
-!pip install transformers datasets torch
 
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
@@ -285,74 +91,11 @@ model_name = "nlpaueb/legal-bert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=3) # 0: Entailment, 1: Neutral, 2: Contradiction
 
-# 2. Sample Statement Pairs (Replace/expand with extracted testimony pairs)
-premise_hypothesis_data = {
-    "premise": [
-        "Defendant A was at location X at 9 PM on 12th March.",
-        "The document was signed by the judge on 15th August.",
-        "Respondent claims payment was completed via bank transfer."
-    ],
-    "hypothesis": [
-        "Defendant B states Defendant A was at location Y at 9 PM on 12th March.",
-        "Evidence shows the judge signed the order on 15th August.",
-        "Petitioner states no bank transfer was ever received."
-    ],
-    "label": [2, 0, 2]  # 2 = Contradiction, 0 = Entailment
-}
-
-# 3. Tokenize Dataset
-dataset = Dataset.from_dict(premise_hypothesis_data)
-
-def tokenize_function(examples):
-    return tokenizer(examples["premise"], examples["hypothesis"], truncation=True, padding="max_length", max_length=128)
-
-tokenized_dataset = dataset.map(tokenize_function, batched=True)
-
-# 4. Training Parameters
-training_args = TrainingArguments(
-    output_dir="/content/legalbert_contradiction",
-    num_train_epochs=3,
-    per_device_train_batch_size=2,
-    logging_steps=1,
-    save_strategy="no"
-)
-
-trainer = Trainer(
-    model=model,
-    args=training_args,
-    train_dataset=tokenized_dataset,
-)
-
-print("Fine-Tuning LegalBERT for Contradiction Detection...")
-trainer.train()
-
-# 5. Save LegalBERT Model
-model.save_pretrained("/content/legalbert_contradiction_model")
-tokenizer.save_pretrained("/content/legalbert_contradiction_model")
-print("SUCCESS: LegalBERT saved to /content/legalbert_contradiction_model")
-
-!pip install torch-geometric
-
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import RGCNConv
 from torch_geometric.data import Data
 
-# 1. Define Knowledge Graph Structure
-# Nodes: 0=Defendant A, 1=Defendant B, 2=Evidence 1, 3=Event 1
-# Edges: (Source, Target)
-edge_index = torch.tensor([
-    [0, 1, 2, 3, 1],  # Source Node IDs
-    [3, 3, 3, 0, 2]   # Target Node IDs
-], dtype=torch.long)
-
-# Relation Types: 0 = CLAIMS, 1 = REFUTES, 2 = INVOLVED_IN
-edge_type = torch.tensor([0, 0, 1, 2, 1], dtype=torch.long)
-
-# Dummy Node Feature Matrix (4 nodes, 8 feature dimensions)
-x = torch.randn(4, 8)
-
-graph_data = Data(x=x, edge_index=edge_index, edge_type=edge_type)
 
 # 2. Define R-GCN Architecture
 class LegalRGCN(torch.nn.Module):
@@ -371,14 +114,3 @@ class LegalRGCN(torch.nn.Module):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 rgcn_model = LegalRGCN(in_channels=8, hidden_channels=16, out_channels=2, num_relations=3).to(device)
 
-x = graph_data.x.to(device)
-edge_index = graph_data.edge_index.to(device)
-edge_type = graph_data.edge_type.to(device)
-
-output_node_embeddings = rgcn_model(x, edge_index, edge_type)
-
-print("R-GCN Output Embeddings Shape:", output_node_embeddings.shape)
-
-# Save R-GCN Model
-torch.save(rgcn_model.state_dict(), "/content/rgcn_conflict_graph_model.pth")
-print("SUCCESS: R-GCN Graph Model saved to /content/rgcn_conflict_graph_model.pth")
