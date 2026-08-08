@@ -109,3 +109,9 @@ bcrypt==4.3.0
 langgraph==0.2.74
 langgraph-checkpoint==2.0.12
 langgraph-sdk==0.1.53
+pytorch-crf
+xgboost
+pandas
+spacy
+datasets
+torch-geometric
